@@ -1,0 +1,542 @@
+<html>
+<head>
+<title>Test of WebSockets</title>
+<style type="text/css">
+.grid {
+	xborder-collapse: collapse ;
+}
+.menuButton {
+	margin-left: 0.01cm ;
+	font-size: 9pt ;
+}
+
+.hdrCell {
+	font-family: arial ;
+	font-size: 8pt ;
+	color: navy ;
+	width: 1.3cm ;
+	text-align: right;
+	font-weight: bold ;
+} 
+.labelHdrCell {
+	font-family: arial ;
+	font-size: 8pt ;
+	color: navy ;
+	width: 1.3cm ;
+	text-align: left;
+	font-weight: bold ;
+} 
+.dataCell {
+	font-family: arial ;
+	font-size: 8pt ;
+	text-align: right;
+	padding-left: 0.02cm;
+} 
+.hdrRow2 {
+	background: lightSteelBlue ;
+	line-height: 11pt ;
+} 
+.hdrRow1 {
+	background: skyBlue ;
+	line-height: 11pt ;
+} 
+.hdrRow0 {
+	background: powderblue ;
+	line-height: 11pt ;
+} 
+.totalRow2 {
+	background: lightSteelBlue ;
+	font-weight: bold ;
+	border-bottom: solid 1px navy ;
+	line-height: 9pt ;
+} 
+.totalRow1 {
+	background: skyblue ;
+	font-weight: bold ;
+	border-bottom: solid 1px cyan ;
+	line-height: 9pt ;
+} 
+.totalRow0 {
+	background: powderblue ;
+	font-weight: bold ;
+	border-bottom: solid 1px antiquewhite ;
+	line-height: 9pt ;
+} 
+.dataRow:nth-child(odd) {
+	background: lavender ;
+	line-height: 9pt ;
+} 
+
+.dataRow:hover, tr:hover {
+	  background: yellow;
+}
+
+</style>
+
+<script>
+
+    var socket;
+    var timerFunction ;
+    var host = "ws://FX6100:8112/socket/newView";
+    var colLevels ; 
+    var rowLevels ;
+    var openGridName ;
+    var numMessages = 0 ;
+    
+    openWebSocket() ;
+    
+    function openWebSocket() {
+    	if( socket != null ) {
+    		socket.close() ;
+    	}
+        socket = new WebSocket( host, "DataGrid" );
+        socket.onopen = socketOpen ;  
+        socket.onmessage = socketMessage ;
+        socket.onclose = socketClose ;  
+    }
+ 
+    function heartbeatTimeout() {
+    	if( numMessages == 0 ) {
+        	alert( "Heartbeat timeout" ) ;
+//            timerFunction = setInterval(function(){heartbeatTimeout()},10000);
+    		statusBad( "Server connection lost" ) ;
+    		openWebSocket() ;
+    	}
+    	//numMessages = 0 ;
+    }
+    
+    function socketOpen() {  
+        timerFunction = setInterval(function(){heartbeatTimeout()},10000);
+    	statusOK( "Server connection active" ) ;
+    	socket.send( "VIEWS" ) ;
+    }  
+
+    function socketClose() {
+    	socket = null ;
+    	clearTimeout( timerFunction ) ;
+    	statusBad( "Server connection closed" ) ;
+    }      
+    
+    function socketMessage( msg ) {
+    	numMessages++ ;
+	  	var cmdComponents = msg.data.split( "\f" ) ;
+	  	if( cmdComponents[0] == "HEARTBEAT" ) {
+	  		// nothing just a placeholder for message counting
+	  	} else if( cmdComponents.length >4 && cmdComponents[1] == "UPD" ) {
+	  		statusOK( "Msg Count " + numberWithCommas(numMessages) ) ;
+    	   	var colKey = cmdComponents[2] ;
+       		var rowKey = cmdComponents[3] ;
+        	var value  = cmdComponents[4] ;
+        	
+       		var cell = findGridCell( 'grid', colKey, rowKey ) ;
+           	if( cell != null ) {
+        		cell.textContent= value ;
+        	}
+	  	} else if( cmdComponents.length >3 && cmdComponents[1] == "DEL" ) {
+    	   	var colKey = cmdComponents[2] ;
+       		var rowKey = cmdComponents[3] ;
+        	
+       		var cell = findGridCell( 'grid', colKey, rowKey ) ;
+           	if( cell != null ) {
+        		cell.textContent= "" ;
+        	}
+           	removeRowIfEmpty( rowKey ) ;
+           	removeColIfEmpty( colKey ) ;
+
+	  	} else if( cmdComponents.length >2 && cmdComponents[1] == "DELC" ) {
+    	   	var colKey = cmdComponents[2] ;        	
+           	removeCol( colKey ) ;
+	  	} else if( cmdComponents.length >2 && cmdComponents[1] == "DELR" ) {
+    	   	var rowKey = cmdComponents[2] ;        	
+           	removeRow( rowKey ) ;
+	  	} else if( cmdComponents.length >2 && cmdComponents[0] == "RSP" ) {
+    	   	var request  = cmdComponents[1] ;
+       		var response = cmdComponents[2] ;
+       		if( request == "VIEWS" ) {
+       			processViewResponse( response.split("\t") ) ;
+       		}
+	  	} else if( cmdComponents.length >3 && cmdComponents[1] == "DIM" ) {
+    	   	var colLevelsTxt = cmdComponents[2] ;
+       		var rowLevelsTxt = cmdComponents[3] ;
+       		statusOK( cmdComponents[4] ) ;
+       		colLevels = colLevelsTxt.split("\t" ) ;
+       		rowLevels = rowLevelsTxt.split("\t" ) ;
+       		numColLevels = colLevels.length ;
+       		numRowLevels = rowLevels.length ;
+       		resetGrid() ;
+	  	} else if( cmdComponents.length >1 && cmdComponents[1] == "RDY" ) {
+	  		document.getElementById('grid').style.display="block";
+	  		socket.send( msg.data ) ;  // echo the ready message to enable updates in server
+	  	} else {
+	  		statusBad( "Unknown server msg: " + msg.data ) ;
+	  	}
+  	}
+       
+
+    function processViewResponse( views ) {
+    	var viewMenu = document.getElementById("viewMenu");    	
+		var lastOpenView = getKey( "openView" ) ;
+    	
+    	var menuHtml = "" ;
+    	
+    	for( var i=0 ; i<views.length ; i++ ) {
+    		menuHtml += "<input type='button' class='menuButton' onclick=\"openView('" + views[i] +"')\" value=\"" + views[i] + "\"/>" ;
+    		if( views[i] == lastOpenView ) {
+    			openView( lastOpenView  ) ;
+    		}
+    	}
+    	
+    	viewMenu.innerHTML = menuHtml ;
+    	
+    }
+    
+	function resetGrid() {
+		var grid = document.getElementById('grid');
+		grid.style.display="none";
+
+		var gridHTML = "" ;
+		for( var i=0 ; i<numColLevels ; i++ ) {
+			gridHTML += "<tr class='hdrRow" + (i%3) + "'>" ;
+			for( var j=0 ; j<numRowLevels ; j++ ) {				
+				if( i== (numColLevels-1) ) { 
+					gridHTML += "<th class='labelHdrCell'>" + rowLevels[j] +"</th>" ;
+				} else {
+					gridHTML += "<th class='labelHdrCell'>&nbsp;</th>" ;
+				}
+			}
+			gridHTML += "</tr>" ;		
+		}
+		
+		grid.innerHTML = gridHTML ;		
+	}
+
+//=======================
+// Global functions
+//
+	function views() {
+		socket.send( "VIEWS" ) ;
+ 	}
+	function closeView( view ) {
+		statusOK( "Closed " + view ) ;
+		openGridName = null ;
+		socket.send( view + "\fSTOP" ) ;
+ 	}
+	function openView( view ) {
+		if( openGridName != null) {
+			socket.send( openGridName + "\fSTOP" ) ;			
+		}
+		setKey( "openView", view ) ;
+		document.getElementById('grid').style.display="none";
+
+		statusOK( "Requesting " + view + " from server.") ;
+		openGridName = view ;
+		var msg = openGridName + "\fSTART" ;
+ 		if(typeof(Storage)!=="undefined") {
+ 			for (i=0; i<localStorage.length; i++)  
+ 		    {  
+ 		        key = localStorage.key(i);
+ 		        if( key.indexOf( openGridName+"\fEXR\f") == 0 ) {
+ 		        	var keyPieces = key.split( "\f" ) ;
+ 	 		 		msg += "\nEXR\f" + keyPieces[2] ; 	 		        
+ 		        }
+ 		        if( key.indexOf( openGridName+"\fEXC\f") == 0 ) {
+ 		        	var keyPieces = key.split( "\f" ) ;
+ 	 		 		msg += "\nEXC\f" + keyPieces[2] ; 	 		        
+ 		        }
+ 		    }
+ 		}
+		socket.send( msg ) ;
+ 	}
+	
+	function closeAll() {
+		openGridName = null ;
+		socket.send( "STOP" ) ;
+		socket.close() ;
+ 	}
+ 	  
+	function removeRowIfEmpty( rowKey ) {
+		var row = document.getElementById(rowKey);
+		if( row == null ) {
+			return ;
+		}		
+		for( var i=numRowLevels ; i<row.cells.length ; i++ ) {
+			if( row.cells[i].textContent.length > 0 ) {
+				return ;
+			}
+		}
+		
+		row.parentNode.removeChild( row ) ;
+	}
+
+	function removeRow( rowKey ) {
+		var row = document.getElementById(rowKey);
+		if( row != null ) {
+			row.parentNode.removeChild( row ) ;
+		}
+	}
+
+	
+	function removeColIfEmpty( colKey ) {
+		var rows = grid.rows ;
+		var headerRow = rows[0]
+		var numColumns = headerRow.cells.length  ;
+		var colIndexToDelete = -1 ; // append new col
+		for( colIndexToDelete=numRowLevels ; colIndexToDelete<numColumns ; colIndexToDelete++ ) {
+			var label = headerRow.cells[colIndexToDelete] ;
+			if( label.getAttribute("id") == colKey ) {
+				break ;
+			}
+			if( label.getAttribute("id") > colKey ) {
+				return ;
+			}
+		}				
+
+		for( var rowIndex = numColLevels ; rowIndex<rows.length  ; rowIndex++ ) {
+			var row = rows[rowIndex] ;
+			if( row.cells[colIndexToDelete].textContent.length > 0 ) {
+				return ;
+			}
+		} 
+		for( var rowIndex = 0 ; rowIndex<rows.length  ; rowIndex++ ) {
+			var row = rows[rowIndex] ;
+			row.deleteCell(colIndexToDelete) ;
+		} 
+	}
+
+	
+	function removeCol( colKey ) {
+		var rows = grid.rows ;
+		var headerRow = rows[0]
+		var numColumns = headerRow.cells.length  ;
+		var colIndexToDelete = -1 ; // append new col
+		for( var i=numRowLevels ; i<numColumns ; i++ ) {
+			var label = headerRow.cells[i] ;
+			if( label.getAttribute("id") == colKey ) {
+				colIndexToDelete = i ;
+				break ;
+			}
+		}				
+		if( colIndexToDelete > 0 ) {
+			for( var rowIndex = 0 ; rowIndex<rows.length  ; rowIndex++ ) {
+				var row = rows[rowIndex] ;
+				row.deleteCell(colIndexToDelete) ;
+			}
+		}
+	}
+
+
+	
+ 	function findGridRow( name, rowKey ) {
+		var row = document.getElementById(rowKey);
+		if( row != null ) {
+			return row ;
+		}
+
+ 		var rowKeys = rowKey.split( "\t" ) ;
+ 		 		
+		var grid = document.getElementById(name);
+		var rows = grid.rows ;
+		var sectionSize = rows.length - numColLevels ;
+		var insertionPoint = 0 ;
+		var sectionStart = 0 ;
+		while( sectionSize>0 ) {
+			sectionSize = Math.floor( sectionSize / 2 ) ;
+			insertionPoint = sectionStart + sectionSize + +numColLevels ;
+			
+			var row = rows[insertionPoint] ;
+			
+			var rowLabel = row.getAttribute( "id" ) ;
+			if( rowLabel < rowKey ) {
+				sectionStart += sectionSize ;
+			}
+		}
+		//insertionPoint -= sectionSize ;
+		for( insertionPoint=sectionStart+numColLevels ; insertionPoint<rows.length ; insertionPoint++ ) {
+			var row = rows[insertionPoint] ;
+			
+			var rowLabel = row.getAttribute( "id" ) ;
+			if( rowLabel > rowKey ) {
+				break ;
+			}
+		}			
+		// Insert a row in the table at row index 0
+  		var newRow   = grid.insertRow(insertionPoint);
+  		newRow.setAttribute("id", rowKey );
+		newRow.setAttribute("class", "dataRow");
+
+		var numButtonsAddedInThisRow = 0 ;
+ 		// Insert enough new columns for each level in a row
+		for( var i=0 ; i<numRowLevels ; i++ ) {
+			var newCell  = newRow.insertCell(i);
+			newCell.setAttribute("class", "labelHdrCell");
+			if( i<rowKeys.length ) {
+				newCell.textContent = rowKeys[i] ;
+			} else {
+				newRow.setAttribute("class", ("totalRow" + (numButtonsAddedInThisRow % 3) ) );
+				if( numButtonsAddedInThisRow == 0 ) {
+			        var key = openGridName+"\fEXR\f"+rowKey ;
+			 		var state = getKey( key ) ;
+					newCell.innerHTML = "<input type='button' style='width:9pt;height:9pt;margin:0px;padding:0px;font-size:6pt;font-weight:bold;' onclick=\"toggleRow( '" + openGridName + "', '" + rowKey + "', this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
+				}
+				numButtonsAddedInThisRow++ ;
+			}
+		}
+
+		for( var j=newRow.cells.length ; j<rows[0].cells.length ; j++ ) {
+			newCell  = newRow.insertCell(j);
+			newCell.setAttribute("class", "dataCell");
+			var colKey = rows[0].cells[j].getAttribute( "id" ) ;
+			newCell.setAttribute("id", colKey+"\f"+rowKey); 
+		}
+
+		return newRow ;
+	}
+
+ 	
+ 	function findGridCell( name, colKey, rowKey ) {
+ 		var fullKey = colKey + "\f" + rowKey ;
+		var cell = document.getElementById(fullKey);
+		if( cell != null ) {
+			return cell ;
+		}
+
+		var row = findGridRow( name, rowKey ) ;
+		if( row == null ) {
+			return null ;
+		}
+		
+		var grid = document.getElementById(name);
+		var rows = grid.rows ;
+		var headerRow = rows[0]
+		var numColumns = headerRow.cells.length  ;
+		var insertionPoint ; // which column index will we insert at ?
+		for( insertionPoint=numRowLevels ; insertionPoint<numColumns ; insertionPoint++ ) {
+			var label = headerRow.cells[insertionPoint] ;
+			if( label.getAttribute("id") == colKey ) {
+				return document.getElementById(fullKey); // findRow may have created the cell we need...
+			}
+			if( label.getAttribute("id") > colKey ) {
+				break ;
+			}
+		}	
+		// OK we'll insert a new column here ...
+
+		numColumns++ ;
+		var colKeys = colKey.split( "\t" ) ;
+		for( var i=0 ; i<numColLevels ; i++ ) {
+			var newCell = rows[i].insertCell(insertionPoint);
+			newCell.setAttribute("class", "hdrCell");
+			if( i<colKeys.length ) {
+				if( i==0 ) {	// only set the ID of the first header row 
+					newCell.setAttribute("id", colKey );
+				}
+				newCell.textContent = colKeys[i] ;
+			} else {
+		        var key = openGridName+"\fEXC\f"+colKey ;
+		 		var state = getKey( key ) ;
+				newCell.innerHTML = "<input type='button' style='width:9pt;height:9pt;margin:0px;padding:0px;font-size:6pt;font-weight:bold;' onclick=\"toggleCol( '" + openGridName + "', '" + colKey + "', this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
+			}
+		}
+
+		// Oh oh - brand new column - need to update every data row in the table !
+		for( var i=numColLevels ; i<rows.length ; i++ ) {
+			var row = rows[i] ;
+			
+			// Add new cells if required to make sure all rows have the proper amount of cells
+			newCell  = row.insertCell(insertionPoint);
+			newCell.setAttribute("id", colKey+"\f"+row.getAttribute("id")); 
+			newCell.setAttribute("class", "dataCell"); 
+		}
+			
+		return  document.getElementById(fullKey);
+ 	}
+
+	function numberWithCommas(x) {
+    	return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+	}
+	
+ 	function getKey( key ) {
+ 		if(typeof(Storage)!=="undefined") {
+ 			return localStorage.getItem( key ) ;
+ 		}
+ 		return null ;
+ 	}
+ 	
+ 	function setKey( key, val ) {
+ 		if(typeof(Storage)!=="undefined") {
+ 			if( val == null ) {
+ 				localStorage.removeItem( key ) ;
+ 			} else {
+ 				localStorage.setItem( key, val ) ;
+ 			}
+ 		}
+    }
+
+ 	function statusOK( msg ) {
+ 		var status = document.getElementById("status");    	
+ 		status.innerHTML="<span style='color:green;font-weight:bold;'>" + msg + "</span>" ;
+ 	}
+ 	
+ 	function statusBad( msg ) {
+ 		var status = document.getElementById("status");    	
+ 		status.innerHTML="<span style='color:red;font-weight:bold;'>" + msg + "</span>" ;
+ 	}
+
+ 	
+ 	function toggleRow( view, rowKey, button ) { 		
+        var key = view+"\fEXR\f"+rowKey ;
+ 		var state = getKey( key ) ;
+ 		
+ 		if( state == "OPE" ) {
+ 			setKey(key, null ) ;
+ 	 		socket.send( view + "\fEXR\f" + rowKey + "\fCLO" ) ;
+ 	 		button.value='+' ;
+ 		} else {
+ 			setKey(key, "OPE" ) ;
+ 	 		socket.send( view + "\fEXR\f" + rowKey + "\fOPE" ) ;
+ 	 		button.value='-' ;
+ 		}
+ 		resetGrid() ;
+ 		socket.send( view + "\fRST" ) ;
+ 	}
+
+ 	function toggleCol( view, colKey, button ) { 		
+        var key = view+"\fEXC\f"+colKey ;
+ 		var state = getKey( key ) ;
+ 		
+ 		if( state == "OPE" ) {
+ 			setKey(key, null ) ;
+ 	 		socket.send( view + "\fEXC\f" + colKey + "\fCLO" ) ;
+ 	 		button.value='+' ;
+ 		} else {
+ 			setKey(key, "OPE" ) ;
+ 	 		socket.send( view + "\fEXC\f" + colKey + "\fOPE" ) ;
+ 	 		button.value='-' ;
+ 		}
+ 		resetGrid() ;
+ 		socket.send( view + "\fRST" ) ;
+ 	}
+
+</script>
+
+</head>
+
+<body>
+
+<div id="status"></div>
+
+<!--
+<div id="controlMenu">
+<button onclick="openWebSocket()">Connect</button>
+<button onclick="closeAll()">Disconnect</button>
+</div>
+-->
+
+<div id="viewMenu"></div>
+</div>
+
+
+<table id="grid" class='grid'></table>
+
+</body>
+</html>
