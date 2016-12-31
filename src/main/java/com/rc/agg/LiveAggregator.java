@@ -3,7 +3,6 @@ package com.rc.agg;
 import java.io.IOException;
 
 import com.rc.agg.client.ClientManager;
-import com.rc.agg.client.WebSocketServer;
 import com.rc.datamodel.DataElement;
 import com.rc.dataview.DataElementStore;
 import com.rc.dataview.ViewDefinitions;
@@ -29,6 +28,7 @@ public class LiveAggregator implements DataElementProcessor {
 		dataElementStore = new DataElementStore() ;
 		clientManager = new ClientManager() ;
 
+		WebSocketServer.clientManager = clientManager ;
 		dataElementStore.setViewDefinitions( viewDefinitions ) ; 
 
 //		dataElementStore.setDataGridManager( clientManager ) ;
@@ -38,9 +38,7 @@ public class LiveAggregator implements DataElementProcessor {
 		m.setDataGridManager(clientManager);
 		m.start();
 		
-		dataElementStore.start(); 
-		
-		WebSocketServer.Listen(8112, clientManager);
+		dataElementStore.start(); 		
 	}
 	
 	@Override

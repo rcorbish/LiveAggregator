@@ -77,7 +77,7 @@
 
     var socket;
     var timerFunction ;
-    var host = "ws://FX6100:8112/socket/newView";
+    var host = "ws://FX6100:8111/live";
     var colLevels ; 
     var rowLevels ;
     var openGridName ;
@@ -89,7 +89,7 @@
     	if( socket != null ) {
     		socket.close() ;
     	}
-        socket = new WebSocket( host, "DataGrid" );
+        socket = new WebSocket( host );
         socket.onopen = socketOpen ;  
         socket.onmessage = socketMessage ;
         socket.onclose = socketClose ;  
