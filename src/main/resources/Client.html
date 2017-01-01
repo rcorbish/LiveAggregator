@@ -77,6 +77,9 @@
 .dataRow:hover, tr:hover {
 	  background: yellow;
 }
+.dataRow:hover, col:hover {
+	  background: yellow;
+}
 
 </style>
 
@@ -179,7 +182,10 @@
 	  	}
   	}
        
-
+/*
+	If I asked what the views are - this is the response
+	views is an array of view names that can be opened
+*/
     function processViewResponse( views ) {
     	var viewMenu = document.getElementById("viewMenu");    	
 		var lastOpenView = getKey( "openView" ) ;
@@ -194,9 +200,17 @@
     	}
     	
     	viewMenu.innerHTML = menuHtml ;
-    	
     }
-    
+
+/*
+	Hide the grid - so that we can receive all the updates
+	and eventually redraw the  web-page. This is actually faster
+	than processing a lot of updates. If the view is small 
+	then the previous statement is inaccurate.
+	
+	rowLevels & colLevels must be initialized (i.e. in response to a DIM msg 
+	or a col/row expand/collapse)	
+*/    
 	function resetGrid() {
 		var grid = document.getElementById('grid');
 		grid.style.display="none";
@@ -223,13 +237,7 @@
 	function views() {
 		socket.send( "VIEWS" ) ;
  	}
- 	/*
-	function closeView( view ) {
-		statusOK( "Closed " + view ) ;
-		openGridName = null ;
-		socket.send( view + "\fSTOP" ) ;
- 	}
- 	*/
+
 	function openView( view ) {
 		if( openGridName != null) {
 			socket.send( openGridName + "\fSTOP" ) ;			
