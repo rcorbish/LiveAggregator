@@ -10,7 +10,14 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.rc.agg.WebSocketServer;
+
 public class ViewDefinitions implements Runnable, AutoCloseable {
+	Logger logger = LoggerFactory.getLogger( ViewDefinitions.class ) ;
+
 	private File viewDefinitionFile ;
 	private volatile Thread fileWatcherThread  ;
 	private Map<String,ViewDefinition> viewDefinitions ;
@@ -25,7 +32,7 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 	
 	public void start() throws IOException {
 		if( fileWatcherThread != null ) {
-			System.out.println( "FileWatcher Thread was already running - requested kill." ) ;
+			logger.warn( "FileWatcher Thread was already running - requested kill." ) ;
 			fileWatcherThread.interrupt();
 		}
 		loadViewDefinitions();
@@ -70,7 +77,7 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 							loadedFileTimestamp = currentFileTimestamp ;
 							break ;
 						} catch( IOException error ) {
-							System.out.println( "Error parsing updated views " + error.getLocalizedMessage() + ". Previous definitions remain in effect until this is fixed." ) ;
+							logger.error( "Error parsing updated views. Previous definitions remain in effect until this is fixed.", error ) ;
 							Thread.sleep( 3000 );
 						}
 					} 
@@ -83,7 +90,7 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 
 	private void commitViewDefinitions() {
 		viewDefinitions = potentialViewDefinitions ;
-		System.out.println( "Committed new definitions: " + viewDefinitions.size() + " views available." ) ;
+		logger.info( "Committed new definitions: {} views available.", viewDefinitions.size() ) ;
 	}
 
 	private synchronized void loadViewDefinitions() throws IOException {

@@ -4,15 +4,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.rc.agg.WebSocketServer;
 import com.rc.dataview.ClientDataView;
 import com.rc.dataview.DataElementDataView;
 
+/**
+ * This handles all messages from the client.
+ * 
+ * @see ClientCommaneProcessor which handles events to the client.
+ * 
+ * @author richard
+ *
+ */
 public class ClientProxy implements ClientEventProcessor {
+
+	Logger logger = LoggerFactory.getLogger( ClientProxy.class ) ;
 
 	private final Map<String,ClientDataView> openDataGrids ;
 	private ClientCommandProcessor clientCommandProcessor ;
 	private ClientManager clientManager ;
-	private Thread heartbeater ;
 
 	public ClientProxy( ClientManager clientManager, ClientCommandProcessor clientCommandProcessor ) {
 		openDataGrids = new ConcurrentHashMap<>();
@@ -54,7 +67,7 @@ public class ClientProxy implements ClientEventProcessor {
 				rc = "BOOK\tCCY\tTRADEID" ;
 			}
 		} catch( Exception ex ) {
-			System.out.println( "Error responding to request: " + ex.getMessage() ) ;
+			logger.error( "Error responding to request.", ex ) ;
 		}
 		return rc ;
 	}
@@ -63,9 +76,7 @@ public class ClientProxy implements ClientEventProcessor {
 	public void gridReady(String gridName) {
 		ClientDataView dgp = openDataGrids.get(gridName) ;
 		if( dgp == null ) {
-			System.out.println( "Ignoring expand/collapse request for unknown grid: '" + gridName + "'." ) ;
-		} else {
-			dgp.activate(true) ;
+			logger.info( "Ignoring grid ready info for unknown grid: '{}'.", gridName  ) ;
 		}
 	}
 
@@ -74,7 +85,7 @@ public class ClientProxy implements ClientEventProcessor {
 			boolean expanded) {
 		ClientDataView dgp = openDataGrids.get(gridName) ;
 		if( dgp == null ) {
-			System.out.println( "Ignoring expand/collapse request for unknown grid: '" + gridName + "'." ) ;
+			logger.info( "Ignoring expand/collapse request for unknown grid: '{}'.", gridName  ) ;
 		} else {
 			dgp.expandCollapseRow( rowKey, expanded) ;			
 		}
@@ -84,7 +95,7 @@ public class ClientProxy implements ClientEventProcessor {
 			boolean expanded) {
 		ClientDataView dgp = openDataGrids.get(gridName) ;
 		if( dgp == null ) {
-			System.out.println( "Ignoring expand/collapse request for unknown grid: '" + gridName + "'." ) ;
+			logger.info( "Ignoring expand/collapse request for unknown grid: '{}'.", gridName  ) ;
 		} else {
 			dgp.expandCollapseCol( colKey, expanded) ;			
 		}
@@ -94,29 +105,30 @@ public class ClientProxy implements ClientEventProcessor {
 	public void closeGrid( String gridName ) {
 		ClientDataView dgp = openDataGrids.remove(gridName) ;
 		if( dgp == null ) {
-			System.out.println( "Cannot find " + gridName + " in the openGrids." );
+			logger.warn( "Cannot find {} in the openGrids.", gridName );
 		} else {
 			dgp.close();
-			System.out.println( "Removed '" + gridName + "' from openGrids. " + openDataGrids.size() + " grids remain." );
+			logger.info( "Removed '{}' from openGrids. {} grids remain.", gridName, openDataGrids.size() );
 		}
 	}
 
 	// Client requested complete refresh of a grid
 	public void resetGrid( String gridName ) {
+		logger.info( "Resetting grid {}", gridName ) ;
 		ClientDataView dgp = openDataGrids.get(gridName) ;
 		if( dgp == null ) {
-			System.out.println( "Cannot find " + gridName + " in the openGrids." );
+			logger.warn( "Cannot find {} in the openGrids.", gridName );
 		} else {
-			dgp.activate(true);
 			dgp.sendAll() ;
 			clientCommandProcessor.initializationComplete(gridName);
+			logger.info( "Reset grid {} completed.", gridName ) ;
 		}
 	}
 
 	public void openGrid( String gridName, List<String> openColKeys, List<String> openRowKeys ) {
 		DataElementDataView dedv = clientManager.getDataElementDataView(gridName) ;
 		if( dedv==null ) {
-			System.out.println( "Grid " + gridName + " is not defined." ) ;			
+			logger.warn( "Grid {} is not defined.", gridName ) ;			
 		} else {
 			ClientDataView newView = new ClientDataView(dedv, clientCommandProcessor) ;
 			if( openRowKeys != null ) {
@@ -129,53 +141,26 @@ public class ClientProxy implements ClientEventProcessor {
 					newView.expandCollapseCol( openColKey, true ) ;
 				}
 			}
-			long start = System.nanoTime() ;
-			System.out.println( "Replaying all data elements to " + gridName );
+			long start = System.currentTimeMillis() ;
+			logger.debug( "Replaying all data elements to {}", gridName ) ;
 			newView.sendAll() ;
-			System.out.println( "Replayed all elements to " + gridName +" in " + (System.nanoTime()-start) + "nS." );
+			logger.info( "Replayed all elements to {} in {} mS", gridName, (System.currentTimeMillis()-start) );
 			
 			clientCommandProcessor.initializationComplete(gridName);
 			openDataGrids.put( gridName, newView ) ;			
-			System.out.println( "Added new dataGrid '" + gridName + "'. " + openDataGrids.size() + " grids exist." );
-//			newView.start();
+			logger.debug( "Added new dataGrid '{}'. {} grids now exist.", gridName, openDataGrids.size() );
 		}
 	}
 
-	public void close() {
-		if( heartbeater != null ) {
-			try {
-				heartbeater.interrupt() ;	// stop heartbeats on a useless channel
-				heartbeater = null ;
-			} catch( Throwable ignoreError ) {
-				// could have a (rare) NullPtr if the thread shuts itself down at the same time
-			}
+	public void close() {		
+		logger.info( "Requesting close of entire client - removing all grids." ) ;
+		for( String gridName : openDataGrids.keySet() ) {
+			clientCommandProcessor.closeClient( gridName );
 		}
 		openDataGrids.clear();
-		clientCommandProcessor.closeClient();
+		logger.info( "All grids cleared.");
 	}
 
-
-	public void start() {
-		heartbeater = new Thread( new Runnable() {
-			@Override
-			public void run() {
-				Thread.currentThread().setName( "Heartbeat" ) ;
-				try {	
-					while( !Thread.currentThread().isInterrupted() ) {
-						Thread.sleep( 3000 ) ;
-						if( !clientCommandProcessor.heartbeat() ) {
-							close() ;
-						}
-					}
-				} catch( InterruptedException ignore ) {
-					System.out.println( "Heartbeater interrupted - shutting down now." ) ;
-				} finally {
-					heartbeater = null ;
-				}
-			}			
-		} ) ;
-		heartbeater.start();
-	}
 
 	/*
 	 * Section for the monitor ....

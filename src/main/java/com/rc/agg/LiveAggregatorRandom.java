@@ -7,9 +7,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.rc.datamodel.DataElement;
 
 public class LiveAggregatorRandom  {
+	Logger logger = LoggerFactory.getLogger( LiveAggregatorRandom.class ) ;
 
 	private DecimalFormat decimalFormat = new DecimalFormat( "#,##0" ) ;
 
@@ -20,7 +24,7 @@ public class LiveAggregatorRandom  {
 	private String AXES[] = new String[] { "O/N", "1B", "1D", "3D", "1M", "3M", "6M", "9M", "1Y", "2Y", "3Y", "4Y", "5Y", "6Y", "7Y", "8Y", "9Y", "10Y", "15Y", "20Y", "25Y", "30Y", "50Y" } ;
 	private String PRODUCTS[] = new String[] { "SWAP", "FRA", "XCCY", "MMKT", "FEE" } ;
 	private String BOOKS[] = new String[] { "Book1", "Book2", "Book3", "Book4", "Book5", "Book6" } ;
-	private String CPTYS[] = new String[] { "Big Co.", "A Bank", "Bank 2", "Fund 1", "Hedge Fund", "A govt.", "Random Co." } ;
+	private String CPTYS[] = new String[] { "Big Co.", "A Bank", "Bank 2", "Fund 1", "H Fund", "A govt.", "Rand Co." } ;
 
 	private final static String[] ATTRIBUTE_NAMES = new String[] { "TRADEID", "CPTY", "BOOK", "PRODUCT", "TYPE", "AXIS", "CCY" } ; 
 
@@ -41,13 +45,15 @@ public class LiveAggregatorRandom  {
 		final Random random = new Random() ;
 		final int UPDATES_PER_MSG = 10 ;
 		final int N = 1000 ;
-		System.out.println( "Starting" ); 
+		logger.info( "Starting server. Connect to client @ server:8111/Client.html" ); 
 		for( ; ; ) {
 			long start = System.currentTimeMillis() ;
 			final int BATCH_SIZE = 20 ;
 
-			ExecutorService executor = Executors.newFixedThreadPool( 10 ) ;
+			ExecutorService executor = Executors.newFixedThreadPool( 20 ) ;
 			aggregator.startBatch() ;
+			
+			// FIRST create an initial view - send updates & stuff
 			for( int i=0 ; i<(N/BATCH_SIZE) ; i++ ) {
 				final int START = i * BATCH_SIZE ;
 				executor.execute(
@@ -81,16 +87,17 @@ public class LiveAggregatorRandom  {
 							}
 						} ) ;
 			}
-			executor.shutdown() ;
+			executor.shutdown() ;  // wait for initial view to finish generating
 			if( !executor.awaitTermination( 10, TimeUnit.MINUTES ) ) {
-				throw new Exception( "Horror of horrors - we timed out waiting for the thing to finish.");
+				throw new Exception( "Horror of horrors - we timed out waiting for the mofo to finish.");
 			}
-			System.out.println( "Finished processing " + decimalFormat.format(N*UPDATES_PER_MSG) + " cells in    " + decimalFormat.format( (System.currentTimeMillis() - start) ) + "mS   \t" + new Date()  );
+			logger.debug( "Finished processing {} cells in {} mS", decimalFormat.format(N*UPDATES_PER_MSG), decimalFormat.format( (System.currentTimeMillis() - start) ) );
 			start = System.nanoTime() ;
 			aggregator.endBatch();
 
 			long tPlus5Mins = System.currentTimeMillis() + (5 * 60 * 1000) ;
-			//			start = System.nanoTime() ;
+			
+			// Now send random crap for 5 mins
 			while( System.currentTimeMillis()<tPlus5Mins ) {
 				int ix = random.nextInt( N ) ;
 
@@ -115,10 +122,8 @@ public class LiveAggregatorRandom  {
 					(random.nextInt( 100 ) - 50)) ;
 				}
 				aggregator.process( de ) ;									
-//				System.out.println( "Processed 1 item" ) ;
-				Thread.sleep( 15 ); 
+				Thread.sleep( 10 );  // distance between tandom updates
 			}
-			//			System.out.println( "Completed " + decimalFormat.format(N) + " in    " + decimalFormat.format( (System.nanoTime() - start) ) + "\n" );
 		}
 	}
 }

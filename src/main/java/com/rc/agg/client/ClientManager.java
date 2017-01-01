@@ -4,7 +4,11 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.rc.agg.DataElementProcessor;
+import com.rc.agg.WebSocketServer;
 import com.rc.dataview.DataElementDataView;
 import com.rc.dataview.DataElementStore;
 
@@ -18,24 +22,24 @@ import com.rc.dataview.DataElementStore;
  */
 public class ClientManager implements AutoCloseable {
 
+	Logger logger = LoggerFactory.getLogger( ClientManager.class ) ;
+
 	private DataElementStore	dataElementStore ;
 	private Set<ClientProxy>	activeClients ;
-	private boolean				serverBatchComplete ;
 	
 	public ClientManager() {
 		activeClients = new HashSet<>() ;
 	}
-
 	
 	public void addClient( ClientProxy clientProxy ) {
 		activeClients.add( clientProxy ) ;
 	}
 	
-	protected void closeClient( ClientProxy clientProxy ) {
+	public void closeClient( ClientProxy clientProxy ) {
 		if( !activeClients.remove(clientProxy) ) {
-			System.out.println( "Error - client is not found, unable to close." ) ;
+			logger.error( "Error - client is not found, unable to close." ) ;
 		} else {
-			System.out.println( "Closed client. " + activeClients.size() + " clients remain." );
+			logger.info( "Closed client. {} clients remain.", activeClients.size() );
 		}
 	}
 
@@ -50,11 +54,6 @@ public class ClientManager implements AutoCloseable {
 			cp.close();
 		}
 	}
-
-	public boolean isServerBatchComplete() {
-		return serverBatchComplete;
-	}
-
 
 	/**
 	 * This is for monitoring only - not normally a public access

@@ -5,7 +5,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.rc.agg.DataElementProcessor;
+import com.rc.agg.WebSocketServer;
 import com.rc.datamodel.DataElement;
 
 /**
@@ -16,6 +20,8 @@ import com.rc.datamodel.DataElement;
  *
  */
 public class DataElementDataView  implements DataElementProcessor, Runnable {
+
+	Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
 
 	private final Map<String,String> filters ; 		// what key = value is being filtered
 	private final List<String> colGroups ; 			// what is getting grouped
@@ -33,8 +39,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	private Thread messageSender ;
 
 
-	public DataElementDataView( 
-			ViewDefinition viewDefinition ) {
+	public DataElementDataView( ViewDefinition viewDefinition ) {
 
 		this.viewName = viewDefinition.getName() ;
 		this.description = viewDefinition.getDescription() ;
@@ -260,8 +265,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 			} catch( InterruptedException ignore ) {
 				break ;
 			} catch( Throwable t ) {
-				System.out.println( "Error sending updates: " + t.getLocalizedMessage() ) ;
-				t.printStackTrace();
+				logger.error( "Error sending updates: ", t ) ;
 			}
 		}
 	} 

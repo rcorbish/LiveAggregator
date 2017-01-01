@@ -18,7 +18,7 @@ public interface ClientCommandProcessor {
 
 	public void initializationComplete( String gridName ) ;
 
-	public void closeClient() ;
+	public void closeClient( String gridName ) ;
 	public boolean heartbeat() ;
 	
 }

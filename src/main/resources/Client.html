@@ -2,8 +2,15 @@
 <head>
 <title>Test of WebSockets</title>
 <style type="text/css">
+
+#messageCount {
+	font-size: 8pt ;
+	position:absolute;
+	right: 0 ;
+	top: 0 ;
+}
 .grid {
-	xborder-collapse: collapse ;
+	border-collapse: collapse ;
 }
 .menuButton {
 	margin-left: 0.01cm ;
@@ -82,6 +89,7 @@
     var rowLevels ;
     var openGridName ;
     var numMessages = 0 ;
+ 	var messageCountAtPreviousHeartbeat = 0 ;	
     
     openWebSocket() ;
     
@@ -96,17 +104,15 @@
     }
  
     function heartbeatTimeout() {
-    	if( numMessages == 0 ) {
-        	alert( "Heartbeat timeout" ) ;
-//            timerFunction = setInterval(function(){heartbeatTimeout()},10000);
+    	if( numMessages === messageCountAtPreviousHeartbeat ) {
     		statusBad( "Server connection lost" ) ;
     		openWebSocket() ;
     	}
-    	//numMessages = 0 ;
-    }
+		messageCountAtPreviousHeartbeat = numMessages ;    
+	}
     
     function socketOpen() {  
-        timerFunction = setInterval(function(){heartbeatTimeout()},10000);
+        timerFunction = setInterval(function(){heartbeatTimeout()},3000);
     	statusOK( "Server connection active" ) ;
     	socket.send( "VIEWS" ) ;
     }  
@@ -118,12 +124,12 @@
     }      
     
     function socketMessage( msg ) {
-    	numMessages++ ;
+    	numMessages++ ; // used by heartbeat timer.
 	  	var cmdComponents = msg.data.split( "\f" ) ;
-	  	if( cmdComponents[0] == "HEARTBEAT" ) {
-	  		// nothing just a placeholder for message counting
-	  	} else if( cmdComponents.length >4 && cmdComponents[1] == "UPD" ) {
-	  		statusOK( "Msg Count " + numberWithCommas(numMessages) ) ;
+	  	if( cmdComponents[0] === "HEARTBEAT" ) {
+	  		// nothing just a placeholder for message to make sure numMessages in increasing 
+	  	} else if( cmdComponents.length >4 && cmdComponents[1] === "UPD" ) {
+	  		document.getElementById( "messageCount" ).textContent = "Msg Count " + numberWithCommas(numMessages) ;
     	   	var colKey = cmdComponents[2] ;
        		var rowKey = cmdComponents[3] ;
         	var value  = cmdComponents[4] ;
@@ -132,7 +138,7 @@
            	if( cell != null ) {
         		cell.textContent= value ;
         	}
-	  	} else if( cmdComponents.length >3 && cmdComponents[1] == "DEL" ) {
+	  	} else if( cmdComponents.length >3 && cmdComponents[1] === "DEL" ) {
     	   	var colKey = cmdComponents[2] ;
        		var rowKey = cmdComponents[3] ;
         	
@@ -143,19 +149,20 @@
            	removeRowIfEmpty( rowKey ) ;
            	removeColIfEmpty( colKey ) ;
 
-	  	} else if( cmdComponents.length >2 && cmdComponents[1] == "DELC" ) {
+	  	} else if( cmdComponents.length >2 && cmdComponents[1] === "DELC" ) {
     	   	var colKey = cmdComponents[2] ;        	
            	removeCol( colKey ) ;
-	  	} else if( cmdComponents.length >2 && cmdComponents[1] == "DELR" ) {
+	  	} else if( cmdComponents.length >2 && cmdComponents[1] === "DELR" ) {
     	   	var rowKey = cmdComponents[2] ;        	
            	removeRow( rowKey ) ;
-	  	} else if( cmdComponents.length >2 && cmdComponents[0] == "RSP" ) {
+	  	} else if( cmdComponents.length >2 && cmdComponents[0] === "RSP" ) {
     	   	var request  = cmdComponents[1] ;
        		var response = cmdComponents[2] ;
-       		if( request == "VIEWS" ) {
+       		if( request === "VIEWS" ) {
        			processViewResponse( response.split("\t") ) ;
        		}
-	  	} else if( cmdComponents.length >3 && cmdComponents[1] == "DIM" ) {
+	  	} else if( cmdComponents.length >3 && cmdComponents[1] === "DIM" ) {
+	  		numMessages = 1 ; // reset message count for a new grid
     	   	var colLevelsTxt = cmdComponents[2] ;
        		var rowLevelsTxt = cmdComponents[3] ;
        		statusOK( cmdComponents[4] ) ;
@@ -164,7 +171,7 @@
        		numColLevels = colLevels.length ;
        		numRowLevels = rowLevels.length ;
        		resetGrid() ;
-	  	} else if( cmdComponents.length >1 && cmdComponents[1] == "RDY" ) {
+	  	} else if( cmdComponents.length >1 && cmdComponents[1] === "RDY" ) {
 	  		document.getElementById('grid').style.display="block";
 	  		socket.send( msg.data ) ;  // echo the ready message to enable updates in server
 	  	} else {
@@ -216,11 +223,13 @@
 	function views() {
 		socket.send( "VIEWS" ) ;
  	}
+ 	/*
 	function closeView( view ) {
 		statusOK( "Closed " + view ) ;
 		openGridName = null ;
 		socket.send( view + "\fSTOP" ) ;
  	}
+ 	*/
 	function openView( view ) {
 		if( openGridName != null) {
 			socket.send( openGridName + "\fSTOP" ) ;			
@@ -524,6 +533,7 @@
 <body>
 
 <div id="status"></div>
+<div id="messageCount"></div>
 
 <!--
 <div id="controlMenu">

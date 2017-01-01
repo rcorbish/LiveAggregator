@@ -20,8 +20,6 @@ public class ClientDataView  /*implements Runnable */ {
 	private final ClientCommandProcessor clientCommandProcessor ;		// how to pass the new view to the client
 	private final Set<String> expandedRows ;
 	private final Set<String> expandedCols ;
-	//	private Thread messageSender ;
-	private volatile boolean clientReadyToReceive ;
 
 	public ClientDataView( 
 			DataElementDataView dataElementDataView,
@@ -50,7 +48,6 @@ public class ClientDataView  /*implements Runnable */ {
 			rowKey += rowGroup ;
 		}
 		clientCommandProcessor.defineGrid( getViewName(), colKey, rowKey, dataElementDataView.getDescription() ) ;
-		activate(true); 
 	}
 
 	//	public void start() {
@@ -67,12 +64,6 @@ public class ClientDataView  /*implements Runnable */ {
 	}
 	public void expandCollapseCol( String colKey, boolean expanded) {
 		if( expanded ) { expandedCols.add( colKey ) ; } else { expandedCols.remove(colKey) ; } 
-	}
-
-	public void activate( boolean active ) {
-		// Can now send updates to client
-		clientReadyToReceive = active ;
-		//		System.out.println( "Client activated - do something here ........") ;
 	}
 
 
@@ -107,12 +98,14 @@ public class ClientDataView  /*implements Runnable */ {
 			boolean colExpanded = parentColKeysExpanded(colKey) ;
 			
 			if( rowExpanded && colExpanded ) {
-				clientCommandProcessor.updateCell( 
+				if( dve != null ) {   // it may be null at first view open
+					clientCommandProcessor.updateCell( 
 						getViewName(), 
 						colKey, 
 						rowKey,
 						numberFormatter.format(dve.getValue())  
 						) ;
+				}
 			} else {
 				if( !rowExpanded ) {
 					clientCommandProcessor.deleteRow( 
