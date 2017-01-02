@@ -11,7 +11,13 @@ import java.util.concurrent.TimeUnit;
 import com.rc.agg.DataElementProcessor;
 import com.rc.datamodel.DataElement;
 
-
+/**
+ * This is the cache of all currently valaid data. It's big and stupid and fast!
+ * Any data element that might contribute to a view will be cached in here.
+ * 
+ * @author richard
+ *
+ */
 public class DataElementStore  implements DataElementProcessor {
 
 	private final Map<String,DataElement> 	currentElements ;

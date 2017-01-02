@@ -25,7 +25,17 @@ import com.rc.agg.client.ClientManager;
 import com.rc.agg.client.ClientMessage;
 import com.rc.agg.client.ClientProxy;
 
-
+/**
+ * One of the more interesting classes, this handles raw messages from the client.
+ * It does delegate most work to the private class (below). There is one WebSocketServer
+ * per server instance, each client instance has a WebSocketCommandProcessor to 
+ * manage itself. We have 2 lists of clients: 1 in client manager and one in clientData. Ideally these
+ * need to be merged. TODO & all that. The difference is that the client manager handles messages
+ * from the web page and the clientData handles messages to - pretty lame
+ * 
+ * @author richard
+ *
+ */
 @WebSocket
 public class WebSocketServer  {
 	Logger logger = LoggerFactory.getLogger( WebSocketServer.class ) ;
@@ -71,6 +81,14 @@ public class WebSocketServer  {
 	}
 
 
+	/**
+	 * This parses the client message and then hands it off to a client processor. It's 
+	 * semi-dumb (which is never good) 
+	 * 
+	 * @param session
+	 * @param message
+	 * @throws IOException
+	 */
 	@OnWebSocketMessage
 	public void message(Session session, String message) throws IOException {
 		logger.info( "Received {} from {}.", message, session.getRemoteAddress() ) ;
@@ -124,6 +142,10 @@ public class WebSocketServer  {
 		}
 	}
 	
+	/**
+	 * Used for debugging in the monitor page only
+	 * @return
+	 */
 	public static String toStringStatic() {
 		String rc = "" ;
 		int i = 0 ;
@@ -135,7 +157,13 @@ public class WebSocketServer  {
 	}
 }
 
-
+/**
+ * One of these is created for each client web-page. It handles the transmission to the 
+ * server. 
+ * 
+ * @author richard
+ *
+ */
 class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Runnable  {
 	Logger logger = LoggerFactory.getLogger( WebSocketCommandProcessor.class ) ;
 

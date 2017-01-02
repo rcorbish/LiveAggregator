@@ -14,7 +14,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rc.agg.WebSocketServer;
-
+/**
+ * This looks after reading the config file to define views. If the config file
+ * changes, this jobby will wake up and reset the views. Note that the old view is
+ * still valid as long as someone has it openn. New users will NOT be allowed to 
+ * see a view that's been changed though.
+ * 
+ * @author richard
+ *
+ */
 public class ViewDefinitions implements Runnable, AutoCloseable {
 	Logger logger = LoggerFactory.getLogger( ViewDefinitions.class ) ;
 
@@ -29,7 +37,10 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 			throw new IOException( "File '" + fileName + "' cannot be read." ) ;
 		}		
 	}
-	
+	/**
+	 * I know there is a FileWacther - but it has problems with
+	 * remote drives. Anyway this works :)
+	 */
 	public void start() throws IOException {
 		if( fileWatcherThread != null ) {
 			logger.warn( "FileWatcher Thread was already running - requested kill." ) ;

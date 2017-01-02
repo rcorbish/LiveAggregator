@@ -1,5 +1,10 @@
 package com.rc.dataview;
 
+/**
+ * An exception class used to flag an internal model error - very very BAD
+ * @author richard
+ *
+ */
 public class IncompatibleLiveDataElement extends RuntimeException {
 	/**
 	 * 

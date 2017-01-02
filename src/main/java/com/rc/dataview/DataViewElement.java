@@ -1,7 +1,14 @@
 package com.rc.dataview;
 
 
-
+/**
+ * This is the actual thing that is stored in the DataElementStore. It's a
+ * piece of data with flags to indicate it's been changed (updated) or deleted (unused)
+ * The actual data being stored is a double. @TODO make it a float to save a bit of space
+ * 
+ * @author richard
+ *
+ */
 public class DataViewElement {
 	double value = 0.0 ;
 	boolean updated = false ;		// has this been updated since last send?

@@ -6,7 +6,14 @@ import java.util.Map;
 
 import com.rc.datamodel.DataElement;
 
-
+/**
+ * The definition of a view read from a text (config) file. 
+ * A view defines what can be looked at by a client, i.e. which labels 
+ * are used for rows and columns, what filters are supported.
+ * 
+ * @author richard
+ *
+ */
 public class ViewDefinition {
 	
 	private String name ;
