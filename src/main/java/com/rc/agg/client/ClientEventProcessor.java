@@ -12,7 +12,7 @@ public interface ClientEventProcessor {
 
 	
 	// Client opened a new grid
-	public void openGrid( String gridName, List<String> openRowKeys, List<String> openColKeys  ) ;
+	public void openGrid( String gridName, String openRowKeys[], String openColKeys[] ) ;
 	
 	// Send all cells to the client
 	public void resetGrid( String gridName ) ;
@@ -21,15 +21,15 @@ public interface ClientEventProcessor {
 	public void closeGrid( String gridName ) ;
 
 	// Notification of expanded/collapsed state for a row
-	public void expandCollapseRow( String gridName, String rowKey, boolean expanded ) ;
+	public void expandCollapseRow( String gridName, String rowKeys[], boolean expanded ) ;
 	
 	// Notification of expanded/collapsed state for a column
-	public void expandCollapseCol( String gridName, String colKey, boolean expanded ) ;
+	public void expandCollapseCol( String gridName, String colKeys[], boolean expanded ) ;
 	
 	// Notification that grid is prepared at display
 	public void gridReady( String gridName ) ;
 	
 	// Generic request from client that requires a response
-	public CharSequence respond( String request ) ;
+	public String [] respond( ClientMessage request ) ;
 	
 }

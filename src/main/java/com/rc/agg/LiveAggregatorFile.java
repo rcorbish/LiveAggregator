@@ -41,7 +41,7 @@ public class LiveAggregatorFile  {
 					String s=br.readLine() ;
 					
 					if( s!=null ) {
-						String cols[] = s.split("\t") ;
+						String cols[] = DataElement.splitComponents(s) ;
 						int valueIndex = -1 ;
 						for(int i=0 ; i<cols.length ; i++ ) {
 							if( cols[i].equals( VALUE_KEY ) ) {						
@@ -65,7 +65,7 @@ public class LiveAggregatorFile  {
 								if( s.charAt(0) == '#' ) {
 									continue ;
 								}
-								cols = s.split("\t") ;
+								cols = DataElement.splitComponents(s) ;
 								cols[0] = String.valueOf(n) + cols[0] ;
 								String colsWithoutValue[] = new String[cols.length-1] ;
 								for( int j=0 ; j<colsWithoutValue.length ; j++ ) {

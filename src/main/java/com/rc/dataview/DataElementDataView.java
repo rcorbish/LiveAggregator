@@ -2,6 +2,7 @@ package com.rc.dataview;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,9 +24,12 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 
 	Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
 
+	// How often to send an update to the client
+	public static int CLIENT_UPDATE_INTERVAL = 125 ;
+	
 	private final Map<String,String> filters ; 		// what key = value is being filtered
-	private final List<String> colGroups ; 			// what is getting grouped
-	private final List<String> rowGroups ; 			// what is getting grouped
+	private final String colGroups[] ; 				// what is getting grouped
+	private final String rowGroups[] ; 				// what is getting grouped
 
 	private final Map<String,DataViewElement>   dataViewElements ;	// raw dataViewElements that needs to be updated is stored here
 	private final String viewName ;
@@ -45,15 +49,13 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		this.description = viewDefinition.getDescription() ;
 		this.filters = viewDefinition.getFilters();
 
-		if( viewDefinition.getColGroups().isEmpty() ) {
-			colGroups = new ArrayList<>() ; 
-			colGroups.add("--") ; 
+		if( viewDefinition.getColGroups().length == 0 ) {
+			colGroups = new String[] { "--" } ; 
 		} else {
 			this.colGroups = viewDefinition.getColGroups() ;
 		}
-		if( viewDefinition.getRowGroups().isEmpty() ) {
-			rowGroups = new ArrayList<>() ; 
-			rowGroups.add("--") ; 
+		if( viewDefinition.getRowGroups().length == 0 ) {
+			rowGroups = new String[] { "--" } ; 
 		} else {
 			this.rowGroups = viewDefinition.getRowGroups() ;
 		}
@@ -78,8 +80,8 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		boolean rc = true ;
 		if( filters != null && !filters.isEmpty() ) {
 			for( String k : filters.keySet() ) {
-				String mustMatchSomethingInHere = filters.get(k) ;
-				String []mustMatchOneOfThese = mustMatchSomethingInHere.split("\t" ) ;
+				String mustMatchSomethingInHere = filters.get(k) ;				
+				String []mustMatchOneOfThese = DataElement.splitComponents(mustMatchSomethingInHere) ;
 				boolean matchedOneOfthese = false ;
 				for( String couldMatchThis : mustMatchOneOfThese ) {
 					String att = element.getAttribute( index, k ) ;
@@ -101,7 +103,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		if( filters != null && !filters.isEmpty() ) {
 			for( String k : filters.keySet() ) {
 				String mustMatchSomethingInHere = filters.get(k) ;
-				String []mustMatchOneOfThese = mustMatchSomethingInHere.split("\t" ) ;
+				String []mustMatchOneOfThese = DataElement.splitComponents( mustMatchSomethingInHere ) ;
 				boolean failedToMatcheOneOfThese = false;
 				for( String couldMatchThis : mustMatchOneOfThese ) {
 					String att = element.getCoreAttribute( k ) ;
@@ -134,7 +136,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 			List<String>	removedKeys = new ArrayList<>() ;
 			for( String elementKey : dataViewElements.keySet() ) {
 				DataViewElement dve = dataViewElements.get( elementKey ) ;
-				if( dve.unused ) {
+				if( dve.unused ) {					
 					for( ClientDataView cdv : clientViews ) {
 						cdv.unusedElement( elementKey, dve ) ;
 					}
@@ -186,7 +188,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 					for( String colGroup : colGroups ) {
 						colKeyPiece.append( dataElement.getAttribute(i, colGroup ) ) ;
 						elementKey.setLength(0);
-						elementKey.append( colKeyPiece ).append( '\f') ;
+						elementKey.append( colKeyPiece ).append( DataElement.ROW_COL_SEPARATION_CHAR ) ;
 						for( String rowGroup : rowGroups ) {
 							elementKey.append( dataElement.getAttribute(i, rowGroup ) ) ;
 							String key = elementKey.toString() ;
@@ -200,9 +202,9 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 								}
 							}
 							dve.add( dataElement.getValue(i) )  ;
-							elementKey.append( '\t' ) ;
+							elementKey.append( DataElement.SEPARATION_CHAR ) ;
 						}					
-						colKeyPiece.append( '\t') ;
+						colKeyPiece.append( DataElement.SEPARATION_CHAR ) ;
 					}
 				}
 			}
@@ -224,12 +226,12 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	}
 
 
-	public List<String> getColGroups() {
+	public String[] getColGroups() {
 		return colGroups;
 	}
 
 
-	public List<String> getRowGroups() {
+	public String[] getRowGroups() {
 		return rowGroups;
 	}
 
@@ -258,10 +260,19 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		Thread.currentThread().setName( getViewName() + " Update Sender" );
 		while( messageSender!=null && !messageSender.isInterrupted() ) {
 			try {
-				Thread.sleep( 150 );
+				Thread.sleep( CLIENT_UPDATE_INTERVAL );
 				if( serverBatchComplete ) {
 					sendUpdates();
 				}
+								
+				ListIterator<ClientDataView> iter = clientViews.listIterator();
+				while(iter.hasNext()){
+				    if(iter.next().isClosed() ){
+				        iter.remove();
+				        logger.info( "Removing closed data view." ) ;
+				    }
+				}
+
 			} catch( InterruptedException ignore ) {
 				break ;
 			} catch( Throwable t ) {

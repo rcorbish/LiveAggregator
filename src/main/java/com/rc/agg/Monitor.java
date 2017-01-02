@@ -33,16 +33,20 @@ public class Monitor implements AutoCloseable {
 		rc.append( "<h2>Active clients</h2>");
 		for( ClientProxy cp : clientManager.getActiveClients()) {
 			rc
-			.append( "<h3>")
-			.append(cp.toString())
-			.append("</h3>") ;
+			.append(cp.toString().replaceAll( "\n", "<br>") )
+			.append("<ul>") ;
 			for( ClientDataView dedv : cp.getOpenDataGrids().values() ) {
 				rc
-				.append("<h5>")
+				.append("<li>")
 				.append( dedv.toString() )
-				.append("</h5>") ;
+				.append("</li>") ;
 			}
+			rc.append( "</ul><hr/>") ;
 		}
+
+		rc.append( "<h2>Managed clients</h2>");
+		rc.append( WebSocketServer.toStringStatic().replaceAll( "\n", "<br>") );
+
 
 		rc.append( "</html>");
 		return rc ;

@@ -1,5 +1,6 @@
 package com.rc.datamodel;
 
+import java.util.regex.Pattern;
 
 /**
  * A DataElement represents an input to the aggregator. It may be the result of
@@ -27,6 +28,10 @@ package com.rc.datamodel;
  */
 public class DataElement {
 
+	public static char ROW_COL_SEPARATION_CHAR = '\f' ;
+	public static char SEPARATION_CHAR = '\t' ;
+	public static Pattern SEPARATION_CHAR_PATTERN = Pattern.compile( Pattern.quote( String.valueOf(SEPARATION_CHAR) ) ) ;
+	
 	private String invariantKey ;			// a key for this update - used to identify replacements
 	
 	private final double values[] ;			// each value 
@@ -176,4 +181,30 @@ public class DataElement {
 	public double getValue( int index ) {
 		return values[index] ;
 	}
+	
+	/**
+	 * This helper method is used to split a key into separate components. 
+	 * This would be expected to be used for the  data element label
+	 * components - whera cell label is indexed by muli-level keys
+	 * 
+	 * @param in the input key as a flat string
+	 * @return the array of components 
+	 */
+	static public String[] splitComponents( String in ) {
+		return DataElement.SEPARATION_CHAR_PATTERN.split( in ) ;
+	}
+
+	/**
+	 * This is the counterpoint to splitComponents 
+	 * @param in an array of Strings to merge into a label
+	 * @return the flat label of merged components
+	 */
+	static public String mergeComponents( String in[] ) {		
+		StringBuilder rc = new StringBuilder( in[0] ) ;
+		for( int i=1 ; i<in.length ; i++ ) {
+			rc.append( SEPARATION_CHAR ).append( in[i] ) ;
+		}
+		return rc.toString() ;
+	}
+
 }

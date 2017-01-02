@@ -1,9 +1,10 @@
 package com.rc.dataview;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+
+import com.rc.datamodel.DataElement;
 
 
 public class ViewDefinition {
@@ -18,19 +19,19 @@ public class ViewDefinition {
 		this.description = description;
 	}
 
-	private List<String> colGroups ;
-	private List<String> rowGroups ;
+	private String colGroups[] ;
+	private String rowGroups[] ;
 	private Map<String,String> filters ;
 	
 	public String getName() {
 		return name;
 	}
 
-	public List<String> getColGroups() {
+	public String[] getColGroups() {
 		return colGroups;
 	}
 
-	public List<String> getRowGroups() {
+	public String[] getRowGroups() {
 		return rowGroups;
 	}
 
@@ -40,17 +41,19 @@ public class ViewDefinition {
 
 	public ViewDefinition( String name ) {
 		this.name = name ;
-		colGroups = new ArrayList<>() ;
-		rowGroups = new ArrayList<>() ;
+		colGroups = new String[0] ;
+		rowGroups = new String[0] ;
 		filters = new HashMap<>() ;
 	}
 	
 	public void addColGroup( String colGroup ) {
-		colGroups.add(colGroup) ; 
+		colGroups = Arrays.copyOf( colGroups, colGroups.length+1 ) ;
+		colGroups[colGroups.length-1] = colGroup ;
  	}
 	
 	public void addRowGroup( String rowGroup ) {
-		rowGroups.add(rowGroup) ; 
+		rowGroups = Arrays.copyOf( rowGroups, rowGroups.length+1 ) ;
+		rowGroups[rowGroups.length-1] = rowGroup ;
  	}
 	
 	public void addFilter( String attribute, String value ) {
@@ -58,7 +61,7 @@ public class ViewDefinition {
 		if( currentFilter==null ) {
 			filters.put( attribute, value) ;
 		} else {
-			filters.put( attribute, currentFilter+"\t"+value) ;
+			filters.put( attribute, currentFilter + DataElement.SEPARATION_CHAR + value) ;
 		}
  	}
 	

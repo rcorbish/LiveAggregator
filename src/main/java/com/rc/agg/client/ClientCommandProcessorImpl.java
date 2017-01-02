@@ -5,6 +5,8 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rc.datamodel.DataElement;
+
 /**
  * This builds up messages to send to the remote client. It is importnat that all 
  * message to the client is send via this interface. 
@@ -12,25 +14,68 @@ import org.slf4j.LoggerFactory;
  *
  */
 public abstract class ClientCommandProcessorImpl implements ClientCommandProcessor {
+	
 	Logger logger = LoggerFactory.getLogger( ClientCommandProcessorImpl.class ) ;
 
 	/**
-	 * Prepare a message to be sent to the client.
+	 * Prepare a message to be sent to the client. All messages require a command
+	 * the gridName is optional as ar the args. The arguments to the command are
+	 * pairs of keys and values to be printed into JSON format
 	 * 
-	 * @param messages
+	 * @param gridName the name of the grid to direct the messages to - may be null
+	 * @param command the command to send to the client
+	 * @param colKeys column key array, may be null
+	 * @param rowKeys row key array, may be null
+	 * @param description a description text - optional 
 	 * 
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	protected void send( CharSequence ... messages ) throws IOException, InterruptedException {
-		StringBuilder msg = new StringBuilder( messages[0] ) ;
-		for( int i=1 ; i<messages.length ;i++ ) {
-			msg.append( '\f' ).append( messages[i] ) ;
+	protected void send( String gridName, String command, String colKeys, String rowKeys, String value, String description ) throws  ClientDisconnectedException {
+		StringBuilder msg = new StringBuilder( "{" ) ;
+		if( gridName == null ) {
+			msg.append( "\"command\":\"").append( command ).append( '"' )  ;
+		} else {
+			msg.append( "\"gridName\":\"").append( gridName ).
+			append( "\",\"command\":\"").append( command ).append( '"' )  ;			
 		}
+		if( rowKeys != null ) {
+			msg.append( ",\"rowKeys\": [" ).append( printArray(DataElement.splitComponents(rowKeys)) ).append( ']' );
+		}
+		if( colKeys != null ) {
+			msg.append( ",\"colKeys\": [" ).append( printArray(DataElement.splitComponents(colKeys)) ).append( ']' );
+		}
+		if( description!= null ) {
+			msg.append( ",\"description\": \"" ).append( description ).append( '"' );
+		}
+		if( value!= null ) {
+			msg.append( ",\"value\": \"" ).append( value ).append( '"' );
+		}
+		msg.append( '}' ) ;
 		transmit( msg );
 	}
 
+	
+	
+	protected void send( String gridName, String command ) throws InterruptedException, ClientDisconnectedException {
+		send( gridName,command, null, null, null, null ) ;
+	}
 
+	protected void send( String gridName, String command, String colKeys, String rowKeys ) throws ClientDisconnectedException {
+		send( gridName,command, colKeys, rowKeys, null, null ) ;
+	}
+
+	
+	protected String printArray( String arr[] ) {
+		StringBuilder sb = new StringBuilder( ' ' ) ;
+		for( String a : arr ) {
+			sb.append( '"' ).append( a ).append( "\"," ) ;
+		}
+		sb.deleteCharAt( sb.length() - 1 ) ;
+		return sb.toString() ;
+	}
+	
+	
 	@Override
 	public void closeClient( String gridName ) {
 		try {
@@ -41,6 +86,7 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 		}
 	}
 
+	
 	/**
 	 * This is called to send a heartbeat to the client. It is probably called
 	 * by the actual sender when no messages have been sent for a while. It could
@@ -50,7 +96,7 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	@Override
 	public boolean heartbeat() {
 		try {
-			send( "HEARTBEAT" ) ;
+			send( null, "HEARTBEAT" ) ;
 		} catch (Exception e) {
 			return false ;
 		}			
@@ -60,8 +106,8 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	@Override
 	public void defineGrid(String gridName, String columnLevels, String rowLevels, String description) {
 		try {
-			send( gridName, "DIM", columnLevels, rowLevels, description ) ;
-			logger.info( "Sent DIM message for {}", gridName );
+			send( gridName, "DIM", columnLevels, rowLevels, null, description ) ;
+			logger.info( "Sent DIM message for {}, cols: {}, rows: {}", gridName, DataElement.splitComponents(columnLevels), DataElement.splitComponents(rowLevels) );
 		} catch (Exception e) {
 			logger.error( "Error sending DIM message", e );
 			closeClient( gridName ) ;
@@ -81,42 +127,24 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 
 
 	@Override
-	public void updateCell(String gridName, String columnKey, String rowKey, String data) throws ClientDisconnectedException {
-		try {
-			send( gridName, "UPD", columnKey, rowKey, data ) ;
-		} catch (Exception e) {
-			logger.error( "Error sending UPD message", e );
-			closeClient( gridName ) ;
-			throw new ClientDisconnectedException() ;
-		}			
+	public void updateCell(String gridName, String columnKeys, String rowKeys, String data) throws ClientDisconnectedException {
+		send( gridName, "UPD", columnKeys, rowKeys, data, null ) ;
 	}
 
 	@Override
-	public void deleteCell(String gridName, String columnKey, String rowKey) throws ClientDisconnectedException {
-		try {
-			send( gridName, "DEL", columnKey, rowKey ) ;
-		} catch (Exception e) {
-			logger.error( "Error sending DEL message", e );
-			closeClient( gridName ) ;
-			throw new ClientDisconnectedException() ;
-		}			
+	public void deleteCell(String gridName, String columnKeys, String rowKeys ) throws ClientDisconnectedException {
+		send( gridName, "DEL", columnKeys, rowKeys ) ;
 	}
 
 	@Override
-	public void deleteRow(String gridName, String rowKey) throws ClientDisconnectedException {
-		try {
-			send( gridName, "DELR", rowKey ) ;
-		} catch (Exception e) {
-			logger.error( "Error sending DELR message", e );
-			closeClient( gridName ) ;
-			throw new ClientDisconnectedException() ;
-		}			
+	public void deleteRow(String gridName, String rowKeys ) throws ClientDisconnectedException {
+		send( gridName, "DELR", null, rowKeys ) ;
 	}
 
 	@Override
-	public void deleteCol(String gridName, String columnKey ) throws ClientDisconnectedException {
+	public void deleteCol(String gridName, String columnKeys ) throws ClientDisconnectedException {
 		try {
-			send( gridName, "DELC", columnKey ) ;
+			send( gridName, "DELC", columnKeys, null ) ;
 		} catch (Exception e) {
 			logger.error( "Error sending DELC message", e );
 			closeClient( gridName ) ;
@@ -134,7 +162,7 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
  * @throws IOException
  * @throws InterruptedException
  */
-	protected abstract void transmit( CharSequence message ) throws IOException, InterruptedException ;
+	protected abstract void transmit( CharSequence message ) throws ClientDisconnectedException ;
 	
 
 }

@@ -43,8 +43,8 @@ public class LiveAggregatorRandom  {
 
 	public void start() throws Exception {
 		final Random random = new Random() ;
-		final int UPDATES_PER_MSG = 10 ;
-		final int N = 10000 ;
+		final int UPDATES_PER_MSG = 100 ;
+		final int N = 10_000 ;
 		logger.info( "Starting server. Connect to client @ server:8111/Client.html" ); 
 		for( ; ; ) {
 			long start = System.currentTimeMillis() ;
@@ -89,7 +89,7 @@ public class LiveAggregatorRandom  {
 			}
 			executor.shutdown() ;  // wait for initial view to finish generating
 			if( !executor.awaitTermination( 10, TimeUnit.MINUTES ) ) {
-				throw new Exception( "Horror of horrors - we timed out waiting for the mofo to finish.");
+				throw new Exception( "Horror of horrors - we timed out waiting for the initial population to finish.");
 			}
 			logger.debug( "Finished processing {} cells in {} mS", decimalFormat.format(N*UPDATES_PER_MSG), decimalFormat.format( (System.currentTimeMillis() - start) ) );
 			start = System.nanoTime() ;
@@ -122,7 +122,7 @@ public class LiveAggregatorRandom  {
 					(random.nextInt( 100 ) - 50)) ;
 				}
 				aggregator.process( de ) ;									
-				Thread.sleep( 10 );  // distance between tandom updates
+				Thread.sleep( 20 );  // distance between batch updates
 			}
 		}
 	}

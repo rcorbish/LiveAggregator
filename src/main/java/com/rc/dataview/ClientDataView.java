@@ -1,11 +1,16 @@
 package com.rc.dataview;
 
 import java.text.DecimalFormat;
-import java.util.HashSet;
 import java.util.Set;
 
+import org.eclipse.jetty.util.ConcurrentHashSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.rc.agg.client.ClientCommandProcessor;
+import com.rc.agg.client.ClientCommandProcessorImpl;
 import com.rc.agg.client.ClientDisconnectedException;
+import com.rc.datamodel.DataElement;
 
 /**
  * This class represents the client view grid. It accepts dataViewElements element updates
@@ -14,12 +19,14 @@ import com.rc.agg.client.ClientDisconnectedException;
  * @author richard
  *
  */
-public class ClientDataView  /*implements Runnable */ {
+public class ClientDataView  {
+	Logger logger = LoggerFactory.getLogger( ClientDataView.class ) ;
 
 	private final DataElementDataView dataElementDataView ;	
 	private final ClientCommandProcessor clientCommandProcessor ;		// how to pass the new view to the client
 	private final Set<String> expandedRows ;
 	private final Set<String> expandedCols ;
+	private boolean closed ;
 
 	public ClientDataView( 
 			DataElementDataView dataElementDataView,
@@ -27,36 +34,27 @@ public class ClientDataView  /*implements Runnable */ {
 
 		this.dataElementDataView = dataElementDataView ;
 		this.clientCommandProcessor = clientCommandProcessor ;		
-		this.expandedRows = new HashSet<>();
-		this.expandedCols = new HashSet<>();
-
+		this.expandedRows = new ConcurrentHashSet<>() ;
+		this.expandedCols = new ConcurrentHashSet<>() ;
+		this.closed = false ;
+		
 		dataElementDataView.addClient( this ); 
 
-		String colKey = "" ;
-		boolean first = true ;
-		for( String colGroup : dataElementDataView.getColGroups() ) {
-			if( first ) { first=false ;}
-			else { colKey += '\t' ;}
-			colKey += colGroup ;
-		}
-
-		String rowKey = "" ;
-		first = true ;
-		for( String rowGroup : dataElementDataView.getRowGroups() ) {
-			if( first ) { first=false ;}
-			else { rowKey += '\t' ; }
-			rowKey += rowGroup ;
-		}
-		clientCommandProcessor.defineGrid( getViewName(), colKey, rowKey, dataElementDataView.getDescription() ) ;
+		clientCommandProcessor.defineGrid( 
+				getViewName(), 
+				DataElement.mergeComponents( dataElementDataView.getColGroups() ) , 
+				DataElement.mergeComponents( dataElementDataView.getRowGroups() ) , 
+				dataElementDataView.getDescription() ) ;
 	}
 
-	//	public void start() {
-	//		messageSender = new Thread( this ) ;
-	//		messageSender.start();
-	//	}
+	
+	public boolean isClosed() {
+		return closed;
+	}
 
 	public void close() {
-		this.dataElementDataView.removeClient( this ); 
+		logger.info( "Marking ClientDataView {} as closed.", getViewName() ) ;
+		closed = true ; 
 	}
 
 	public void expandCollapseRow( String rowKey, boolean expanded) {
@@ -68,7 +66,7 @@ public class ClientDataView  /*implements Runnable */ {
 
 
 	public void unusedElement( String elementKey, DataViewElement dve ) {
-		int ix = elementKey.indexOf('\f' ) ;
+		int ix = elementKey.indexOf( DataElement.ROW_COL_SEPARATION_CHAR ) ;
 		String colKey = elementKey.substring(0,ix) ;
 		String rowKey = elementKey.substring(ix+1) ;
 
@@ -80,24 +78,25 @@ public class ClientDataView  /*implements Runnable */ {
 						rowKey 
 						) ;
 			} catch (ClientDisconnectedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				close(); 
 			}
 		}
 	}
 
 
 	public void updatedElement( String elementKey, DataViewElement dve ) {
-		int ix = elementKey.indexOf('\f' ) ;
+		if( isClosed() ) return ;
+		
+		int ix = elementKey.indexOf( DataElement.ROW_COL_SEPARATION_CHAR ) ;
 		String colKey = elementKey.substring(0,ix) ;
 		String rowKey = elementKey.substring(ix+1) ;
-		DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
 
 		try {
 			boolean rowExpanded = parentRowKeysExpanded(rowKey) ;
 			boolean colExpanded = parentColKeysExpanded(colKey) ;
 			
 			if( rowExpanded && colExpanded ) {
+				DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
 				if( dve != null ) {   // it may be null at first view open
 					clientCommandProcessor.updateCell( 
 						getViewName(), 
@@ -121,8 +120,7 @@ public class ClientDataView  /*implements Runnable */ {
 				}
 			}
 		} catch (ClientDisconnectedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			close(); 
 		}
 	}
 
@@ -137,13 +135,24 @@ public class ClientDataView  /*implements Runnable */ {
 
 
 	protected boolean parentKeysExpanded( String colKey, String rowKey ) {
+		// isClosed - if the view is closed don't attempt to send anything
+		// otherwise make sure all the parent keys in each row & col expanded rows/cols
+		// are marked as expanded.
 		return parentRowKeysExpanded(rowKey) & parentColKeysExpanded(colKey) ;
 	}
 
+	/**
+	 * Verify that ALL parent keys of the given key are currently expanded.
+	 * Just because a grandchild is 'open' it may not be visible
+	 * if its parent is 'closed'
+	 * 
+	 * @param rowKey
+	 * @return
+	 */
 	protected boolean parentRowKeysExpanded( String rowKey ) {
-		boolean rc = true ;				
+		boolean rc = !isClosed() ;				
 		String parentRowKey = rowKey ; 
-		for( int i = rowKey.lastIndexOf('\t') ; i>0 ; i=parentRowKey.lastIndexOf('\t') ) {
+		for( int i = rowKey.lastIndexOf( DataElement.SEPARATION_CHAR) ; i>0 ; i=parentRowKey.lastIndexOf(DataElement.SEPARATION_CHAR) ) {
 			parentRowKey = parentRowKey.substring(0,i) ;
 			rc &= expandedRows.contains( parentRowKey ) ;
 		}
@@ -151,9 +160,9 @@ public class ClientDataView  /*implements Runnable */ {
 	}
 
 	protected boolean parentColKeysExpanded( String colKey ) {
-		boolean rc = true ;				
+		boolean rc = !isClosed()  ;				
 		String parentColKey = colKey ; 
-		for( int i = colKey.lastIndexOf('\t') ; i>0 ; i=parentColKey.lastIndexOf('\t') ) {
+		for( int i = colKey.lastIndexOf(DataElement.SEPARATION_CHAR) ; i>0 ; i=parentColKey.lastIndexOf(DataElement.SEPARATION_CHAR) ) {
 			parentColKey = parentColKey.substring(0,i) ;
 			rc &= expandedCols.contains( parentColKey ) ;
 		}
@@ -162,7 +171,7 @@ public class ClientDataView  /*implements Runnable */ {
 
 
 	public String toString() {
-		return getViewName() + " Expanded Cols :" + expandedCols.size() + " Expanded Rows :" + expandedRows.size() ; 
+		return getViewName() + " Expanded Cols :" + expandedCols.size() + " Expanded Rows :" + expandedRows.size() + " " + (isClosed()?"Closed" : "Active") ; 
 	}
 
 
@@ -186,5 +195,4 @@ public class ClientDataView  /*implements Runnable */ {
 		return dataElementDataView.getViewName() ;
 	}
 }
-
 

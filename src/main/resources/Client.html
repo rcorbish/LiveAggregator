@@ -17,6 +17,14 @@
 	font-size: 9pt ;
 }
 
+.expand-button {
+	width:9pt;
+	height:9pt;
+	margin:0px;
+	padding:0px;
+	font-size:6pt;
+	font-weight:bold;
+}
 .hdrCell {
 	font-family: arial ;
 	font-size: 8pt ;
@@ -109,7 +117,7 @@
     function heartbeatTimeout() {
     	if( numMessages === messageCountAtPreviousHeartbeat ) {
     		statusBad( "Server connection lost" ) ;
-    		openWebSocket() ;
+    		//openWebSocket() ;
     	}
 		messageCountAtPreviousHeartbeat = numMessages ;    
 	}
@@ -117,7 +125,7 @@
     function socketOpen() {  
         timerFunction = setInterval(function(){heartbeatTimeout()},3000);
     	statusOK( "Server connection active" ) ;
-    	socket.send( "VIEWS" ) ;
+    	sendObj( { command:"VIEWS" } ) ;
     }  
 
     function socketClose() {
@@ -126,59 +134,47 @@
     	statusBad( "Server connection closed" ) ;
     }      
     
-    function socketMessage( msg ) {
+    function socketMessage( msgText ) {
     	numMessages++ ; // used by heartbeat timer.
-	  	var cmdComponents = msg.data.split( "\f" ) ;
-	  	if( cmdComponents[0] === "HEARTBEAT" ) {
+    	var msg = JSON.parse( msgText.data ) ;
+    	
+	  	if( msg.command === "HEARTBEAT" ) {
 	  		// nothing just a placeholder for message to make sure numMessages in increasing 
-	  	} else if( cmdComponents.length >4 && cmdComponents[1] === "UPD" ) {
+	  	} else if( msg.command === "UPD" ) {
 	  		document.getElementById( "messageCount" ).textContent = "Msg Count " + numberWithCommas(numMessages) ;
-    	   	var colKey = cmdComponents[2] ;
-       		var rowKey = cmdComponents[3] ;
-        	var value  = cmdComponents[4] ;
         	
-       		var cell = findGridCell( 'grid', colKey, rowKey ) ;
+       		var cell = findGridCell( 'grid', msg.colKeys, msg.rowKeys ) ;
            	if( cell != null ) {
-        		cell.textContent= value ;
+        		cell.textContent= msg.value ;
         	}
-	  	} else if( cmdComponents.length >3 && cmdComponents[1] === "DEL" ) {
-    	   	var colKey = cmdComponents[2] ;
-       		var rowKey = cmdComponents[3] ;
+	  	} else if( msg.command === "DEL" ) {
         	
-       		var cell = findGridCell( 'grid', colKey, rowKey ) ;
+       		var cell = findGridCell( 'grid', msg.colKeys, msg.rowKeys ) ;
            	if( cell != null ) {
         		cell.textContent= "" ;
         	}
-           	removeRowIfEmpty( rowKey ) ;
-           	removeColIfEmpty( colKey ) ;
+           	removeRowIfEmpty( msg.rowKeys ) ;
+           	removeColIfEmpty( msg.colKeys ) ;
 
-	  	} else if( cmdComponents.length >2 && cmdComponents[1] === "DELC" ) {
-    	   	var colKey = cmdComponents[2] ;        	
-           	removeCol( colKey ) ;
-	  	} else if( cmdComponents.length >2 && cmdComponents[1] === "DELR" ) {
-    	   	var rowKey = cmdComponents[2] ;        	
-           	removeRow( rowKey ) ;
-	  	} else if( cmdComponents.length >2 && cmdComponents[0] === "RSP" ) {
-    	   	var request  = cmdComponents[1] ;
-       		var response = cmdComponents[2] ;
-       		if( request === "VIEWS" ) {
-       			processViewResponse( response.split("\t") ) ;
-       		}
-	  	} else if( cmdComponents.length >3 && cmdComponents[1] === "DIM" ) {
+	  	} else if( msg.command === "DELC" ) {
+           	removeCol( msg.colKeys ) ;
+	  	} else if( msg.command === "DELR" ) {
+           	removeRow( msg.rowKeys ) ;
+	  	} else if( msg.command === "VIEWS" ) {
+   			processViewResponse( msg.responses ) ;
+	  	} else if( msg.command === "DIM" ) {
 	  		numMessages = 1 ; // reset message count for a new grid
-    	   	var colLevelsTxt = cmdComponents[2] ;
-       		var rowLevelsTxt = cmdComponents[3] ;
-       		statusOK( cmdComponents[4] ) ;
-       		colLevels = colLevelsTxt.split("\t" ) ;
-       		rowLevels = rowLevelsTxt.split("\t" ) ;
-       		numColLevels = colLevels.length ;
-       		numRowLevels = rowLevels.length ;
+       		statusOK( msg.description ) ;
+       		colLevels = msg.colKeys ;
+       		rowLevels = msg.rowKeys ;
+       		numColLevels = msg.colKeys.length ;
+       		numRowLevels = msg.rowKeys.length ;
        		resetGrid() ;
-	  	} else if( cmdComponents.length >1 && cmdComponents[1] === "RDY" ) {
+	  	} else if( msg.command === "RDY" ) {
 	  		document.getElementById('grid').style.display="block";
-	  		socket.send( msg.data ) ;  // echo the ready message to enable updates in server
+	  		sendObj( msg ) ;  // echo the ready message to enable updates in server
 	  	} else {
-	  		statusBad( "Unknown server msg: " + msg.data ) ;
+	  		statusBad( "Unknown server msg: " + msg.command ) ;
 	  	}
   	}
        
@@ -198,7 +194,7 @@
     			openView( lastOpenView  ) ;
     		}
     	}
-    	
+    	    	
     	viewMenu.innerHTML = menuHtml ;
     }
 
@@ -234,40 +230,71 @@
 //=======================
 // Global functions
 //
+	function makeCompoundKeyFromText( keys1, keys2 ) {
+		return keys1 + "@" + keys2  ;
+	}
+	function makeKey( keys ) {
+		return keys.join('\t' ) ;
+	}
+	function makeKeys( key ) {
+		return key.split('\t' ) ;
+	}
+	function makeCompoundKey( keys1, keys2 ) {
+		return makeCompoundKeyFromText( makeKey( keys1 ), makeKey( keys2 ) ) ;
+	}
+	function printKeys( keys ) {
+		return "[" + keys.map( function(e) { return "'" + e + "'" ; } ).join(',')  + "]";
+	}
+	function printKey( key ) {
+		return printKeys( makeKeys( key ) ) ;
+	}
+	
 	function views() {
-		socket.send( "VIEWS" ) ;
+		sendObj( {"command":"VIEWS"} ) ;
  	}
 
+	function sendObj( obj ) {
+		socket.send( JSON.stringify(obj) ) ;			
+	}
+
 	function openView( view ) {
-		if( openGridName != null) {
-			socket.send( openGridName + "\fSTOP" ) ;			
+		if( openGridName ) {
+			sendObj( { gridName:openGridName, 
+						command:"STOP" } ) ;			
 		}
 		setKey( "openView", view ) ;
 		document.getElementById('grid').style.display="none";
 
 		statusOK( "Requesting " + view + " from server.") ;
 		openGridName = view ;
-		var msg = openGridName + "\fSTART" ;
+		var msg = { gridName:openGridName, 
+					command:"START",
+					rowKeys:[],
+					colKeys:[] } ;
+
+	//
+	// Pull the grid open rows and cols from local storage
+	//
+						
  		if(typeof(Storage)!=="undefined") {
- 			for (i=0; i<localStorage.length; i++)  
- 		    {  
+ 			var openRowKey = openGridName+"\fEXR\f" ;
+ 			var openColKey = openGridName+"\fEXC\f" ;
+ 			for (i=0; i<localStorage.length; i++) {  
  		        key = localStorage.key(i);
- 		        if( key.indexOf( openGridName+"\fEXR\f") == 0 ) {
- 		        	var keyPieces = key.split( "\f" ) ;
- 	 		 		msg += "\nEXR\f" + keyPieces[2] ; 	 		        
+ 		        if( key.startsWith( openRowKey ) ) {
+ 	 		 		msg.rowKeys.push( key.substring( openRowKey.length ) ) ; 	 		        
  		        }
- 		        if( key.indexOf( openGridName+"\fEXC\f") == 0 ) {
- 		        	var keyPieces = key.split( "\f" ) ;
- 	 		 		msg += "\nEXC\f" + keyPieces[2] ; 	 		        
+ 		        if( key.startsWith( openColKey )  ) {
+ 	 		 		msg.colKeys.push( key.substring( openColKey.length ) ) ; 	 		        
  		        }
  		    }
- 		}
-		socket.send( msg ) ;
+ 		} 	
+		sendObj( msg ) ;
  	}
 	
 	function closeAll() {
 		openGridName = null ;
-		socket.send( "STOP" ) ;
+		sendObj( { command: "STOP" } ) ;
 		socket.close() ;
  	}
  	  
@@ -293,11 +320,13 @@
 	}
 
 	
-	function removeColIfEmpty( colKey ) {
+	function removeColIfEmpty( colKeys ) {
 		var rows = grid.rows ;
 		var headerRow = rows[0]
 		var numColumns = headerRow.cells.length  ;
 		var colIndexToDelete = -1 ; // append new col
+		
+		var colKey = makeKey( colKeys ) ;
 		for( colIndexToDelete=numRowLevels ; colIndexToDelete<numColumns ; colIndexToDelete++ ) {
 			var label = headerRow.cells[colIndexToDelete] ;
 			if( label.getAttribute("id") == colKey ) {
@@ -321,14 +350,15 @@
 	}
 
 	
-	function removeCol( colKey ) {
+	function removeCol( colKeys ) {
 		var rows = grid.rows ;
 		var headerRow = rows[0]
 		var numColumns = headerRow.cells.length  ;
+		var colKey = makeKey( colKeys ) ;
 		var colIndexToDelete = -1 ; // append new col
 		for( var i=numRowLevels ; i<numColumns ; i++ ) {
 			var label = headerRow.cells[i] ;
-			if( label.getAttribute("id") == colKey ) {
+			if( label.getAttribute("id") === colKey ) {
 				colIndexToDelete = i ;
 				break ;
 			}
@@ -343,14 +373,14 @@
 
 
 	
- 	function findGridRow( name, rowKey ) {
+ 	function findGridRow( name, rowKeys ) {
+ 	
+ 		var rowKey = makeKey( rowKeys ) ;
 		var row = document.getElementById(rowKey);
 		if( row != null ) {
 			return row ;
 		}
 
- 		var rowKeys = rowKey.split( "\t" ) ;
- 		 		
 		var grid = document.getElementById(name);
 		var rows = grid.rows ;
 		var sectionSize = rows.length - numColLevels ;
@@ -393,7 +423,7 @@
 				if( numButtonsAddedInThisRow == 0 ) {
 			        var key = openGridName+"\fEXR\f"+rowKey ;
 			 		var state = getKey( key ) ;
-					newCell.innerHTML = "<input type='button' style='width:9pt;height:9pt;margin:0px;padding:0px;font-size:6pt;font-weight:bold;' onclick=\"toggleRow( '" + openGridName + "', '" + rowKey + "', this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
+					newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleRow( '" + openGridName + "', " + printKeys(rowKeys) + ", this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
 				}
 				numButtonsAddedInThisRow++ ;
 			}
@@ -403,25 +433,29 @@
 			newCell  = newRow.insertCell(j);
 			newCell.setAttribute("class", "dataCell");
 			var colKey = rows[0].cells[j].getAttribute( "id" ) ;
-			newCell.setAttribute("id", colKey+"\f"+rowKey); 
+			newCell.setAttribute("id", makeCompoundKeyFromText( colKey, rowKey ) ) ; 
 		}
 
 		return newRow ;
 	}
 
  	
- 	function findGridCell( name, colKey, rowKey ) {
- 		var fullKey = colKey + "\f" + rowKey ;
+ 	function findGridCell( name, colKeys, rowKeys ) {
+
+		var colKey = makeKey( colKeys ) ;
+		var rowKey = makeKey( rowKeys ) ;
+ 	
+ 		var fullKey = makeCompoundKeyFromText( colKey, rowKey ) ;
 		var cell = document.getElementById(fullKey);
-		if( cell != null ) {
+		if( cell !== null ) {
 			return cell ;
 		}
-
-		var row = findGridRow( name, rowKey ) ;
-		if( row == null ) {
+	
+		var row = findGridRow( name, rowKeys ) ;
+		if( row === null ) {
 			return null ;
 		}
-		
+			
 		var grid = document.getElementById(name);
 		var rows = grid.rows ;
 		var headerRow = rows[0]
@@ -429,7 +463,7 @@
 		var insertionPoint ; // which column index will we insert at ?
 		for( insertionPoint=numRowLevels ; insertionPoint<numColumns ; insertionPoint++ ) {
 			var label = headerRow.cells[insertionPoint] ;
-			if( label.getAttribute("id") == colKey ) {
+			if( label.getAttribute("id") === colKey ) {
 				return document.getElementById(fullKey); // findRow may have created the cell we need...
 			}
 			if( label.getAttribute("id") > colKey ) {
@@ -439,7 +473,6 @@
 		// OK we'll insert a new column here ...
 
 		numColumns++ ;
-		var colKeys = colKey.split( "\t" ) ;
 		for( var i=0 ; i<numColLevels ; i++ ) {
 			var newCell = rows[i].insertCell(insertionPoint);
 			newCell.setAttribute("class", "hdrCell");
@@ -451,7 +484,7 @@
 			} else {
 		        var key = openGridName+"\fEXC\f"+colKey ;
 		 		var state = getKey( key ) ;
-				newCell.innerHTML = "<input type='button' style='width:9pt;height:9pt;margin:0px;padding:0px;font-size:6pt;font-weight:bold;' onclick=\"toggleCol( '" + openGridName + "', '" + colKey + "', this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
+				newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleCol( '" + openGridName + "'," + printKeys(colKeys) + ",this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
 			}
 		}
 
@@ -460,8 +493,8 @@
 			var row = rows[i] ;
 			
 			// Add new cells if required to make sure all rows have the proper amount of cells
-			newCell  = row.insertCell(insertionPoint);
-			newCell.setAttribute("id", colKey+"\f"+row.getAttribute("id")); 
+			newCell = row.insertCell(insertionPoint);
+			newCell.setAttribute("id", makeCompoundKeyFromText( colKey, row.getAttribute("id") ) ); 
 			newCell.setAttribute("class", "dataCell"); 
 		}
 			
@@ -500,38 +533,39 @@
  	}
 
  	
- 	function toggleRow( view, rowKey, button ) { 		
-        var key = view+"\fEXR\f"+rowKey ;
+ 	function toggleRow( view, rowKeys, button ) {
+
+        var key = view+"\fEXR\f"+makeKey(rowKeys) ;
  		var state = getKey( key ) ;
  		
  		if( state == "OPE" ) {
  			setKey(key, null ) ;
- 	 		socket.send( view + "\fEXR\f" + rowKey + "\fCLO" ) ;
  	 		button.value='+' ;
+ 			sendObj( { "gridName": view, "command": "COR", "rowKeys": rowKeys } ) ;	 			
  		} else {
  			setKey(key, "OPE" ) ;
- 	 		socket.send( view + "\fEXR\f" + rowKey + "\fOPE" ) ;
  	 		button.value='-' ;
+ 			sendObj( { "gridName": view, "command": "EXR", "rowKeys": rowKeys } ) ;	 			
  		}
  		resetGrid() ;
- 		socket.send( view + "\fRST" ) ;
+ 		sendObj( { "gridName": view, "command": "RST" } ) ;
  	}
 
- 	function toggleCol( view, colKey, button ) { 		
-        var key = view+"\fEXC\f"+colKey ;
+ 	function toggleCol( view, colKeys, button ) { 		
+        var key = view+"\fEXC\f"+makeKey(colKeys) ;
  		var state = getKey( key ) ;
  		
  		if( state == "OPE" ) {
  			setKey(key, null ) ;
- 	 		socket.send( view + "\fEXC\f" + colKey + "\fCLO" ) ;
  	 		button.value='+' ;
+ 			sendObj( { "gridName": view, "command": "COC", "colKeys": colKeys } ) ;	 			
  		} else {
  			setKey(key, "OPE" ) ;
- 	 		socket.send( view + "\fEXC\f" + colKey + "\fOPE" ) ;
  	 		button.value='-' ;
+ 			sendObj( { "gridName": view, "command": "EXC", "colKeys": colKeys } ) ;	 			
  		}
  		resetGrid() ;
- 		socket.send( view + "\fRST" ) ;
+ 		sendObj( { "gridName": view, "command": "RST" } ) ;
  	}
 
 </script>

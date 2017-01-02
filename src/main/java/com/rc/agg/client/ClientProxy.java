@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rc.agg.WebSocketServer;
+import com.rc.datamodel.DataElement;
 import com.rc.dataview.ClientDataView;
 import com.rc.dataview.DataElementDataView;
 
@@ -26,11 +27,12 @@ public class ClientProxy implements ClientEventProcessor {
 	private final Map<String,ClientDataView> openDataGrids ;
 	private ClientCommandProcessor clientCommandProcessor ;
 	private ClientManager clientManager ;
-
+	
 	public ClientProxy( ClientManager clientManager, ClientCommandProcessor clientCommandProcessor ) {
 		openDataGrids = new ConcurrentHashMap<>();
 		this.clientCommandProcessor = clientCommandProcessor ;
 		this.clientManager = clientManager ;
+		this.clientManager.addClient( this ) ;
 	}
 
 	/**
@@ -44,27 +46,26 @@ public class ClientProxy implements ClientEventProcessor {
 	 * 
 	 * @return The response message to send back to the client - null implies no response
 	 */
-	public CharSequence respond( String request ) {
-		CharSequence rc = null ;
+	public String [] respond( ClientMessage request ) {
+		String rc[] = null ;
 		try {
-			if( "STOP".equals(request) ) {		// shutdown the whole client
+			if( request.command.equals("STOP") ) {		// shutdown the whole client
 				// Stoppage - no reply necessary, but just in case prepare one...				
-				rc = "OK" ;
-			} else if( "START".equals(request) ) {
+				rc = new String[] { "OK" } ;
+			} else if( request.command.equals("START") ) {
 				// Something started - assume OK. Any failure will not send a message, the client must timeout				
-				rc = "OK" ;				
-			} else if( "VIEWS".equals(request) ) {		// list available views
+				rc = new String[] { "OK" } ;
+			} else if( request.command.equals("VIEWS") ) {		// list available views
 				// Answer with the list of available views that can be shown on the client desktop
 				StringBuilder tmp = new StringBuilder() ;
 				boolean first = true ;
+				rc = new String[ clientManager.getDataViewNames().size() ] ;
+				int i = 0 ;
 				for( String viewName : clientManager.getDataViewNames() ) {
-					if( first ) first = false ; else tmp.append('\t') ;
-					tmp.append( viewName ) ;
+					rc[i++] = viewName ;
 				}
-				rc = tmp;
-			} else if( "ATTRIBUTES".equals(request) ) {
-				// List available attribute for filtering/grouping etc. 				
-				rc = "BOOK\tCCY\tTRADEID" ;
+			} else if( request.command.equals("ATTRIBUTES") ) {
+				rc = new String[]{ "BOOK", "CCY", "TRADEID" } ;
 			}
 		} catch( Exception ex ) {
 			logger.error( "Error responding to request.", ex ) ;
@@ -77,27 +78,27 @@ public class ClientProxy implements ClientEventProcessor {
 		ClientDataView dgp = openDataGrids.get(gridName) ;
 		if( dgp == null ) {
 			logger.info( "Ignoring grid ready info for unknown grid: '{}'.", gridName  ) ;
+		} else {
+			logger.info( "Client confirmed grid {} ready.", gridName  ) ;
 		}
 	}
 
 	@Override
-	public void expandCollapseRow(String gridName, String rowKey,
-			boolean expanded) {
+	public void expandCollapseRow(String gridName, String rowKeys[], boolean expanded) {
 		ClientDataView dgp = openDataGrids.get(gridName) ;
 		if( dgp == null ) {
 			logger.info( "Ignoring expand/collapse request for unknown grid: '{}'.", gridName  ) ;
 		} else {
-			dgp.expandCollapseRow( rowKey, expanded) ;			
+			dgp.expandCollapseRow( DataElement.mergeComponents(rowKeys), expanded) ;			
 		}
 	}
 	@Override
-	public void expandCollapseCol(String gridName, String colKey,
-			boolean expanded) {
+	public void expandCollapseCol(String gridName, String colKeys[], boolean expanded) {
 		ClientDataView dgp = openDataGrids.get(gridName) ;
 		if( dgp == null ) {
 			logger.info( "Ignoring expand/collapse request for unknown grid: '{}'.", gridName  ) ;
 		} else {
-			dgp.expandCollapseCol( colKey, expanded) ;			
+			dgp.expandCollapseCol( DataElement.mergeComponents(colKeys), expanded) ;			
 		}
 	}
 
@@ -125,7 +126,7 @@ public class ClientProxy implements ClientEventProcessor {
 		}
 	}
 
-	public void openGrid( String gridName, List<String> openColKeys, List<String> openRowKeys ) {
+	public void openGrid( String gridName, String openColKeys[], String openRowKeys[] ) {
 		DataElementDataView dedv = clientManager.getDataElementDataView(gridName) ;
 		if( dedv==null ) {
 			logger.warn( "Grid {} is not defined.", gridName ) ;			
@@ -141,24 +142,24 @@ public class ClientProxy implements ClientEventProcessor {
 					newView.expandCollapseCol( openColKey, true ) ;
 				}
 			}
-			long start = System.currentTimeMillis() ;
 			logger.debug( "Replaying all data elements to {}", gridName ) ;
 			newView.sendAll() ;
-			logger.info( "Replayed all elements to {} in {} mS", gridName, (System.currentTimeMillis()-start) );
+			logger.info( "Replayed all elements to {}", gridName );
 			
 			clientCommandProcessor.initializationComplete(gridName);
 			openDataGrids.put( gridName, newView ) ;			
-			logger.debug( "Added new dataGrid '{}'. {} grids now exist.", gridName, openDataGrids.size() );
+			logger.info( "Added new dataGrid '{}'. {} grids now exist.", gridName, openDataGrids.size() );
 		}
 	}
 
 	public void close() {		
 		logger.info( "Requesting close of entire client - removing all grids." ) ;
 		for( String gridName : openDataGrids.keySet() ) {
-			clientCommandProcessor.closeClient( gridName );
+			clientCommandProcessor.closeClient( gridName ) ;
 		}
 		openDataGrids.clear();
-		logger.info( "All grids cleared.");
+		clientManager.closeClient( this ) ;
+		logger.info( "All grids cleared. ClientProxy is terminated.");
 	}
 
 

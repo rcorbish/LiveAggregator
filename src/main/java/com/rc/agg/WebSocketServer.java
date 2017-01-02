@@ -18,8 +18,11 @@ import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
 import com.rc.agg.client.ClientCommandProcessorImpl;
+import com.rc.agg.client.ClientDisconnectedException;
 import com.rc.agg.client.ClientManager;
+import com.rc.agg.client.ClientMessage;
 import com.rc.agg.client.ClientProxy;
 
 
@@ -30,40 +33,39 @@ public class WebSocketServer  {
 	static ClientManager clientManager ;	// keeps info about each client with an open view
 	
     private static final Map<Session,ClientProxy> clientData = new ConcurrentHashMap<>() ;
-
+    
 	@OnWebSocketConnect
 	public void connect( Session session )  {
 		logger.info( "Opened connection to {}", session.getRemote() ) ;
 		WebSocketCommandProcessor wscp = new WebSocketCommandProcessor(session) ;	// keep tabs on the rempote client
 		ClientProxy cp = new ClientProxy(clientManager, wscp ) ;					// maintain a proxy to the client - used for sending messages
-		clientManager.addClient( cp ) ;												// transmit needs this
+		wscp.setClientProxy( cp ) ;
 		ClientProxy old = clientData.put( session, cp ) ;							// check if the map is overused - better never happen
 		if( old != null ) {
 			logger.warn( "EPIC FAIL: a new session accessed an old client - WTF." ) ;
-		}
+		}		
 	}
 
 	@OnWebSocketClose
 	public void close(Session session, int statusCode, String reason) {				
 		ClientProxy cp = clientData.get( session ) ;
 		if( cp != null ) {
+			logger.info( "Remote session {} requested close, reason: {}", session.getRemoteAddress(), reason ) ; 
 			cp.close();
-			clientManager.closeClient(cp);
 		} else {
-			logger.warn( "Requested to close a client that does not exist - close" ) ;
+			logger.warn( "Requested to close a client that does not exist - wss close event" ) ;
 		}
 		clientData.remove(session);
 	}
 
 	@OnWebSocketError
 	public void error(Session session, Throwable error ) {
-		logger.error( "Error in connection.", error  ) ;
+		logger.info( "Remote session {} detected error.", session.getRemoteAddress(), error ) ; 
 		ClientProxy cp = clientData.get( session ) ;
 		if( cp != null ) {
 			cp.close();
-			clientManager.closeClient(cp);
 		} else {
-			logger.warn( "Requested to close a client that does not exist - error" ) ;
+			logger.warn( "Requested to close a client that does not exist - wss error event" ) ;
 		}
 		clientData.remove(session);
 	}
@@ -71,63 +73,66 @@ public class WebSocketServer  {
 
 	@OnWebSocketMessage
 	public void message(Session session, String message) throws IOException {
-		logger.info( "Received {} from client {}.", message, session.getRemoteAddress() ) ;
-
+		logger.info( "Received {} from {}.", message, session.getRemoteAddress() ) ;
+		
 		ClientProxy clientProxy = clientData.get( session ) ;
 		if( clientProxy == null ) {
 			logger.warn( "Oh oh chongo - client proxy is not yet mapped to this session.");
+			return ;
 		}
 		
-		String lines[] = message.split( "\n" ) ;
-		String components[] = lines[0].split( "\\f" ) ;
+		ClientMessage clientMessage = new Gson().fromJson( message, ClientMessage.class ) ;
+		
+		if( clientMessage.command.equals("START") ) {
+			logger.info("Requesting a new grid {} from the clientProxy. Currently {} clients active", clientMessage.gridName, clientManager.getActiveClients().size() );
+			clientProxy.openGrid(clientMessage.gridName, clientMessage.colKeys, clientMessage.rowKeys );
 
-		if( components.length > 1 ) {
-			String gridName = components[0] ;
-			String request = components[1] ;
-
-			if( request.equals("START") ) {
-				List<String> openColKeys = new ArrayList<>() ;
-				List<String> openRowKeys = new ArrayList<>() ;
-				for( int i=1 ; i<lines.length ; i++ ) {
-					if( lines[i].startsWith("EXC\f" ) ) {
-						openColKeys.add( lines[i].substring(4) ) ;
-					} else if( lines[i].startsWith("EXR\f" ) ) {
-						openRowKeys.add( lines[i].substring(4) ) ;
-					}
-				}
-				logger.info("Requesting a new grid {} from the clientProxy. Currently {} clients active", gridName, clientManager.getActiveClients().size() );
-				clientProxy.openGrid(gridName, openColKeys, openRowKeys);
-
-			} else if( request.equals("STOP") ) {
-				clientProxy.closeGrid(gridName);
-			} else if( request.equals("EXR") && components.length>3 ) {
-				String rowKey = components[2] ;
-				boolean expanded = components[3].equals( "OPE" ) ;
-				// Example View /f EXCO /f RowKey /f CLO  ( collapsed ) | OPE ( expanded )
-				clientProxy.expandCollapseRow( gridName, rowKey, expanded ) ;
-			} else if( request.equals("EXC") && components.length>3 ) {
-				String colKey = components[2] ;
-				boolean expanded = components[3].equals( "OPE" ) ;
-				clientProxy.expandCollapseCol( gridName, colKey, expanded ) ;
-			} else if( request.equals("RST")  ) {
-				clientProxy.resetGrid(gridName) ;
-			} else if( request.equals("RDY")  ) {
-				clientProxy.gridReady(gridName) ;
-			}
-
-		} else {
-			String request = lines[0] ;					
-			if( request.equals("STOP") ) {
-				clientProxy.close();
+		} else if( clientMessage.command.equals("STOP") ) {
+			if( clientMessage.gridName != null ) {
+				clientProxy.closeGrid(clientMessage.gridName);
 			} else {
-				CharSequence response = clientProxy.respond( request ) ;
-				if( response != null ) {	
-					session.getRemote().sendString( "RSP" + "\f" + request + "\f" + response ); 
+				clientProxy.close();
+			}
+		} else if( clientMessage.command.equals("EXR")  ) {
+			clientProxy.expandCollapseRow( clientMessage.gridName, clientMessage.rowKeys, true ) ;
+		} else if( clientMessage.command.equals("COR")  ) {
+			clientProxy.expandCollapseRow( clientMessage.gridName, clientMessage.rowKeys, false ) ;
+		} else if( clientMessage.command.equals("EXC")  ) {
+			clientProxy.expandCollapseCol( clientMessage.gridName, clientMessage.colKeys, true ) ;
+		} else if( clientMessage.command.equals("COC")  ) {
+			clientProxy.expandCollapseCol( clientMessage.gridName, clientMessage.colKeys, false ) ;
+		} else if( clientMessage.command.equals("RST")  ) {
+			clientProxy.resetGrid(clientMessage.gridName) ;
+		} else if( clientMessage.command.equals("RDY")  ) {
+			clientProxy.gridReady(clientMessage.gridName) ;
+		} else if( clientMessage.command.equals("STOP")  ) {
+			clientProxy.gridReady(clientMessage.gridName) ;
+		} else {
+			String responses[] = clientProxy.respond( clientMessage ) ;
+			if( responses != null ) {	
+				StringBuilder sb = new StringBuilder( "{\"command\":\"" )
+						.append( clientMessage.command )
+						.append("\",\"responses\": [ " ) ;
+				for( String response : responses ) {
+					sb.append( '"' ).append( response ).append( "\"," ) ;
 				}
+				sb.deleteCharAt( sb.length()-1 ) ;
+				sb.append( "]}" ) ;
+				
+				session.getRemote().sendString( sb.toString() ) ; 
 			}
 		}
 	}
-
+	
+	public static String toStringStatic() {
+		String rc = "" ;
+		int i = 0 ;
+		for( Session s : clientData.keySet() ) {
+			i++ ;
+			rc += ( "\nActive client #" + i + " connected to " + s.getRemoteAddress() ) ;
+		}
+		return rc ;
+	}
 }
 
 
@@ -139,6 +144,7 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 	private static int MIN_HEARTBEAT_INTERVAL_SECONDS = 1 ;
 
 	private Session session ;
+	private ClientProxy clientProxy ;
 	private BlockingQueue<String> messagesToBeSent ;
 	private volatile Thread reader ;
 	
@@ -148,7 +154,27 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 		reader = new Thread( this ) ;
 		reader.start(); // This could be very dangerous - if we ever subclass this.  Make sure all vars are properly initialized
 	}
+
+	public void setClientProxy( ClientProxy clientProxy ) {
+		this.clientProxy = clientProxy ;
+	}
 	
+	@Override
+	public void closeClient( String gridName ) {
+		if( reader != null ) {
+			reader.interrupt(); 
+		}
+		super.closeClient( gridName ) ;
+	}
+	
+	/**
+	 * Pull messages off the outbound queue, and send directly to the client. If 
+	 * nothing has been requested for a while, send a heartbeat.
+	 * This thread is terminated by an interrupt ( from closeClient() )
+	 * or because of a message sending error.
+	 * 
+	 *  @see closeClient()
+	 */
 	public void run() {
 		Thread.currentThread().setName( "WSS:" + session.getRemoteAddress() );
 		try {
@@ -158,29 +184,41 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 					heartbeat() ;
 					logger.debug( "Heartbeat sent to {}", session ) ;
 				} else {
-					try { 
-						session.getRemote().sendString( message.toString() );
-					} catch (Throwable t) {
-						logger.warn("Error sending msg", t) ;
-						reader = null ;
-						messagesToBeSent.clear(); 
-						break ;
-					}
+					session.getRemote().sendString( message );
 				}
 			}
-		} catch (InterruptedException e ) {
-			e.printStackTrace();
+		} catch (InterruptedException t) {
+			// ignore - this is an expected exception :(
+		} catch (Throwable t) {
+			logger.warn("Sending msg stopped by xmit error.", t ) ;
 		}
+		
+		clientProxy = null ;
+		reader = null ;
+		messagesToBeSent = null ;
 	}
 	
 	@Override
-	protected void transmit(CharSequence message) throws IOException, InterruptedException {
-		// If reader is null - the remote client killed us :( So we won't send anything
-		// there may be a few messages being sent to a killed client, but this is the
-		// easiest way to manage a remote kill - just let the server send stuff until it
-		// figures out it's dead
-		if( reader != null ) {
-			messagesToBeSent.put( message.toString() ) ;
+	protected void transmit(CharSequence message) throws ClientDisconnectedException {
+		if( messagesToBeSent != null ) {		// must not put a message on the queue if there's no queue (i.e. reader died unexpectedly)
+			try {
+				messagesToBeSent.put( message.toString() ) ;
+			} catch( InterruptedException e ) {
+				logger.info( "Interrupted during wait to transmit to {}.", session.getRemoteAddress() ) ;
+			}
+		} else {
+			logger.info( "Refused to send {} to terminating client {}.", message, session.getRemoteAddress() ) ;			
+			throw new ClientDisconnectedException() ;
 		}
 	}
+	
+	public String toString() {
+		
+		return "WebSocket to " + session.getRemoteAddress() + "\n" +
+				messagesToBeSent.size()  + " pending messages \n" + 
+				"Reader is " + ( (reader==null) ? "dead\n" : "alive\n" ) ;
+	}
 }
+
+
+
