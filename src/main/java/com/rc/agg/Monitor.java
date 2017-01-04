@@ -39,6 +39,9 @@ public class Monitor implements AutoCloseable {
 
 		rsp.type( "text/html" );
 
+		rc.append( "<h2>Data store</h2>");
+		rc.append( DataElementStore.getInstance().toString() ) ;
+		rc.append("<br>") ;
 		rc.append( "<h2>Defined Views</h2>");
 		rc.append("<ul>") ;
 		

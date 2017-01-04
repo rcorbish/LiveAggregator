@@ -44,11 +44,11 @@ public class LiveAggregatorRandom  {
 	public void start() throws Exception {
 		final Random random = new Random() ;
 		final int UPDATES_PER_MSG = 100 ;
-		final int N = 10_000 ;
+		final int N = 100_000 ;
+		final int BATCH_SIZE = 20 ;
 		logger.info( "Starting server. Connect to client @ server:8111/Client.html" ); 
 		for( ; ; ) {
 			long start = System.currentTimeMillis() ;
-			final int BATCH_SIZE = 20 ;
 
 			ExecutorService executor = Executors.newFixedThreadPool( 10 ) ;
 			aggregator.startBatch() ;

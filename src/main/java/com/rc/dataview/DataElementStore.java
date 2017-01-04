@@ -140,4 +140,8 @@ public class DataElementStore  implements DataElementProcessor {
 	public Collection<String> getDataViewNames() {
 		return availableViews.keySet() ;
 	}
+	
+	public String toString() {
+		return "Data Store containing " + currentElements.size() + " elements."  ; 
+	}
 }
