@@ -11,8 +11,6 @@ import com.rc.datamodel.DataElement;
 import com.rc.dataview.ClientDataView;
 import com.rc.dataview.DataElementDataView;
 import com.rc.dataview.DataElementStore;
-import com.rc.dataview.ViewDefinition;
-import com.rc.dataview.ViewDefinitions;
 
 /**
  * This handles all messages from the client.
@@ -26,11 +24,11 @@ public class ClientProxy implements ClientEventProcessor {
 
 	Logger logger = LoggerFactory.getLogger( ClientProxy.class ) ;
 
-	private final Map<String,ClientDataView> openDataGrids ;
+	private final Map<String,ClientDataView> openDataViews ;
 	private ClientCommandProcessor clientCommandProcessor ;
 	
 	public ClientProxy( ClientCommandProcessor clientCommandProcessor ) {
-		openDataGrids = new ConcurrentHashMap<>();
+		openDataViews = new ConcurrentHashMap<>();
 		this.clientCommandProcessor = clientCommandProcessor ;
 	}
 
@@ -74,66 +72,66 @@ public class ClientProxy implements ClientEventProcessor {
 	}
 
 	@Override
-	public void gridReady(String gridName) {
-		ClientDataView dgp = openDataGrids.get(gridName) ;
+	public void viewReady(String viewName) {
+		ClientDataView dgp = openDataViews.get(viewName) ;
 		if( dgp == null ) {
-			logger.info( "Ignoring grid ready info for unknown grid: '{}'.", gridName  ) ;
+			logger.info( "Ignoring view ready info for unknown view: '{}'.", viewName  ) ;
 		} else {
-			logger.info( "Client confirmed grid {} ready.", gridName  ) ;
+			logger.info( "Client confirmed view {} ready.", viewName  ) ;
 		}
 	}
 
 	@Override
-	public void expandCollapseRow(String gridName, String rowKeys[], boolean expanded) {
-		ClientDataView dgp = openDataGrids.get(gridName) ;
+	public void expandCollapseRow(String viewName, String rowKeys[], boolean expanded) {
+		ClientDataView dgp = openDataViews.get(viewName) ;
 		if( dgp == null ) {
-			logger.info( "Ignoring expand/collapse request for unknown grid: '{}'.", gridName  ) ;
+			logger.info( "Ignoring expand/collapse request for unknown view: '{}'.", viewName  ) ;
 		} else {
 			dgp.expandCollapseRow( DataElement.mergeComponents(rowKeys), expanded) ;			
 		}
 	}
 	@Override
-	public void expandCollapseCol(String gridName, String colKeys[], boolean expanded) {
-		ClientDataView dgp = openDataGrids.get(gridName) ;
+	public void expandCollapseCol(String viewName, String colKeys[], boolean expanded) {
+		ClientDataView dgp = openDataViews.get(viewName) ;
 		if( dgp == null ) {
-			logger.info( "Ignoring expand/collapse request for unknown grid: '{}'.", gridName  ) ;
+			logger.info( "Ignoring expand/collapse request for unknown view: '{}'.", viewName  ) ;
 		} else {
 			dgp.expandCollapseCol( DataElement.mergeComponents(colKeys), expanded) ;			
 		}
 	}
 
-	// CLient closed a grid
-	public void closeGrid( String gridName ) {
-		ClientDataView dgp = openDataGrids.remove(gridName) ;
+	// CLient closed a view
+	public void closeView( String viewName ) {
+		ClientDataView dgp = openDataViews.remove(viewName) ;
 		if( dgp == null ) {
-			logger.warn( "Cannot find {} in the openGrids.", gridName );
+			logger.warn( "Cannot find {} in the openViews.", viewName );
 		} else {
 			dgp.close();
-			logger.info( "Removed '{}' from openGrids. {} grids remain.", gridName, openDataGrids.size() );
+			logger.info( "Removed '{}' from openViews. {} views remain.", viewName, openDataViews.size() );
 		}
 	}
 
-	// Client requested complete refresh of a grid
-	public void resetGrid( String gridName ) {
-		logger.info( "Resetting grid {}", gridName ) ;
-		ClientDataView dgp = openDataGrids.get(gridName) ;
+	// Client requested complete refresh of a view
+	public void resetView( String viewName ) {
+		logger.info( "Resetting view {}", viewName ) ;
+		ClientDataView dgp = openDataViews.get(viewName) ;
 		if( dgp == null ) {
-			logger.warn( "Cannot find {} in the openGrids.", gridName );
+			logger.warn( "Cannot find {} in the openViews.", viewName );
 		} else {
 			dgp.sendAll() ;
 			try {
-				clientCommandProcessor.initializationComplete(gridName);
-				logger.info( "Reset grid {} completed.", gridName ) ;
+				clientCommandProcessor.initializationComplete(viewName);
+				logger.info( "Reset view {} completed.", viewName ) ;
 			} catch( ClientDisconnectedException cde ) {
-				logger.error( "Failed to reset remove grid " + gridName, cde );
+				logger.error( "Failed to reset remove view " + viewName, cde );
 			}
 		}
 	}
 
-	public void openGrid( String gridName, String openColKeys[], String openRowKeys[] ) {
-		DataElementDataView dedv = DataElementStore.getInstance().getDataElementDataView(gridName) ;
+	public void openView( String viewName, String openColKeys[], String openRowKeys[] ) {
+		DataElementDataView dedv = DataElementStore.getInstance().getDataElementDataView(viewName) ;
 		if( dedv==null ) {
-			logger.warn( "Grid {} is not defined.", gridName ) ;			
+			logger.warn( "View {} is not defined.", viewName ) ;			
 		} else {
 			try {
 				ClientDataView newView = new ClientDataView(dedv, clientCommandProcessor) ;
@@ -147,40 +145,36 @@ public class ClientProxy implements ClientEventProcessor {
 						newView.expandCollapseCol( openColKey, true ) ;
 					}
 				}
-				logger.debug( "Replaying all data elements to {}", gridName ) ;
+				logger.debug( "Replaying all data elements to {}", viewName ) ;
 				newView.sendAll() ;
-				logger.info( "Replayed all elements to {}", gridName );
+				logger.info( "Replayed all elements to {}", viewName );
 				
-				clientCommandProcessor.initializationComplete(gridName);
-				openDataGrids.put( gridName, newView ) ;			
-				logger.info( "Added new dataGrid '{}'. {} grids now exist.", gridName, openDataGrids.size() );
+				clientCommandProcessor.initializationComplete(viewName);
+				openDataViews.put( viewName, newView ) ;			
+				logger.info( "Added new dataView '{}'. {} views now exist.", viewName, openDataViews.size() );
 			} catch( ClientDisconnectedException cde ) {
-				logger.error( "Failed to open a new view " + gridName , cde ) ;
+				logger.error( "Failed to open a new view " + viewName , cde ) ;
 			}
 		}
 	}
 
 	public void close() {		
-		logger.info( "Requesting close of entire client - removing all grids." ) ;
-		for( String gridName : openDataGrids.keySet() ) {
-			clientCommandProcessor.close( gridName ) ;
+		logger.info( "Requesting close of entire client - removing all views." ) ;
+		for( String viewName : openDataViews.keySet() ) {
+			clientCommandProcessor.close( viewName ) ;
 		}
-		openDataGrids.clear();
-		//clientManager.closeClient( this ) ;
-		logger.info( "All grids cleared. ClientProxy is terminated.");
+		openDataViews.clear();
+		logger.info( "All views cleared. ClientProxy is terminated.");
 	}
 
-
-	/*
-	 * Section for the monitor ....
-	 */
-
-	public Map<String, ClientDataView> getOpenDataGrids() {
-		return openDataGrids;
-	}
 
 	public String toString() {
-		return "Client " + clientCommandProcessor ;
+		StringBuilder rc = new StringBuilder( "Open views [ " ) ; 	
+		for( String openView : openDataViews.keySet() ) {
+			rc.append( openView ).append(' ' ).append( ',' ) ;
+		}
+		rc.setCharAt( rc.length()-1, ']' ) ;
+		return rc.toString() ;
 	}
 
 }

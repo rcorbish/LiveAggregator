@@ -19,10 +19,10 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 
 	/**
 	 * Prepare a message to be sent to the client. All messages require a command
-	 * the gridName is optional as ar the args. The arguments to the command are
+	 * the viewName is optional as ar the args. The arguments to the command are
 	 * pairs of keys and values to be printed into JSON format
 	 * 
-	 * @param gridName the name of the grid to direct the messages to - may be null
+	 * @param viewName the name of the view to direct the messages to - may be null
 	 * @param command the command to send to the client
 	 * @param colKeys column key array, may be null
 	 * @param rowKeys row key array, may be null
@@ -31,12 +31,12 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	protected void send( String gridName, String command, String colKeys, String rowKeys, String value, String description ) throws  ClientDisconnectedException {
+	protected void send( String viewName, String command, String colKeys, String rowKeys, String value, String description ) throws  ClientDisconnectedException {
 		StringBuilder msg = new StringBuilder( "{" ) ;
-		if( gridName == null ) {
+		if( viewName == null ) {
 			msg.append( "\"command\":\"").append( command ).append( '"' )  ;
 		} else {
-			msg.append( "\"gridName\":\"").append( gridName ).
+			msg.append( "\"viewName\":\"").append( viewName ).
 			append( "\",\"command\":\"").append( command ).append( '"' )  ;			
 		}
 		if( rowKeys != null ) {
@@ -57,12 +57,12 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 
 	
 	
-	protected void send( String gridName, String command ) throws ClientDisconnectedException {
-		send( gridName,command, null, null, null, null ) ;
+	protected void send( String viewName, String command ) throws ClientDisconnectedException {
+		send( viewName,command, null, null, null, null ) ;
 	}
 
-	protected void send( String gridName, String command, String colKeys, String rowKeys ) throws ClientDisconnectedException {
-		send( gridName,command, colKeys, rowKeys, null, null ) ;
+	protected void send( String viewName, String command, String colKeys, String rowKeys ) throws ClientDisconnectedException {
+		send( viewName,command, colKeys, rowKeys, null, null ) ;
 	}
 
 	
@@ -104,41 +104,41 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	}
 	
 	@Override
-	public void defineGrid(String gridName, String columnLevels, String rowLevels, String description) throws ClientDisconnectedException {
-		send( gridName, "DIM", columnLevels, rowLevels, null, description ) ;
-		logger.info( "Sent DIM message for {}, cols: {}, rows: {}", gridName, DataElement.splitComponents(columnLevels), DataElement.splitComponents(rowLevels) );
+	public void defineView(String viewName, String columnLevels, String rowLevels, String description) throws ClientDisconnectedException {
+		send( viewName, "DIM", columnLevels, rowLevels, null, description ) ;
+		logger.info( "Sent DIM message for {}, cols: {}, rows: {}", viewName, DataElement.splitComponents(columnLevels), DataElement.splitComponents(rowLevels) );
 	}
 
 	@Override
-	public void initializationComplete(String gridName) throws ClientDisconnectedException {
-		send( gridName, "RDY" ) ;
-		logger.info( "Sent RDY message for {}", gridName );
+	public void initializationComplete(String viewName) throws ClientDisconnectedException {
+		send( viewName, "RDY" ) ;
+		logger.info( "Sent RDY message for {}", viewName );
 	}
 
 	@Override
-	public void reset(String gridName) throws ClientDisconnectedException {
-		send( gridName, "RESET" ) ;
-		logger.info( "Sent RESET message for {}", gridName );
+	public void reset(String viewName) throws ClientDisconnectedException {
+		send( viewName, "RESET" ) ;
+		logger.info( "Sent RESET message for {}", viewName );
 	}
 
 	@Override
-	public void updateCell(String gridName, String columnKeys, String rowKeys, String data) throws ClientDisconnectedException {
-		send( gridName, "UPD", columnKeys, rowKeys, data, null ) ;
+	public void updateCell(String viewName, String columnKeys, String rowKeys, String data) throws ClientDisconnectedException {
+		send( viewName, "UPD", columnKeys, rowKeys, data, null ) ;
 	}
 
 	@Override
-	public void deleteCell(String gridName, String columnKeys, String rowKeys ) throws ClientDisconnectedException {
-		send( gridName, "DEL", columnKeys, rowKeys ) ;
+	public void deleteCell(String viewName, String columnKeys, String rowKeys ) throws ClientDisconnectedException {
+		send( viewName, "DEL", columnKeys, rowKeys ) ;
 	}
 
 	@Override
-	public void deleteRow(String gridName, String rowKeys ) throws ClientDisconnectedException {
-		send( gridName, "DELR", null, rowKeys ) ;
+	public void deleteRow(String viewName, String rowKeys ) throws ClientDisconnectedException {
+		send( viewName, "DELR", null, rowKeys ) ;
 	}
 
 	@Override
-	public void deleteCol(String gridName, String columnKeys ) throws ClientDisconnectedException {
-		send( gridName, "DELC", columnKeys, null ) ;
+	public void deleteCol(String viewName, String columnKeys ) throws ClientDisconnectedException {
+		send( viewName, "DELC", columnKeys, null ) ;
 	}
 
 /**

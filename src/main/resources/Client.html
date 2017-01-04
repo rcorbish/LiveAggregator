@@ -98,7 +98,7 @@
     var host = "ws://FX6100:8111/live";
     var colLevels ; 
     var rowLevels ;
-    var openGridName ;
+    var openViewName ;
     var numMessages = 0 ;
  	var messageCountAtPreviousHeartbeat = 0 ;	
     
@@ -143,13 +143,13 @@
 	  	} else if( msg.command === "UPD" ) {
 	  		document.getElementById( "messageCount" ).textContent = "Msg Count " + numberWithCommas(numMessages) ;
         	
-       		var cell = findGridCell( 'grid', msg.colKeys, msg.rowKeys ) ;
+       		var cell = findViewCell( 'grid', msg.colKeys, msg.rowKeys ) ;
            	if( cell != null ) {
         		cell.textContent= msg.value ;
         	}
 	  	} else if( msg.command === "DEL" ) {
         	
-       		var cell = findGridCell( 'grid', msg.colKeys, msg.rowKeys ) ;
+       		var cell = findViewCell( 'grid', msg.colKeys, msg.rowKeys ) ;
            	if( cell != null ) {
         		cell.textContent= "" ;
         	}
@@ -163,22 +163,22 @@
 	  	} else if( msg.command === "VIEWS" ) {
    			processViewResponse( msg.responses ) ;
 	  	} else if( msg.command === "DIM" ) {
-	  		numMessages = 1 ; // reset message count for a new grid
+	  		numMessages = 1 ; // reset message count for a new View
        		statusOK( msg.description ) ;
        		colLevels = msg.colKeys ;
        		rowLevels = msg.rowKeys ;
        		numColLevels = msg.colKeys.length ;
        		numRowLevels = msg.rowKeys.length ;
-       		resetGrid() ;
+       		resetView() ;
 	  	} else if( msg.command === "RDY" ) {
 	  		document.getElementById('grid').style.display="block";
 	  		sendObj( msg ) ;  // echo the ready message to enable updates in server
 	  	} else if( msg.command === "CLOSE" ) {
        		statusOK( "Received CLOSE for currently running view." ) ;
-       		resetGrid() ;
+       		resetView() ;
 	  	} else if( msg.command === "RESET" ) {
        		statusOK( "View definitions were change on the server, updating is temporarily paused." ) ;
-	  		openView( openGridName ) ;  		
+	  		openView( openViewName ) ;  		
 	  	} else {
 	  		statusBad( "Unknown server msg: " + msg.command ) ;
 	  	}
@@ -205,7 +205,7 @@
     }
 
 /*
-	Hide the grid - so that we can receive all the updates
+	Hide the view - so that we can receive all the updates
 	and eventually redraw the  web-page. This is actually faster
 	than processing a lot of updates. If the view is small 
 	then the previous statement is inaccurate.
@@ -213,7 +213,7 @@
 	rowLevels & colLevels must be initialized (i.e. in response to a DIM msg 
 	or a col/row expand/collapse)	
 */    
-	function resetGrid() {
+	function resetView() {
 		var grid = document.getElementById('grid');
 		grid.style.display="none";
 
@@ -264,28 +264,28 @@
 	}
 
 	function openView( view ) {
-		if( openGridName !== view ) {
-			sendObj( { gridName:openGridName, 
+		if( openViewName !== view ) {
+			sendObj( { viewName:openViewName, 
 						command:"STOP" } ) ;
 		}
 		
-		openGridName = view ;
+		openViewName = view ;
 		setKey( "openView", view ) ;
 		document.getElementById('grid').style.display="none";
 
 		statusOK( "Requesting " + view + " from server.") ;
-		var msg = { gridName:openGridName, 
+		var msg = { viewName:openViewName, 
 					command:"START",
 					rowKeys:[],
 					colKeys:[] } ;
 
 	//
-	// Pull the grid open rows and cols from local storage
+	// Pull the view open rows and cols from local storage
 	//
 						
  		if(typeof(Storage)!=="undefined") {
- 			var openRowKey = openGridName+"\fEXR\f" ;
- 			var openColKey = openGridName+"\fEXC\f" ;
+ 			var openRowKey = openViewName+"\fEXR\f" ;
+ 			var openColKey = openViewName+"\fEXC\f" ;
  			for (i=0; i<localStorage.length; i++) {  
  		        key = localStorage.key(i);
  		        if( key.startsWith( openRowKey ) ) {
@@ -300,7 +300,7 @@
  	}
 	
 	function closeAll() {
-		openGridName = null ;
+		openViewName = null ;
 		sendObj( { command: "STOP" } ) ;
 		socket.close() ;
  	}
@@ -380,7 +380,7 @@
 
 
 	
- 	function findGridRow( name, rowKeys ) {
+ 	function findViewRow( name, rowKeys ) {
  	
  		var rowKey = makeKey( rowKeys ) ;
 		var row = document.getElementById(rowKey);
@@ -428,9 +428,9 @@
 			} else {
 				newRow.setAttribute("class", ("totalRow" + (numButtonsAddedInThisRow % 3) ) );
 				if( numButtonsAddedInThisRow == 0 ) {
-			        var key = openGridName+"\fEXR\f"+rowKey ;
+			        var key = openViewName+"\fEXR\f"+rowKey ;
 			 		var state = getKey( key ) ;
-					newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleRow( '" + openGridName + "', " + printKeys(rowKeys) + ", this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
+					newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleRow( '" + openViewName + "', " + printKeys(rowKeys) + ", this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
 				}
 				numButtonsAddedInThisRow++ ;
 			}
@@ -447,7 +447,7 @@
 	}
 
  	
- 	function findGridCell( name, colKeys, rowKeys ) {
+ 	function findViewCell( name, colKeys, rowKeys ) {
 
 		var colKey = makeKey( colKeys ) ;
 		var rowKey = makeKey( rowKeys ) ;
@@ -458,7 +458,7 @@
 			return cell ;
 		}
 	
-		var row = findGridRow( name, rowKeys ) ;
+		var row = findViewRow( name, rowKeys ) ;
 		if( row === null ) {
 			return null ;
 		}
@@ -489,9 +489,9 @@
 				}
 				newCell.textContent = colKeys[i] ;
 			} else {
-		        var key = openGridName+"\fEXC\f"+colKey ;
+		        var key = openViewName+"\fEXC\f"+colKey ;
 		 		var state = getKey( key ) ;
-				newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleCol( '" + openGridName + "'," + printKeys(colKeys) + ",this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
+				newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleCol( '" + openViewName + "'," + printKeys(colKeys) + ",this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
 			}
 		}
 
@@ -548,14 +548,14 @@
  		if( state == "OPE" ) {
  			setKey(key, null ) ;
  	 		button.value='+' ;
- 			sendObj( { "gridName": view, "command": "COR", "rowKeys": rowKeys } ) ;	 			
+ 			sendObj( { "viewName": view, "command": "COR", "rowKeys": rowKeys } ) ;	 			
  		} else {
  			setKey(key, "OPE" ) ;
  	 		button.value='-' ;
- 			sendObj( { "gridName": view, "command": "EXR", "rowKeys": rowKeys } ) ;	 			
+ 			sendObj( { "viewName": view, "command": "EXR", "rowKeys": rowKeys } ) ;	 			
  		}
- 		resetGrid() ;
- 		sendObj( { "gridName": view, "command": "RST" } ) ;
+ 		resetView() ;
+ 		sendObj( { "viewName": view, "command": "RST" } ) ;
  	}
 
  	function toggleCol( view, colKeys, button ) { 		
@@ -565,14 +565,14 @@
  		if( state == "OPE" ) {
  			setKey(key, null ) ;
  	 		button.value='+' ;
- 			sendObj( { "gridName": view, "command": "COC", "colKeys": colKeys } ) ;	 			
+ 			sendObj( { "viewName": view, "command": "COC", "colKeys": colKeys } ) ;	 			
  		} else {
  			setKey(key, "OPE" ) ;
  	 		button.value='-' ;
- 			sendObj( { "gridName": view, "command": "EXC", "colKeys": colKeys } ) ;	 			
+ 			sendObj( { "viewName": view, "command": "EXC", "colKeys": colKeys } ) ;	 			
  		}
- 		resetGrid() ;
- 		sendObj( { "gridName": view, "command": "RST" } ) ;
+ 		resetView() ;
+ 		sendObj( { "viewName": view, "command": "RST" } ) ;
  	}
 
 </script>

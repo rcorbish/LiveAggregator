@@ -13,7 +13,7 @@ import com.rc.agg.client.ClientDisconnectedException;
 import com.rc.datamodel.DataElement;
 
 /**
- * This class represents the client view grid. It accepts dataViewElements element updates
+ * This class represents the client view. It accepts dataViewElements element updates
  * and processes them in real-time
  * 
  * @author richard
@@ -40,7 +40,7 @@ public class ClientDataView  {
 		
 		dataElementDataView.addClient( this ); 
 
-		clientCommandProcessor.defineGrid( 
+		clientCommandProcessor.defineView( 
 				getViewName(), 
 				DataElement.mergeComponents( dataElementDataView.getColGroups() ) , 
 				DataElement.mergeComponents( dataElementDataView.getRowGroups() ) , 

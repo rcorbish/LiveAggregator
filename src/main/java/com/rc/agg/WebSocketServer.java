@@ -37,8 +37,6 @@ import com.rc.agg.client.ClientProxy;
 public class WebSocketServer  {
 	Logger logger = LoggerFactory.getLogger( WebSocketServer.class ) ;
 	
-	//static ClientManager clientManager ;	// keeps info about each client with an open view
-	
     private static final Map<Session,ClientProxy> clientData = new ConcurrentHashMap<>() ;
     
 	@OnWebSocketConnect
@@ -99,29 +97,29 @@ public class WebSocketServer  {
 		ClientMessage clientMessage = new Gson().fromJson( message, ClientMessage.class ) ;
 		
 		if( clientMessage.command.equals("START") ) {
-			logger.info("Requesting a new grid {} from the clientProxy.", clientMessage.gridName );
-			clientProxy.openGrid(clientMessage.gridName, clientMessage.colKeys, clientMessage.rowKeys );
+			logger.info("Requesting a new view {} from the clientProxy.", clientMessage.viewName );
+			clientProxy.openView(clientMessage.viewName, clientMessage.colKeys, clientMessage.rowKeys );
 
 		} else if( clientMessage.command.equals("STOP") ) {
-			if( clientMessage.gridName != null ) {
-				clientProxy.closeGrid(clientMessage.gridName);
+			if( clientMessage.viewName != null ) {
+				clientProxy.closeView(clientMessage.viewName);
 			} else {
 				clientProxy.close();
 			}
 		} else if( clientMessage.command.equals("EXR")  ) {
-			clientProxy.expandCollapseRow( clientMessage.gridName, clientMessage.rowKeys, true ) ;
+			clientProxy.expandCollapseRow( clientMessage.viewName, clientMessage.rowKeys, true ) ;
 		} else if( clientMessage.command.equals("COR")  ) {
-			clientProxy.expandCollapseRow( clientMessage.gridName, clientMessage.rowKeys, false ) ;
+			clientProxy.expandCollapseRow( clientMessage.viewName, clientMessage.rowKeys, false ) ;
 		} else if( clientMessage.command.equals("EXC")  ) {
-			clientProxy.expandCollapseCol( clientMessage.gridName, clientMessage.colKeys, true ) ;
+			clientProxy.expandCollapseCol( clientMessage.viewName, clientMessage.colKeys, true ) ;
 		} else if( clientMessage.command.equals("COC")  ) {
-			clientProxy.expandCollapseCol( clientMessage.gridName, clientMessage.colKeys, false ) ;
+			clientProxy.expandCollapseCol( clientMessage.viewName, clientMessage.colKeys, false ) ;
 		} else if( clientMessage.command.equals("RST")  ) {
-			clientProxy.resetGrid(clientMessage.gridName) ;
+			clientProxy.resetView(clientMessage.viewName) ;
 		} else if( clientMessage.command.equals("RDY")  ) {
-			clientProxy.gridReady(clientMessage.gridName) ;
+			clientProxy.viewReady(clientMessage.viewName) ;
 		} else if( clientMessage.command.equals("STOP")  ) {
-			clientProxy.gridReady(clientMessage.gridName) ;
+			clientProxy.viewReady(clientMessage.viewName) ;
 		} else {
 			String responses[] = clientProxy.respond( clientMessage ) ;
 			if( responses != null ) {	
@@ -144,13 +142,19 @@ public class WebSocketServer  {
 	 * @return
 	 */
 	public static String toStringStatic() {
-		String rc = "" ;
+		StringBuilder rc = new StringBuilder() ;
 		int i = 0 ;
 		for( Session s : clientData.keySet() ) {
 			i++ ;
-			rc += ( "\nActive client #" + i + " connected to " + s.getRemoteAddress() ) ;
+			rc.append( "\nActive client #" )
+				.append( i )
+				.append( " connected to " )
+				.append( s.getRemoteAddress() )
+				.append( '\n' ) ;
+			ClientProxy cp = clientData.get(s) ;
+			rc.append( cp ).append('\n') ;
 		}
-		return rc ;
+		return rc.toString() ;
 	}
 }
 

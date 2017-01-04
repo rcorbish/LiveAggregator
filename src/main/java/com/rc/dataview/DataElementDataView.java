@@ -13,7 +13,7 @@ import com.rc.agg.DataElementProcessor;
 import com.rc.datamodel.DataElement;
 
 /**
- * This class represents the view grid. It maintains a view of
+ * This class represents the view. It maintains a view of
  * all possible (maximally expanded) data elements. Each connected
  * client view will be used to 'filter' down to the subset of
  * expanded cells for a partoicular client.

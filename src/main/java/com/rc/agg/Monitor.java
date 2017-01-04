@@ -1,5 +1,7 @@
 package com.rc.agg;
 
+import com.rc.dataview.DataElementStore;
+
 //import com.rc.agg.client.ClientManager;
 
 import spark.Request;
@@ -36,25 +38,20 @@ public class Monitor implements AutoCloseable {
 		StringBuilder rc = new StringBuilder( "<html>" ) ;
 
 		rsp.type( "text/html" );
-/*
-		rc.append( "<h2>Active clients</h2>");
+
+		rc.append( "<h2>Defined Views</h2>");
+		rc.append("<ul>") ;
 		
-		for( ClientProxy cp : clientManager.getActiveClients()) {
-			rc
-			.append(cp.toString().replaceAll( "\n", "<br>") )
-			.append("<ul>") ;
-			for( ClientDataView dedv : cp.getOpenDataGrids().values() ) {
+		for(  String viewName : DataElementStore.getInstance().getDataViewNames() ) {
 				rc
 				.append("<li>")
-				.append( dedv.toString() )
-				.append("</li>") ;
-			}
-			rc.append( "</ul><hr/>") ;
+				.append( viewName )
+				.append("</li>") ;			
 		}
-*/
+		rc.append( "</ul><hr/>") ;
+
 		rc.append( "<h2>Managed clients</h2>");
 		rc.append( WebSocketServer.toStringStatic().replaceAll( "\n", "<br>") );
-
 
 		rc.append( "</html>");
 		return rc ;
@@ -66,9 +63,5 @@ public class Monitor implements AutoCloseable {
 	public void close() throws Exception {
 		spark.Spark.stop() ;
 	}
-/*
-	public void setDataGridManager(ClientManager clientManager) {
-		this.clientManager = clientManager;
-	}
-*/
+
 }
