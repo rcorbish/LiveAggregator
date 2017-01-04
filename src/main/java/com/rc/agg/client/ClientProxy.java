@@ -1,5 +1,6 @@
 package com.rc.agg.client;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -9,6 +10,9 @@ import org.slf4j.LoggerFactory;
 import com.rc.datamodel.DataElement;
 import com.rc.dataview.ClientDataView;
 import com.rc.dataview.DataElementDataView;
+import com.rc.dataview.DataElementStore;
+import com.rc.dataview.ViewDefinition;
+import com.rc.dataview.ViewDefinitions;
 
 /**
  * This handles all messages from the client.
@@ -24,13 +28,10 @@ public class ClientProxy implements ClientEventProcessor {
 
 	private final Map<String,ClientDataView> openDataGrids ;
 	private ClientCommandProcessor clientCommandProcessor ;
-	private ClientManager clientManager ;
 	
-	public ClientProxy( ClientManager clientManager, ClientCommandProcessor clientCommandProcessor ) {
+	public ClientProxy( ClientCommandProcessor clientCommandProcessor ) {
 		openDataGrids = new ConcurrentHashMap<>();
 		this.clientCommandProcessor = clientCommandProcessor ;
-		this.clientManager = clientManager ;
-		this.clientManager.addClient( this ) ;
 	}
 
 	/**
@@ -57,10 +58,11 @@ public class ClientProxy implements ClientEventProcessor {
 				// Answer with the list of available views that can be shown on the client desktop
 				StringBuilder tmp = new StringBuilder() ;
 				boolean first = true ;
-				rc = new String[ clientManager.getDataViewNames().size() ] ;
+				Collection<String> vds = DataElementStore.getInstance().getDataViewNames() ;
+				rc = new String[ vds.size() ] ;
 				int i = 0 ;
-				for( String viewName : clientManager.getDataViewNames() ) {
-					rc[i++] = viewName ;
+				for( String vd : vds ) {
+					rc[i++] = vd ;
 				}
 			} else if( request.command.equals("ATTRIBUTES") ) {
 				rc = new String[]{ "BOOK", "CCY", "TRADEID" } ;
@@ -119,44 +121,52 @@ public class ClientProxy implements ClientEventProcessor {
 			logger.warn( "Cannot find {} in the openGrids.", gridName );
 		} else {
 			dgp.sendAll() ;
-			clientCommandProcessor.initializationComplete(gridName);
-			logger.info( "Reset grid {} completed.", gridName ) ;
+			try {
+				clientCommandProcessor.initializationComplete(gridName);
+				logger.info( "Reset grid {} completed.", gridName ) ;
+			} catch( ClientDisconnectedException cde ) {
+				logger.error( "Failed to reset remove grid " + gridName, cde );
+			}
 		}
 	}
 
 	public void openGrid( String gridName, String openColKeys[], String openRowKeys[] ) {
-		DataElementDataView dedv = clientManager.getDataElementDataView(gridName) ;
+		DataElementDataView dedv = DataElementStore.getInstance().getDataElementDataView(gridName) ;
 		if( dedv==null ) {
 			logger.warn( "Grid {} is not defined.", gridName ) ;			
 		} else {
-			ClientDataView newView = new ClientDataView(dedv, clientCommandProcessor) ;
-			if( openRowKeys != null ) {
-				for( String openRowKey : openRowKeys ) {
-					newView.expandCollapseRow( openRowKey, true ) ;
+			try {
+				ClientDataView newView = new ClientDataView(dedv, clientCommandProcessor) ;
+				if( openRowKeys != null ) {
+					for( String openRowKey : openRowKeys ) {
+						newView.expandCollapseRow( openRowKey, true ) ;
+					}
 				}
-			}
-			if( openColKeys != null ) {
-				for( String openColKey : openColKeys ) {
-					newView.expandCollapseCol( openColKey, true ) ;
+				if( openColKeys != null ) {
+					for( String openColKey : openColKeys ) {
+						newView.expandCollapseCol( openColKey, true ) ;
+					}
 				}
+				logger.debug( "Replaying all data elements to {}", gridName ) ;
+				newView.sendAll() ;
+				logger.info( "Replayed all elements to {}", gridName );
+				
+				clientCommandProcessor.initializationComplete(gridName);
+				openDataGrids.put( gridName, newView ) ;			
+				logger.info( "Added new dataGrid '{}'. {} grids now exist.", gridName, openDataGrids.size() );
+			} catch( ClientDisconnectedException cde ) {
+				logger.error( "Failed to open a new view " + gridName , cde ) ;
 			}
-			logger.debug( "Replaying all data elements to {}", gridName ) ;
-			newView.sendAll() ;
-			logger.info( "Replayed all elements to {}", gridName );
-			
-			clientCommandProcessor.initializationComplete(gridName);
-			openDataGrids.put( gridName, newView ) ;			
-			logger.info( "Added new dataGrid '{}'. {} grids now exist.", gridName, openDataGrids.size() );
 		}
 	}
 
 	public void close() {		
 		logger.info( "Requesting close of entire client - removing all grids." ) ;
 		for( String gridName : openDataGrids.keySet() ) {
-			clientCommandProcessor.closeClient( gridName ) ;
+			clientCommandProcessor.close( gridName ) ;
 		}
 		openDataGrids.clear();
-		clientManager.closeClient( this ) ;
+		//clientManager.closeClient( this ) ;
 		logger.info( "All grids cleared. ClientProxy is terminated.");
 	}
 

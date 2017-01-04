@@ -2,16 +2,14 @@ package com.rc.agg;
 
 import java.io.IOException;
 
-import com.rc.agg.client.ClientManager;
 import com.rc.datamodel.DataElement;
 import com.rc.dataview.DataElementStore;
 import com.rc.dataview.ViewDefinitions;
 
 public class LiveAggregator implements DataElementProcessor {
 	
-	private DataElementStore dataElementStore ;
-	private ClientManager clientManager ;
-
+	DataElementStore processor ;
+	
 	public static void main(String[] args) {
 		try {
 			new LiveAggregator() ;
@@ -22,34 +20,23 @@ public class LiveAggregator implements DataElementProcessor {
 	}
 
 	public LiveAggregator() throws IOException {
-		ViewDefinitions viewDefinitions = new ViewDefinitions( "src/main/resources/Views.txt" ) ;
+		processor = DataElementStore.getInstance() ;
+		ViewDefinitions viewDefinitions = new ViewDefinitions( "src/main/resources/Views.txt", processor ) ;
 		viewDefinitions.start();
-		
-		dataElementStore = new DataElementStore() ;
-		clientManager = new ClientManager() ;
-
-		WebSocketServer.clientManager = clientManager ;
-		dataElementStore.setViewDefinitions( viewDefinitions ) ; 
-
-//		dataElementStore.setDataGridManager( clientManager ) ;
-		clientManager.setDataElementStore(dataElementStore) ;
-				
+						
 		Monitor m = new Monitor() ;
-		m.setDataGridManager(clientManager);
 		m.start();
-		
-		dataElementStore.start(); 		
 	}
 	
 	@Override
 	public void process( DataElement dataElement ) {
-		dataElementStore.process(dataElement);
+		processor.process(dataElement);
 	}
 
 	public void startBatch() {
-		dataElementStore.startBatch();
+		processor.startBatch();
 	}
 	public void endBatch() {
-		dataElementStore.endBatch();
+		processor.endBatch();
 	}
 }

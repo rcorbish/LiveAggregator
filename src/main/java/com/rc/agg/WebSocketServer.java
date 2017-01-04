@@ -1,8 +1,6 @@
 package com.rc.agg;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -21,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.rc.agg.client.ClientCommandProcessorImpl;
 import com.rc.agg.client.ClientDisconnectedException;
-import com.rc.agg.client.ClientManager;
 import com.rc.agg.client.ClientMessage;
 import com.rc.agg.client.ClientProxy;
 
@@ -40,7 +37,7 @@ import com.rc.agg.client.ClientProxy;
 public class WebSocketServer  {
 	Logger logger = LoggerFactory.getLogger( WebSocketServer.class ) ;
 	
-	static ClientManager clientManager ;	// keeps info about each client with an open view
+	//static ClientManager clientManager ;	// keeps info about each client with an open view
 	
     private static final Map<Session,ClientProxy> clientData = new ConcurrentHashMap<>() ;
     
@@ -48,7 +45,7 @@ public class WebSocketServer  {
 	public void connect( Session session )  {
 		logger.info( "Opened connection to {}", session.getRemote() ) ;
 		WebSocketCommandProcessor wscp = new WebSocketCommandProcessor(session) ;	// keep tabs on the rempote client
-		ClientProxy cp = new ClientProxy(clientManager, wscp ) ;					// maintain a proxy to the client - used for sending messages
+		ClientProxy cp = new ClientProxy( wscp ) ;					// maintain a proxy to the client - used for sending messages
 		wscp.setClientProxy( cp ) ;
 		ClientProxy old = clientData.put( session, cp ) ;							// check if the map is overused - better never happen
 		if( old != null ) {
@@ -102,7 +99,7 @@ public class WebSocketServer  {
 		ClientMessage clientMessage = new Gson().fromJson( message, ClientMessage.class ) ;
 		
 		if( clientMessage.command.equals("START") ) {
-			logger.info("Requesting a new grid {} from the clientProxy. Currently {} clients active", clientMessage.gridName, clientManager.getActiveClients().size() );
+			logger.info("Requesting a new grid {} from the clientProxy.", clientMessage.gridName );
 			clientProxy.openGrid(clientMessage.gridName, clientMessage.colKeys, clientMessage.rowKeys );
 
 		} else if( clientMessage.command.equals("STOP") ) {
@@ -188,11 +185,11 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 	}
 	
 	@Override
-	public void closeClient( String gridName ) {
+	public void closeClient() {
+		logger.info( "Closing entire client {}", session.getRemoteAddress() ) ;
 		if( reader != null ) {
 			reader.interrupt(); 
 		}
-		super.closeClient( gridName ) ;
 	}
 	
 	/**

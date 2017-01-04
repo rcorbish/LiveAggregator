@@ -10,12 +10,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rc.agg.DataElementProcessor;
-import com.rc.agg.WebSocketServer;
 import com.rc.datamodel.DataElement;
 
 /**
- * This class represents the client view grid. It accepts dataViewElements element updates
- * and processes them in real-time
+ * This class represents the view grid. It maintains a view of
+ * all possible (maximally expanded) data elements. Each connected
+ * client view will be used to 'filter' down to the subset of
+ * expanded cells for a partoicular client.
+ * 
+ * It accepts dataViewElements element updates and processes them in 
+ * real-time to keep a live view of the model subset. This is the 
+ * aggregation step.
  * 
  * @author richard
  *
@@ -24,8 +29,8 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 
 	Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
 
-	// How often to send an update to the client
-	public static int CLIENT_UPDATE_INTERVAL = 125 ;
+	// How often to send an update to the client (millis)
+	public static int CLIENT_UPDATE_INTERVAL = 200 ;	
 	
 	private final Map<String,String> filters ; 		// what key = value is being filtered
 	private final String colGroups[] ; 				// what is getting grouped
@@ -34,17 +39,18 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	private final Map<String,DataViewElement>   dataViewElements ;	// raw dataViewElements that needs to be updated is stored here
 	private final String viewName ;
 	private final String description ;
-	public String getDescription() {
-		return description;
-	}
-
+	
 	private volatile boolean serverBatchComplete ;
-	private final List<ClientDataView> clientViews ;
+	private List<ClientDataView> clientViews ;	// which clients need to be told about updates?
 	private Thread messageSender ;
 
 
 	public DataElementDataView( ViewDefinition viewDefinition ) {
-
+		
+		this.serverBatchComplete = false ;
+		this.clientViews = new ArrayList<>() ;
+		dataViewElements = new ConcurrentHashMap<>() ;
+		
 		this.viewName = viewDefinition.getName() ;
 		this.description = viewDefinition.getDescription() ;
 		this.filters = viewDefinition.getFilters();
@@ -59,15 +65,44 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		} else {
 			this.rowGroups = viewDefinition.getRowGroups() ;
 		}
-
-		this.clientViews = new ArrayList<>() ;
-
-		dataViewElements = new ConcurrentHashMap<>() ;
 	}
-
+	
+	
 	public void start() {
 		messageSender = new Thread( this ) ;
 		messageSender.start();
+	}
+
+	public void stop() {
+		if( messageSender != null ) {
+			messageSender.interrupt();
+			// now send a stop to each client, because of messaging we must
+			// copy the array - as other messages can change this array during iteration
+			// esp. the stop response from the client.
+			List<ClientDataView> tmp = new ArrayList<>( clientViews.size() ) ;
+			for( ClientDataView cdv : clientViews ) {
+				tmp.add( cdv ) ;
+			}			
+			for( ClientDataView cdv : tmp ) {
+				cdv.close(); 
+			}
+			// After closing - let's remove all the views from  this DataView
+			clientViews.removeAll( tmp ) ;
+		}
+	}
+	
+	/**
+	 * Call this to reset - ie. clear the entire view
+	 */
+	public synchronized void resetAndStop() {
+		for( ClientDataView cdv : clientViews ) {
+			cdv.reset(); 
+		}
+		stop() ;
+	}
+	
+	public String getDescription() {
+		return description;
 	}
 
 
@@ -119,12 +154,6 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		return rc ;
 	}
 
-	/**
-	 * Call this to reset - ie. clear the entire view
-	 */
-	public synchronized void reset() {
-		dataViewElements.clear();
-	}
 
 	/**
 	 *  Look at all the saved elements and send any that have changed.
@@ -225,7 +254,6 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		sendUpdates();
 	}
 
-
 	public String[] getColGroups() {
 		return colGroups;
 	}
@@ -269,7 +297,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 				while(iter.hasNext()){
 				    if(iter.next().isClosed() ){
 				        iter.remove();
-				        logger.info( "Removing closed data view." ) ;
+				        logger.info( "Removing closed ClientDataView." ) ;
 				    }
 				}
 
@@ -279,7 +307,10 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 				logger.error( "Error sending updates: ", t ) ;
 			}
 		}
+		logger.info( "Message sender for {} is shutdown.", getViewName() ) ;
+		messageSender = null ;
 	} 
+		
 }
 
 

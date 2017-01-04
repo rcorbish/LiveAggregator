@@ -26,13 +26,19 @@ import com.rc.agg.WebSocketServer;
 public class ViewDefinitions implements Runnable, AutoCloseable {
 	Logger logger = LoggerFactory.getLogger( ViewDefinitions.class ) ;
 
+	private static int PERIOD_FOR_CHECKING_VIEWS_FILE  = 15000 ;
+	
 	private File viewDefinitionFile ;
 	private volatile Thread fileWatcherThread  ;
 	private Map<String,ViewDefinition> viewDefinitions ;
 	private Map<String,ViewDefinition> potentialViewDefinitions ;
 	
-	public ViewDefinitions( String fileName ) throws IOException {
-		viewDefinitionFile = new File( fileName ) ;
+	private final DataElementStore dataElementStore ;
+	
+	public ViewDefinitions( String fileName , DataElementStore dataElementStore ) throws IOException {
+		this.viewDefinitionFile = new File( fileName ) ;
+		this.dataElementStore = dataElementStore ;
+		
 		if( !viewDefinitionFile.canRead() ) {
 			throw new IOException( "File '" + fileName + "' cannot be read." ) ;
 		}		
@@ -73,7 +79,6 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 		long loadedFileTimestamp = viewDefinitionFile.lastModified() ;
 		try {
 			while( fileWatcherThread!= null && !fileWatcherThread.isInterrupted() ) {
-				Thread.sleep( 15000 );
 				
 				if( viewDefinitionFile.lastModified() != loadedFileTimestamp ) {
 					for( ; ; )  { 
@@ -92,7 +97,8 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 							Thread.sleep( 3000 );
 						}
 					} 
-				}
+				}				
+				Thread.sleep( PERIOD_FOR_CHECKING_VIEWS_FILE );
 			}
 		} catch ( InterruptedException ignore ) {
 			
@@ -102,6 +108,7 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 	private void commitViewDefinitions() {
 		viewDefinitions = potentialViewDefinitions ;
 		logger.info( "Committed new definitions: {} views available.", viewDefinitions.size() ) ;
+		dataElementStore.setViewDefinitions( this ) ;
 	}
 
 	private synchronized void loadViewDefinitions() throws IOException {

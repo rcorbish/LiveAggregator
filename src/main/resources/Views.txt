@@ -1,9 +1,9 @@
 #-----------------------------
 # View definition for DG0
 #
-DG0.DESC=Test view / no filters
-DG0.ROW=CPTY
+DG0.DESC=DG0: Books/Client x Type/Currency
 DG0.ROW=BOOK
+DG0.ROW=CPTY
 DG0.ROW=AXIS
 DG0.COL=TYPE
 DG0.COL=CCY
@@ -12,7 +12,7 @@ DG0.COL=CCY
 #-----------------------------
 # View definition for DG1
 #
-DG1.DESC=IR01 by CCY/Axis
+DG1.DESC=DG1: IR01 x CCY/Axis
 DG1.FILTER=TYPE=IR01
 DG1.COL=CCY
 DG1.ROW=AXIS
@@ -21,6 +21,7 @@ DG1.ROW=AXIS
 #-----------------------------
 # View definition for DG2
 #
+DG2.DESC=DG2: Book/CCY
 DG2.FILTER=TYPE=P&L
 DG2.ROW=BOOK
 DG2.ROW=CCY
@@ -28,6 +29,7 @@ DG2.ROW=CCY
 #-----------------------------
 # View definition for DG3
 #
+DG3.DESC=DG3: CCY x Book
 DG3.COL=CCY
 DG3.ROW=BOOK
 

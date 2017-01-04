@@ -173,6 +173,12 @@
 	  	} else if( msg.command === "RDY" ) {
 	  		document.getElementById('grid').style.display="block";
 	  		sendObj( msg ) ;  // echo the ready message to enable updates in server
+	  	} else if( msg.command === "CLOSE" ) {
+       		statusOK( "Received CLOSE for currently running view." ) ;
+       		resetGrid() ;
+	  	} else if( msg.command === "RESET" ) {
+       		statusOK( "View definitions were change on the server, updating is temporarily paused." ) ;
+	  		openView( openGridName ) ;  		
 	  	} else {
 	  		statusBad( "Unknown server msg: " + msg.command ) ;
 	  	}
@@ -258,15 +264,16 @@
 	}
 
 	function openView( view ) {
-		if( openGridName ) {
+		if( openGridName !== view ) {
 			sendObj( { gridName:openGridName, 
-						command:"STOP" } ) ;			
+						command:"STOP" } ) ;
 		}
+		
+		openGridName = view ;
 		setKey( "openView", view ) ;
 		document.getElementById('grid').style.display="none";
 
 		statusOK( "Requesting " + view + " from server.") ;
-		openGridName = view ;
 		var msg = { gridName:openGridName, 
 					command:"START",
 					rowKeys:[],

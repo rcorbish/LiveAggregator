@@ -30,7 +30,7 @@ public class ClientDataView  {
 
 	public ClientDataView( 
 			DataElementDataView dataElementDataView,
-			ClientCommandProcessor clientCommandProcessor ) {
+			ClientCommandProcessor clientCommandProcessor ) throws ClientDisconnectedException {
 
 		this.dataElementDataView = dataElementDataView ;
 		this.clientCommandProcessor = clientCommandProcessor ;		
@@ -54,7 +54,18 @@ public class ClientDataView  {
 
 	public void close() {
 		logger.info( "Marking ClientDataView {} as closed.", getViewName() ) ;
+		clientCommandProcessor.close( getViewName() ) ;
 		closed = true ; 
+	}
+
+	public void reset() {
+		logger.info( "Informing ClientDataView {} that a reset is required.", getViewName() ) ;
+		try {
+			clientCommandProcessor.reset( getViewName() ) ;
+		} catch (ClientDisconnectedException e) {
+			logger.warn( "Remote client for {} disconnected during reset.", getViewName() ) ;
+			close(); 
+		}
 	}
 
 	public void expandCollapseRow( String rowKey, boolean expanded) {
@@ -78,6 +89,7 @@ public class ClientDataView  {
 						rowKey 
 						) ;
 			} catch (ClientDisconnectedException e) {
+				logger.warn( "Remote client for {} disconnected during cell delete.", getViewName() ) ;
 				close(); 
 			}
 		}
@@ -120,6 +132,7 @@ public class ClientDataView  {
 				}
 			}
 		} catch (ClientDisconnectedException e) {
+			logger.warn( "Remote client for {} disconnected during cell update.", getViewName() ) ;
 			close(); 
 		}
 	}
@@ -175,22 +188,6 @@ public class ClientDataView  {
 	}
 
 
-	//	@Override
-	//	public void run() {
-	//		try {
-	//			while( messageSender!=null && !messageSender.isInterrupted() ) {
-	//				Thread.sleep( 500 );
-	//				if( clientReadyToReceive ) {
-	//					sendUpdates();
-	//				}
-	//			} 
-	//		} catch( InterruptedException ignore ) {
-	//
-	//		} catch( Throwable t ) {
-	//			t.printStackTrace();  // should never happen
-	//		}
-	//	}
-	//
 	protected String getViewName() {
 		return dataElementDataView.getViewName() ;
 	}

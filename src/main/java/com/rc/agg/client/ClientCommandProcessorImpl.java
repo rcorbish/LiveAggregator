@@ -57,7 +57,7 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 
 	
 	
-	protected void send( String gridName, String command ) throws InterruptedException, ClientDisconnectedException {
+	protected void send( String gridName, String command ) throws ClientDisconnectedException {
 		send( gridName,command, null, null, null, null ) ;
 	}
 
@@ -77,10 +77,10 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	
 	
 	@Override
-	public void closeClient( String gridName ) {
+	public void close( String viewName ) {
 		try {
-			send( gridName, "CLOSE" ) ;   // WTF is being closed here ?
-			logger.info( "Sent close message for {}", gridName );
+			send( viewName, "CLOSE" ) ;   // WTF is being closed here ?
+			logger.info( "Sent close message for {}", viewName );
 		} catch (Exception ignore) {
 			// Not much we can do here if we're closed anyway
 		}
@@ -104,27 +104,22 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	}
 	
 	@Override
-	public void defineGrid(String gridName, String columnLevels, String rowLevels, String description) {
-		try {
-			send( gridName, "DIM", columnLevels, rowLevels, null, description ) ;
-			logger.info( "Sent DIM message for {}, cols: {}, rows: {}", gridName, DataElement.splitComponents(columnLevels), DataElement.splitComponents(rowLevels) );
-		} catch (Exception e) {
-			logger.error( "Error sending DIM message", e );
-			closeClient( gridName ) ;
-		}			
+	public void defineGrid(String gridName, String columnLevels, String rowLevels, String description) throws ClientDisconnectedException {
+		send( gridName, "DIM", columnLevels, rowLevels, null, description ) ;
+		logger.info( "Sent DIM message for {}, cols: {}, rows: {}", gridName, DataElement.splitComponents(columnLevels), DataElement.splitComponents(rowLevels) );
 	}
 
 	@Override
-	public void initializationComplete(String gridName) {
-		try {
-			send( gridName, "RDY" ) ;
-			logger.info( "Sent RDY message for {}", gridName );
-		} catch (Exception e) {
-			logger.error( "Error sending RDY message", e );
-			closeClient( gridName ) ;
-		}			
+	public void initializationComplete(String gridName) throws ClientDisconnectedException {
+		send( gridName, "RDY" ) ;
+		logger.info( "Sent RDY message for {}", gridName );
 	}
 
+	@Override
+	public void reset(String gridName) throws ClientDisconnectedException {
+		send( gridName, "RESET" ) ;
+		logger.info( "Sent RESET message for {}", gridName );
+	}
 
 	@Override
 	public void updateCell(String gridName, String columnKeys, String rowKeys, String data) throws ClientDisconnectedException {
@@ -143,13 +138,7 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 
 	@Override
 	public void deleteCol(String gridName, String columnKeys ) throws ClientDisconnectedException {
-		try {
-			send( gridName, "DELC", columnKeys, null ) ;
-		} catch (Exception e) {
-			logger.error( "Error sending DELC message", e );
-			closeClient( gridName ) ;
-			throw new ClientDisconnectedException() ;
-		}			
+		send( gridName, "DELC", columnKeys, null ) ;
 	}
 
 /**

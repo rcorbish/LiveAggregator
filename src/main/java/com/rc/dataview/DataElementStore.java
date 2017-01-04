@@ -4,9 +4,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.rc.agg.DataElementProcessor;
 import com.rc.datamodel.DataElement;
@@ -20,22 +20,29 @@ import com.rc.datamodel.DataElement;
  */
 public class DataElementStore  implements DataElementProcessor {
 
+	Logger logger = LoggerFactory.getLogger( DataElementStore.class ) ;
+	
 	private final Map<String,DataElement> 	currentElements ;
-//	private ClientManager 					clientManager ;	
 	private boolean							serverBatchComplete ;
-	private Map<String,DataElementDataView>	availableViews ;
+	private Map<String,DataElementDataView>	availableViews ;		// current available views
 
-
-	public boolean isServerBatchComplete() {
-		return serverBatchComplete;
-	}
-
-	public DataElementStore() {
+	private DataElementStore() {
 		currentElements =  new ConcurrentHashMap<>( 7_000_000 ) ;
 		availableViews = new HashMap<>() ;
 	}
 
-	public void clear() {
+	
+	private static DataElementStore instance = new DataElementStore() ;
+	 
+	public static DataElementStore getInstance() {
+		return instance ;
+	}
+	
+	public boolean isServerBatchComplete() {
+		return serverBatchComplete;
+	}
+
+	public void clear() {		
 		currentElements.clear(); 
 	}
 
@@ -51,14 +58,44 @@ public class DataElementStore  implements DataElementProcessor {
 		}
 	}
 
-	public void startBatch() {
+	/**
+	 * When a view changes during processing we need to replay
+	 * all current data points to all (new) views. This will 
+	 * interrupt processing.
+	 * 
+	 */
+	protected synchronized void reprocess() {
+		// If we're in the middle of reprocessing a batch
+		// don't do anything, let the current batch finish on
+		// its own.
+		if( serverBatchComplete ) {
+			for( DataElement dataElement : currentElements.values() ) {
+				for( DataElementDataView dedv : availableViews.values() ) {
+					dedv.process( dataElement ) ;
+				}
+			}
+			endBatch();
+		}
+	}
+	
+	/**
+	 * Start a new batch - clear out existing data.
+	 * Note this is synchronized (with reprocess). We can't
+	 * reprocess & resend a batch at the same time.
+	 * 
+	 */
+	public synchronized void startBatch() {
+		// prevent updates during initial population
 		serverBatchComplete = false ;
+		// remove any existing (old) data
 		clear() ;
+
 		for( DataElementDataView dedv : availableViews.values() ) {
 			dedv.startBatch() ;
 		}
 	}
 
+	
 	public void endBatch() {		
 		serverBatchComplete = true ;
 		for( DataElementDataView dedv : availableViews.values() ) {
@@ -66,31 +103,28 @@ public class DataElementStore  implements DataElementProcessor {
 		}
 	}
 
-	public void completeBatch() {
-	}
-
-	public void getAllData( final DataElementProcessor processor  ) {
-		ExecutorService executor = Executors.newFixedThreadPool( 8 ) ;
-
-		for( final DataElement de :currentElements.values() ) {
-			executor.execute( new Runnable() { public void run() { processor.process(de) ; } } ) ;
-		}
-		executor.shutdown();
-		try {
-			executor.awaitTermination(10, TimeUnit.MINUTES ) ;
-		} catch (InterruptedException ignore) {		}
-	}
-
-//	public void setDataGridManager(ClientManager clientManager) {
-//		this.clientManager = clientManager;
-//	}
-//	
-	
 	public void setViewDefinitions(ViewDefinitions viewDefinitions) {
+
+		logger.info( "Updating view definitions." );
+
+		Map<String,DataElementDataView>	futureAvailableViews = new HashMap<>() ; 
+				
 		for( ViewDefinition vd : viewDefinitions.getViewDefinitions() ) {
-			DataElementDataView dedv = new DataElementDataView(vd) ;
-			this.availableViews.put( dedv.getViewName(), dedv ) ;
+			DataElementDataView dedv = new DataElementDataView( vd ) ;			
+			futureAvailableViews.put( dedv.getViewName(), dedv ) ;
 		}
+		
+		logger.info( "Shutting down existing views." );
+
+		Collection<DataElementDataView> oldViews = availableViews.values() ; 
+		
+		for( DataElementDataView existingDedv : oldViews ) {
+			existingDedv.resetAndStop() ;
+		}
+		availableViews = futureAvailableViews ;
+
+		start() ;
+		reprocess();
 	}
 
 	public void start() {
