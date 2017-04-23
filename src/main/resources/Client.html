@@ -1,5 +1,7 @@
+<!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8" />
 <title>Test of WebSockets</title>
 <style type="text/css">
 
@@ -93,9 +95,10 @@
 
 <script>
 
+	
     var socket;
     var timerFunction ;
-    var host = "ws://FX6100:8111/live";
+    var host = "ws://" + document.location.host + "/live" ;
     var colLevels ; 
     var rowLevels ;
     var openViewName ;
@@ -136,52 +139,55 @@
     
     function socketMessage( msgText ) {
     	numMessages++ ; // used by heartbeat timer.
-    	var msg = JSON.parse( msgText.data ) ;
-    	
-	  	if( msg.command === "HEARTBEAT" ) {
-	  		// nothing just a placeholder for message to make sure numMessages in increasing 
-	  	} else if( msg.command === "UPD" ) {
-	  		document.getElementById( "messageCount" ).textContent = "Msg Count " + numberWithCommas(numMessages) ;
-        	
-       		var cell = findViewCell( 'grid', msg.colKeys, msg.rowKeys ) ;
-           	if( cell != null ) {
-        		cell.textContent= msg.value ;
-        	}
-	  	} else if( msg.command === "DEL" ) {
-        	
-       		var cell = findViewCell( 'grid', msg.colKeys, msg.rowKeys ) ;
-           	if( cell != null ) {
-        		cell.textContent= "" ;
-        	}
-           	removeRowIfEmpty( msg.rowKeys ) ;
-           	removeColIfEmpty( msg.colKeys ) ;
-
-	  	} else if( msg.command === "DELC" ) {
-           	removeCol( msg.colKeys ) ;
-	  	} else if( msg.command === "DELR" ) {
-           	removeRow( msg.rowKeys ) ;
-	  	} else if( msg.command === "VIEWS" ) {
-   			processViewResponse( msg.responses ) ;
-	  	} else if( msg.command === "DIM" ) {
-	  		numMessages = 1 ; // reset message count for a new View
-       		statusOK( msg.description ) ;
-       		colLevels = msg.colKeys ;
-       		rowLevels = msg.rowKeys ;
-       		numColLevels = msg.colKeys.length ;
-       		numRowLevels = msg.rowKeys.length ;
-       		resetView() ;
-	  	} else if( msg.command === "RDY" ) {
-	  		document.getElementById('grid').style.display="block";
-	  		sendObj( msg ) ;  // echo the ready message to enable updates in server
-	  	} else if( msg.command === "CLOSE" ) {
-       		statusOK( "Received CLOSE for currently running view." ) ;
-       		resetView() ;
-	  	} else if( msg.command === "RESET" ) {
-       		statusOK( "View definitions were change on the server, updating is temporarily paused." ) ;
-	  		openView( openViewName ) ;  		
-	  	} else {
-	  		statusBad( "Unknown server msg: " + msg.command ) ;
-	  	}
+    	var msgs = JSON.parse( msgText.data ) ;
+    	console.log( msgs ) ;
+    	for( var msgIndex = 0 ; msgIndex<msgs.length ; msgIndex++ ) {
+    		var msg = msgs[ msgIndex ] ; 
+		  	if( msg.command === "HEARTBEAT" ) {
+		  		// nothing just a placeholder for message to make sure numMessages in increasing 
+		  	} else if( msg.command === "UPD" ) {
+		  		document.getElementById( "messageCount" ).textContent = "Msg Count " + numberWithCommas(numMessages) ;
+	        	
+	       		var cell = findViewCell( 'grid', msg.colKeys, msg.rowKeys ) ;
+	           	if( cell != null ) {
+	        		cell.textContent= msg.value ;
+	        	}
+		  	} else if( msg.command === "DEL" ) {
+	        	
+	       		var cell = findViewCell( 'grid', msg.colKeys, msg.rowKeys ) ;
+	           	if( cell != null ) {
+	        		cell.textContent= "" ;
+	        	}
+	           	removeRowIfEmpty( msg.rowKeys ) ;
+	           	removeColIfEmpty( msg.colKeys ) ;
+	
+		  	} else if( msg.command === "DELC" ) {
+	           	removeCol( msg.colKeys ) ;
+		  	} else if( msg.command === "DELR" ) {
+	           	removeRow( msg.rowKeys ) ;
+		  	} else if( msg.command === "VIEWS" ) {
+	   			processViewResponse( msg.responses ) ;
+		  	} else if( msg.command === "DIM" ) {
+		  		numMessages = 1 ; // reset message count for a new View
+	       		statusOK( msg.description ) ;
+	       		colLevels = msg.colKeys ;
+	       		rowLevels = msg.rowKeys ;
+	       		numColLevels = msg.colKeys.length ;
+	       		numRowLevels = msg.rowKeys.length ;
+	       		resetView() ;
+		  	} else if( msg.command === "RDY" ) {
+		  		document.getElementById('grid').style.display="block";
+		  		sendObj( msg ) ;  // echo the ready message to enable updates in server
+		  	} else if( msg.command === "CLOSE" ) {
+	       		statusOK( "Received CLOSE for currently running view." ) ;
+	       		resetView() ;
+		  	} else if( msg.command === "RESET" ) {
+	       		statusOK( "View definitions were change on the server, updating is temporarily paused." ) ;
+		  		openView( openViewName ) ;  		
+		  	} else {
+		  		statusBad( "Unknown server msg: " + msg.command ) ;
+		  	}
+		}
   	}
        
 /*

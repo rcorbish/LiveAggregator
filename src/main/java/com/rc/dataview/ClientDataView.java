@@ -123,8 +123,7 @@ public class ClientDataView  {
 							getViewName(), 
 							rowKey
 							) ;
-				} 
-				if( !colExpanded ) {
+				} else {
 					clientCommandProcessor.deleteCol( 
 							getViewName(), 
 							colKey 
@@ -141,7 +140,6 @@ public class ClientDataView  {
 	/**
 	 *  Look at all the saved elements and send any that have changed.
 	 */
-
 	public synchronized void sendAll() {
 		dataElementDataView.sendAll( this );
 	}

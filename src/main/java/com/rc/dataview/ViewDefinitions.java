@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -35,14 +36,20 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 	
 	private final DataElementStore dataElementStore ;
 	
-	public ViewDefinitions( String fileName , DataElementStore dataElementStore ) throws IOException {
-		this.viewDefinitionFile = new File( fileName ) ;
+	public ViewDefinitions( URL viewDefinitions, DataElementStore dataElementStore ) throws IOException {
+		this( viewDefinitions.getFile(), dataElementStore ) ;
+	}
+
+	public ViewDefinitions( String viewDefinitions, DataElementStore dataElementStore ) throws IOException {
+		this.viewDefinitionFile = new File( viewDefinitions ) ;
 		this.dataElementStore = dataElementStore ;
 		
 		if( !viewDefinitionFile.canRead() ) {
-			throw new IOException( "File '" + fileName + "' cannot be read." ) ;
+			throw new IOException( "File '" + viewDefinitionFile + "' cannot be read." ) ;
 		}		
 	}
+
+	
 	/**
 	 * I know there is a FileWacther - but it has problems with
 	 * remote drives. Anyway this works :)

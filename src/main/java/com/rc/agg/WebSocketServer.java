@@ -1,6 +1,8 @@
 package com.rc.agg;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -44,7 +46,6 @@ public class WebSocketServer  {
 		logger.info( "Opened connection to {}", session.getRemote() ) ;
 		WebSocketCommandProcessor wscp = new WebSocketCommandProcessor(session) ;	// keep tabs on the rempote client
 		ClientProxy cp = new ClientProxy( wscp ) ;					// maintain a proxy to the client - used for sending messages
-		wscp.setClientProxy( cp ) ;
 		ClientProxy old = clientData.put( session, cp ) ;							// check if the map is overused - better never happen
 		if( old != null ) {
 			logger.warn( "EPIC FAIL: a new session accessed an old client - WTF." ) ;
@@ -123,14 +124,14 @@ public class WebSocketServer  {
 		} else {
 			String responses[] = clientProxy.respond( clientMessage ) ;
 			if( responses != null ) {	
-				StringBuilder sb = new StringBuilder( "{\"command\":\"" )
+				StringBuilder sb = new StringBuilder( "[{\"command\":\"" )
 						.append( clientMessage.command )
 						.append("\",\"responses\": [ " ) ;
 				for( String response : responses ) {
 					sb.append( '"' ).append( response ).append( "\"," ) ;
 				}
 				sb.deleteCharAt( sb.length()-1 ) ;
-				sb.append( "]}" ) ;
+				sb.append( "]}]" ) ;
 				
 				session.getRemote().sendString( sb.toString() ) ; 
 			}
@@ -173,7 +174,6 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 	private static int MIN_HEARTBEAT_INTERVAL_SECONDS = 1 ;
 
 	private Session session ;
-	private ClientProxy clientProxy ;
 	private BlockingQueue<String> messagesToBeSent ;
 	private volatile Thread reader ;
 	
@@ -184,9 +184,6 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 		reader.start(); // This could be very dangerous - if we ever subclass this.  Make sure all vars are properly initialized
 	}
 
-	public void setClientProxy( ClientProxy clientProxy ) {
-		this.clientProxy = clientProxy ;
-	}
 	
 	@Override
 	public void closeClient() {
@@ -206,14 +203,27 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 	 */
 	public void run() {
 		Thread.currentThread().setName( "WSS:" + session.getRemoteAddress() );
+		StringBuilder msgBuffer = new StringBuilder( 100_000 ) ;
+		List<String> messagesToSend = new ArrayList<>(16) ; 
 		try {
+			long nextHeartbeatMsg = 0 ;
 			while( !Thread.currentThread().isInterrupted() ) {
-				String message = messagesToBeSent.poll( MIN_HEARTBEAT_INTERVAL_SECONDS, TimeUnit.SECONDS ) ;
-				if( message == null ) {
+				Thread.sleep( 50 ) ;
+				int numMessages = messagesToBeSent.drainTo( messagesToSend ) ;
+				if( numMessages == 0 && System.currentTimeMillis() > nextHeartbeatMsg ) {
 					heartbeat() ;
 					logger.debug( "Heartbeat sent to {}", session ) ;
 				} else {
-					session.getRemote().sendString( message );
+					nextHeartbeatMsg = System.currentTimeMillis() + MIN_HEARTBEAT_INTERVAL_SECONDS*1000 ;
+					msgBuffer.setLength( 0 ) ;
+					msgBuffer.append( '[' ) ;
+					for( String message : messagesToSend ) {
+						msgBuffer.append( message ) ;
+						msgBuffer.append( ',' ) ;
+					}
+					msgBuffer.setCharAt(msgBuffer.length()-1,  ']' ) ;
+					session.getRemote().sendString( msgBuffer.toString() );
+					messagesToSend.clear();
 				}
 			}
 		} catch (InterruptedException t) {
@@ -222,7 +232,6 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 			logger.warn("Sending msg stopped by xmit error.", t ) ;
 		}
 		
-		clientProxy = null ;
 		reader = null ;
 		messagesToBeSent = null ;
 	}

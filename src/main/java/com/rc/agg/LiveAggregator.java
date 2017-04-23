@@ -1,10 +1,13 @@
 package com.rc.agg;
 
 import java.io.IOException;
+import java.net.URL;
 
 import com.rc.datamodel.DataElement;
 import com.rc.dataview.DataElementStore;
 import com.rc.dataview.ViewDefinitions;
+
+import spark.resource.ClassPathResource;
 
 public class LiveAggregator implements DataElementProcessor {
 	
@@ -21,7 +24,9 @@ public class LiveAggregator implements DataElementProcessor {
 
 	public LiveAggregator() throws IOException {
 		processor = DataElementStore.getInstance() ;
-		ViewDefinitions viewDefinitions = new ViewDefinitions( "src/main/resources/Views.txt", processor ) ;
+		URL viewsTxt = getClass().getClassLoader().getResource( "Views.txt" ) ;
+		
+		ViewDefinitions viewDefinitions = new ViewDefinitions( viewsTxt, processor ) ;
 		viewDefinitions.start();
 						
 		Monitor m = new Monitor() ;

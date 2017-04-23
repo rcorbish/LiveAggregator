@@ -1,5 +1,8 @@
 package com.rc.agg;
 
+import java.io.File;
+import java.net.URL;
+
 import com.rc.dataview.DataElementStore;
 
 //import com.rc.agg.client.ClientManager;
@@ -24,7 +27,9 @@ public class Monitor implements AutoCloseable {
 	public void start() {
 		try {
 			spark.Spark.port( 8111 ) ;
-			spark.Spark.staticFiles.externalLocation( "src/main/resources" );
+			URL mainPage = getClass().getClassLoader().getResource( "Client.html" ) ;
+			File path = new File( mainPage.getPath() ) ;
+			spark.Spark.staticFiles.externalLocation( path.getParent() ) ;
 			spark.Spark.webSocket("/live", WebSocketServer.class);
 			spark.Spark.get( "/", this::index ) ;
 			spark.Spark.awaitInitialization() ;

@@ -116,7 +116,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		if( filters != null && !filters.isEmpty() ) {
 			for( String k : filters.keySet() ) {
 				String mustMatchSomethingInHere = filters.get(k) ;				
-				String []mustMatchOneOfThese = DataElement.splitComponents(mustMatchSomethingInHere) ;
+				String mustMatchOneOfThese[] = DataElement.splitComponents(mustMatchSomethingInHere) ;
 				boolean matchedOneOfthese = false ;
 				for( String couldMatchThis : mustMatchOneOfThese ) {
 					String att = element.getAttribute( index, k ) ;
@@ -138,7 +138,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		if( filters != null && !filters.isEmpty() ) {
 			for( String k : filters.keySet() ) {
 				String mustMatchSomethingInHere = filters.get(k) ;
-				String []mustMatchOneOfThese = DataElement.splitComponents( mustMatchSomethingInHere ) ;
+				String mustMatchOneOfThese[] = DataElement.splitComponents( mustMatchSomethingInHere ) ;
 				boolean failedToMatcheOneOfThese = false;
 				for( String couldMatchThis : mustMatchOneOfThese ) {
 					String att = element.getCoreAttribute( k ) ;
