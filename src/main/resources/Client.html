@@ -5,6 +5,10 @@
 <title>Test of WebSockets</title>
 <style type="text/css">
 
+html {
+	font-family: arial ;
+}
+
 #messageCount {
 	font-size: 8pt ;
 	position:absolute;
@@ -28,7 +32,6 @@
 	font-weight:bold;
 }
 .hdrCell {
-	font-family: arial ;
 	font-size: 8pt ;
 	color: navy ;
 	width: 1.3cm ;
@@ -36,7 +39,6 @@
 	font-weight: bold ;
 } 
 .labelHdrCell {
-	font-family: arial ;
 	font-size: 8pt ;
 	color: navy ;
 	width: 1.3cm ;
@@ -44,7 +46,6 @@
 	font-weight: bold ;
 } 
 .dataCell {
-	font-family: arial ;
 	font-size: 8pt ;
 	text-align: right;
 	padding-left: 0.02cm;
@@ -85,9 +86,6 @@
 } 
 
 .dataRow:hover, tr:hover {
-	  background: yellow;
-}
-.dataRow:hover, col:hover {
 	  background: yellow;
 }
 
@@ -140,12 +138,13 @@
     function socketMessage( msgText ) {
     	numMessages++ ; // used by heartbeat timer.
     	var msgs = JSON.parse( msgText.data ) ;
-    	console.log( msgs ) ;
     	for( var msgIndex = 0 ; msgIndex<msgs.length ; msgIndex++ ) {
-    		var msg = msgs[ msgIndex ] ; 
-		  	if( msg.command === "HEARTBEAT" ) {
-		  		// nothing just a placeholder for message to make sure numMessages in increasing 
-		  	} else if( msg.command === "UPD" ) {
+    		var msg = msgs[ msgIndex ] ;
+    		if( openViewName !== msg.viewName ) {
+    			continue ;
+    		} 
+    		 
+		  	if( msg.command === "UPD" ) {
 		  		document.getElementById( "messageCount" ).textContent = "Msg Count " + numberWithCommas(numMessages) ;
 	        	
 	       		var cell = findViewCell( 'grid', msg.colKeys, msg.rowKeys ) ;

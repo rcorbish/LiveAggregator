@@ -208,12 +208,12 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 		try {
 			long nextHeartbeatMsg = 0 ;
 			while( !Thread.currentThread().isInterrupted() ) {
-				Thread.sleep( 50 ) ;
+				Thread.sleep( 150 ) ;
 				int numMessages = messagesToBeSent.drainTo( messagesToSend ) ;
 				if( numMessages == 0 && System.currentTimeMillis() > nextHeartbeatMsg ) {
 					heartbeat() ;
 					logger.debug( "Heartbeat sent to {}", session ) ;
-				} else {
+				} else if( numMessages > 0 ) {
 					nextHeartbeatMsg = System.currentTimeMillis() + MIN_HEARTBEAT_INTERVAL_SECONDS*1000 ;
 					msgBuffer.setLength( 0 ) ;
 					msgBuffer.append( '[' ) ;

@@ -118,6 +118,7 @@ public class ClientDataView  {
 						) ;
 				}
 			} else {
+				/*				
 				if( !rowExpanded ) {
 					clientCommandProcessor.deleteRow( 
 							getViewName(), 
@@ -129,6 +130,7 @@ public class ClientDataView  {
 							colKey 
 							) ;
 				}
+				*/
 			}
 		} catch (ClientDisconnectedException e) {
 			logger.warn( "Remote client for {} disconnected during cell update.", getViewName() ) ;
