@@ -43,9 +43,9 @@ public class LiveAggregatorRandom  {
 
 	public void start() throws Exception {
 		final Random random = new Random() ;
-		final int UPDATES_PER_MSG = 100 ;
-		final int N = 100_000 ;
-		final int BATCH_SIZE = 20 ;
+		final int UPDATES_PER_MSG = 400 ;
+		final int N = 10_000 ;
+		final int BATCH_SIZE = 15 ;
 		logger.info( "Starting server. Connect to client @ server:8111/Client.html" ); 
 		for( ; ; ) {
 			long start = System.currentTimeMillis() ;
@@ -91,7 +91,7 @@ public class LiveAggregatorRandom  {
 			if( !executor.awaitTermination( 10, TimeUnit.MINUTES ) ) {
 				throw new Exception( "Horror of horrors - we timed out waiting for the initial population to finish.");
 			}
-			logger.info( "Finished processing {} cells in {} mS", decimalFormat.format(N*UPDATES_PER_MSG), decimalFormat.format( (System.currentTimeMillis() - start) ) );
+			logger.info( "Finished processing {} cells in {} mS", decimalFormat.format(N*BATCH_SIZE), decimalFormat.format( (System.currentTimeMillis() - start) ) );
 			start = System.nanoTime() ;
 			aggregator.endBatch();
 
