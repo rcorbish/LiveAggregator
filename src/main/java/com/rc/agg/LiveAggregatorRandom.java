@@ -50,11 +50,11 @@ public class LiveAggregatorRandom  {
 		for( ; ; ) {
 			long start = System.currentTimeMillis() ;
 
-			ExecutorService executor = Executors.newFixedThreadPool( 10 ) ;
+			ExecutorService executor = Executors.newFixedThreadPool( 2 ) ;
 			aggregator.startBatch() ;
 			
 			// FIRST create an initial view - send updates & stuff
-			for( int i=0 ; i<(N/BATCH_SIZE) ; i++ ) {
+			for( int i=0 ; i<N ; i++ ) {
 				final int START = i * BATCH_SIZE ;
 				executor.execute(
 						new Runnable() {
@@ -91,7 +91,7 @@ public class LiveAggregatorRandom  {
 			if( !executor.awaitTermination( 10, TimeUnit.MINUTES ) ) {
 				throw new Exception( "Horror of horrors - we timed out waiting for the initial population to finish.");
 			}
-			logger.debug( "Finished processing {} cells in {} mS", decimalFormat.format(N*UPDATES_PER_MSG), decimalFormat.format( (System.currentTimeMillis() - start) ) );
+			logger.info( "Finished processing {} cells in {} mS", decimalFormat.format(N*UPDATES_PER_MSG), decimalFormat.format( (System.currentTimeMillis() - start) ) );
 			start = System.nanoTime() ;
 			aggregator.endBatch();
 

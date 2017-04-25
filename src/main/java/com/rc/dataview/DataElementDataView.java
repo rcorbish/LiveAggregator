@@ -1,6 +1,7 @@
 package com.rc.dataview;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -32,7 +33,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	// How often to send an update to the client (millis)
 	public static int CLIENT_UPDATE_INTERVAL = 200 ;	
 	
-	private final Map<String,String> filters ; 		// what key = value is being filtered
+	private final Map<String,String[]> filters ; 	// what key = value is being filtered
 	private final String colGroups[] ; 				// what is getting grouped
 	private final String rowGroups[] ; 				// what is getting grouped
 
@@ -53,8 +54,13 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		
 		this.viewName = viewDefinition.getName() ;
 		this.description = viewDefinition.getDescription() ;
-		this.filters = viewDefinition.getFilters();
+		this.filters = new HashMap<>() ;
+		Map<String,String> rawFilters = viewDefinition.getFilters();
 
+		for( String k : rawFilters.keySet() ) {
+			this.filters.put( k, DataElement.splitComponents(rawFilters.get(k)) )  ;
+		}
+		
 		if( viewDefinition.getColGroups().length == 0 ) {
 			colGroups = new String[] { "--" } ; 
 		} else {
@@ -115,8 +121,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		boolean rc = true ;
 		if( filters != null && !filters.isEmpty() ) {
 			for( String k : filters.keySet() ) {
-				String mustMatchSomethingInHere = filters.get(k) ;				
-				String mustMatchOneOfThese[] = DataElement.splitComponents(mustMatchSomethingInHere) ;
+				String mustMatchOneOfThese[] = filters.get(k) ;
 				boolean matchedOneOfthese = false ;
 				for( String couldMatchThis : mustMatchOneOfThese ) {
 					String att = element.getAttribute( index, k ) ;
@@ -137,8 +142,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		boolean rc = false ;
 		if( filters != null && !filters.isEmpty() ) {
 			for( String k : filters.keySet() ) {
-				String mustMatchSomethingInHere = filters.get(k) ;
-				String mustMatchOneOfThese[] = DataElement.splitComponents( mustMatchSomethingInHere ) ;
+				String mustMatchOneOfThese[] = filters.get(k) ;
 				boolean failedToMatcheOneOfThese = false;
 				for( String couldMatchThis : mustMatchOneOfThese ) {
 					String att = element.getCoreAttribute( k ) ;
@@ -207,8 +211,8 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	public void process( DataElement dataElement ) {
 
 		if( !failedCoreMatch( dataElement ) ) {
-			StringBuilder colKeyPiece = new StringBuilder() ;
-			StringBuilder elementKey = new StringBuilder() ;
+			StringBuilder colKeyPiece = new StringBuilder( 256 ) ;
+			StringBuilder elementKey = new StringBuilder( 256 ) ;
 
 			for( int i=0 ; i<dataElement.size() ; i++ ) {
 				if( matchesPerimeterElements( i, dataElement ) ) {
