@@ -31,9 +31,21 @@ public class LiveAggregatorRandom  {
 	public static void main(String[] args) {
 		LiveAggregatorRandom self = null ;
 		try {
+			int itemsPerBatch = 10_000 ;
+			int batchSize = 25 ;
+			int dataPointsPerItem = 400 ;
+			if( args.length > 1 ) {
+				itemsPerBatch = Integer.parseInt( args[0] ) ;
+			}
+			if( args.length > 2 ) {
+				batchSize = Integer.parseInt( args[1] ) ;
+			}
+			if( args.length > 3 ) {
+				dataPointsPerItem = Integer.parseInt( args[2] ) ;
+			}
 			self = new LiveAggregatorRandom() ;
 			self.aggregator = new LiveAggregator() ;
-			self.start() ;
+			self.start( itemsPerBatch, batchSize, dataPointsPerItem ) ;
 		} catch( Throwable t ) {
 			t.printStackTrace();
 			System.exit( -1 ) ;
@@ -41,11 +53,11 @@ public class LiveAggregatorRandom  {
 	}
 
 
-	public void start() throws Exception {
+	public void start( int itemsPerBatch, int batchSize, int dataPointsPerItem ) throws Exception {
 		final Random random = new Random() ;
-		final int UPDATES_PER_MSG = 400 ;
-		final int N = 10_000 ;
-		final int BATCH_SIZE = 25 ;
+		final int UPDATES_PER_MSG = dataPointsPerItem ;
+		final int N = itemsPerBatch ;
+		final int BATCH_SIZE = batchSize ;
 		logger.info( "Starting server. Connect to client @ server:8111/Client.html" ); 
 		for( ; ; ) {
 			long start = System.currentTimeMillis() ;
