@@ -45,7 +45,7 @@ public class LiveAggregatorRandom  {
 		final Random random = new Random() ;
 		final int UPDATES_PER_MSG = 400 ;
 		final int N = 10_000 ;
-		final int BATCH_SIZE = 15 ;
+		final int BATCH_SIZE = 25 ;
 		logger.info( "Starting server. Connect to client @ server:8111/Client.html" ); 
 		for( ; ; ) {
 			long start = System.currentTimeMillis() ;

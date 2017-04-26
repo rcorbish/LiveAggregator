@@ -33,3 +33,12 @@ DG3.DESC=DG3: CCY x Book
 DG3.COL=CCY
 DG3.ROW=BOOK
 
+#-----------------------------
+# View definition for DG4
+#
+DG4.DESC=DG4: Summary / CCY
+DG4.FILTER=TYPE=NPV
+DG4.ROW=CCY
+DG4.ROW_FILTER=USD=BOOK=Book1
+DG4.ROW_FILTER=CAD=BOOK=Book1
+

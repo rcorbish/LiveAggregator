@@ -29,6 +29,7 @@ public class ViewDefinition {
 	private String colGroups[] ;
 	private String rowGroups[] ;
 	private Map<String,String> filters ;
+	private Map<String,Map<String,String>> rowFilters ;
 	
 	public String getName() {
 		return name;
@@ -45,12 +46,16 @@ public class ViewDefinition {
 	public Map<String, String> getFilters() {
 		return filters;
 	}
+	public Map<String,Map<String,String>> getRowFilters() {
+		return rowFilters;
+	}
 
 	public ViewDefinition( String name ) {
 		this.name = name ;
 		colGroups = new String[0] ;
 		rowGroups = new String[0] ;
 		filters = new HashMap<>() ;
+		rowFilters = new HashMap<>() ;
 	}
 	
 	public void addColGroup( String colGroup ) {
@@ -69,6 +74,22 @@ public class ViewDefinition {
 			filters.put( attribute, value) ;
 		} else {
 			filters.put( attribute, currentFilter + DataElement.SEPARATION_CHAR + value) ;
+		}
+ 	}
+	
+	public void addRowFilter( String rowValue, String attribute, String value ) {
+		Map<String,String> currentFilter = rowFilters.get( rowValue ) ;
+		
+		if( currentFilter==null ) {
+			currentFilter = new HashMap<>() ;
+			rowFilters.put( rowValue, currentFilter ) ;
+		}
+		
+		String currentRowFilter = currentFilter.get( attribute ) ;
+		if( currentRowFilter==null ) {
+			currentFilter.put( attribute, value) ;
+		} else {
+			currentFilter.put( attribute, currentRowFilter + DataElement.SEPARATION_CHAR + value) ;
 		}
  	}
 	

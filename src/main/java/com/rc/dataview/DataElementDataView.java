@@ -34,6 +34,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	public static int CLIENT_UPDATE_INTERVAL = 200 ;	
 	
 	private final Map<String,String[]> filters ; 	// what key = value is being filtered
+	private final Map<String,Map<String,String[]>> rowFilters ; 	// what key = value is being filtered for each row key
 	private final String colGroups[] ; 				// what is getting grouped
 	private final String rowGroups[] ; 				// what is getting grouped
 
@@ -55,10 +56,22 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		this.viewName = viewDefinition.getName() ;
 		this.description = viewDefinition.getDescription() ;
 		this.filters = new HashMap<>() ;
+		this.rowFilters = new HashMap<>() ;
+		
 		Map<String,String> rawFilters = viewDefinition.getFilters();
-
 		for( String k : rawFilters.keySet() ) {
 			this.filters.put( k, DataElement.splitComponents(rawFilters.get(k)) )  ;
+		}
+		
+		Map<String,Map<String,String>> rawRowFilters = viewDefinition.getRowFilters();
+		for( String k : rawRowFilters.keySet() ) {			
+			Map<String,String> rawRowFilter = rawRowFilters.get( k ) ;
+			Map<String,String[]> tmp = new HashMap<>() ;
+			this.rowFilters.put( k, tmp ) ;
+			
+			for( String k2 : rawRowFilter.keySet() ) {
+				tmp.put( k, DataElement.splitComponents(rawRowFilter.get(k2)) )  ;
+			}
 		}
 		
 		if( viewDefinition.getColGroups().length == 0 ) {
@@ -211,22 +224,36 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	public void process( DataElement dataElement ) {
 
 		if( !failedCoreMatch( dataElement ) ) {
+			// remember the column keys, we need to have a cartesian
+			// of rpw key & column key combinations. 
 			StringBuilder colKeyPiece = new StringBuilder( 256 ) ;
+			// The cumulative cartesian key for this element
+			// need that to keep track of totals
 			StringBuilder elementKey = new StringBuilder( 256 ) ;
 
+			// for each sub element
 			for( int i=0 ; i<dataElement.size() ; i++ ) {
+				//check first part of filter
 				if( matchesPerimeterElements( i, dataElement ) ) {
 					colKeyPiece.setLength(0);
-
+					// for each column key piece
 					for( String colGroup : colGroups ) {
+						// add the next piece to the cumulative column key
 						colKeyPiece.append( dataElement.getAttribute(i, colGroup ) ) ;
+						// restart the cartesian key at empty
 						elementKey.setLength(0);
+						// Then add in the proper number of column components 
 						elementKey.append( colKeyPiece ).append( DataElement.ROW_COL_SEPARATION_CHAR ) ;
+						// Now with the base column done - add each row key, one at a time
+						// so get the cartesian of rows & columns into the 
+						// elementKey. This inner loop executes once per item in the 
+						// cartesian ... 2 row keys & 3 col keys == 6 loops
 						for( String rowGroup : rowGroups ) {
 							elementKey.append( dataElement.getAttribute(i, rowGroup ) ) ;
+							// now turn the key into a hashable thing
 							String key = elementKey.toString() ;
 							DataViewElement dve = dataViewElements.get( key ) ;
-							if( dve == null ) {
+							if( dve == null ) {   // if we don't have a key create it
 								// Allow concurrent elem creates
 								DataViewElement newDve = new DataViewElement() ;
 								dve = dataViewElements.putIfAbsent( key, newDve ) ;
@@ -234,6 +261,8 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 									dve = newDve ;
 								}
 							}
+							// add the value to the new key
+							// This is where the aggregation happens
 							dve.add( dataElement.getValue(i) )  ;
 							elementKey.append( DataElement.SEPARATION_CHAR ) ;
 						}					
