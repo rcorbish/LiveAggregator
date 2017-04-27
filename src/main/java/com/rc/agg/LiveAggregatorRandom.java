@@ -31,9 +31,9 @@ public class LiveAggregatorRandom  {
 	public static void main(String[] args) {
 		LiveAggregatorRandom self = null ;
 		try {
-			int itemsPerBatch = 10_000 ;
-			int batchSize = 25 ;
-			int dataPointsPerItem = 400 ;
+			int itemsPerBatch = 1_000 ;
+			int batchSize = 10 ;
+			int dataPointsPerItem = 100 ;
 			if( args.length > 1 ) {
 				itemsPerBatch = Integer.parseInt( args[0] ) ;
 			}
@@ -134,7 +134,7 @@ public class LiveAggregatorRandom  {
 					(random.nextInt( 100 ) - 50)) ;
 				}
 				aggregator.process( de ) ;									
-				Thread.sleep( 15 );  // distance between batch updates
+				Thread.sleep( 150 );  // distance between batch updates
 			}
 		}
 	}

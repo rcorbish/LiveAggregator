@@ -55,25 +55,38 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		
 		this.viewName = viewDefinition.getName() ;
 		this.description = viewDefinition.getDescription() ;
-		this.filters = new HashMap<>() ;
-		this.rowFilters = new HashMap<>() ;
+
+		//----------------------
+		// F I L T E R S
+		//
+		// if a filter is defined make sure any elements in the view
+		// match the filter
+		this.filters = new HashMap<>() ;		
 		
 		Map<String,String> rawFilters = viewDefinition.getFilters();
 		for( String k : rawFilters.keySet() ) {
 			this.filters.put( k, DataElement.splitComponents(rawFilters.get(k)) )  ;
 		}
 		
+		//----------------------
+		// R O W   F I L T E R S
+		//
+		// Match the row filters - use sparingly - not very efficient
+		Map<String,Map<String,String[]>> copyRowFilters = new HashMap<>() ;
+		
 		Map<String,Map<String,String>> rawRowFilters = viewDefinition.getRowFilters();
 		for( String k : rawRowFilters.keySet() ) {			
 			Map<String,String> rawRowFilter = rawRowFilters.get( k ) ;
 			Map<String,String[]> tmp = new HashMap<>() ;
-			this.rowFilters.put( k, tmp ) ;
+			copyRowFilters.put( k, tmp ) ;
 			
 			for( String k2 : rawRowFilter.keySet() ) {
-				tmp.put( k, DataElement.splitComponents(rawRowFilter.get(k2)) )  ;
+				tmp.put( k2, DataElement.splitComponents(rawRowFilter.get(k2)) )  ;
 			}
 		}
-		
+		// set it to null if the filter is empty
+		this.rowFilters = copyRowFilters.isEmpty() ? null : copyRowFilters ; 
+
 		if( viewDefinition.getColGroups().length == 0 ) {
 			colGroups = new String[] { "--" } ; 
 		} else {
@@ -222,7 +235,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 * 
 	 */
 	public void process( DataElement dataElement ) {
-
+		
 		if( !failedCoreMatch( dataElement ) ) {
 			// remember the column keys, we need to have a cartesian
 			// of rpw key & column key combinations. 
@@ -249,21 +262,51 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 						// elementKey. This inner loop executes once per item in the 
 						// cartesian ... 2 row keys & 3 col keys == 6 loops
 						for( String rowGroup : rowGroups ) {
-							elementKey.append( dataElement.getAttribute(i, rowGroup ) ) ;
-							// now turn the key into a hashable thing
-							String key = elementKey.toString() ;
-							DataViewElement dve = dataViewElements.get( key ) ;
-							if( dve == null ) {   // if we don't have a key create it
-								// Allow concurrent elem creates
-								DataViewElement newDve = new DataViewElement() ;
-								dve = dataViewElements.putIfAbsent( key, newDve ) ;
-								if( dve==null ) {
-									dve = newDve ;
+							elementKey.append( dataElement.getAttribute( i, rowGroup ) ) ;
+
+							// now we must check if we have a row filter
+							// if we do the 1st part of the row key must match the value of the filter
+							// and the sub-filter must match the entirfe data element.
+							// Example show 1x3 risk per currency
+							// the row filter would be the currency and the row filter would 
+							// be a list of data conventions matching 1x3 risk
+							// Be careful with this it's not very efficient - esp. in the middle of this loop !!!!!
+							boolean matchedRowFilter = true ;
+							
+							if( this.rowFilters!=null ) {
+								// we are matching on the value of the attribute, e.g. USD not CCY
+								String rowFilterValueToMatch = dataElement.getAttribute( i, rowGroups[0] ) ;
+								
+								Map<String,String[]> mustMatch = this.rowFilters.get( rowFilterValueToMatch ) ;
+								matchedRowFilter &= mustMatch != null ;
+								if( matchedRowFilter ) {
+									for( String k : mustMatch.keySet() ) {
+										String valueToMatch = dataElement.getAttribute( i, k ) ;
+										for( String value : mustMatch.get(k) ) {
+											matchedRowFilter &= value.equals( valueToMatch ) ;
+										}
+									}
+								} else {
+									break ; // optimization to leave the loop early if ot matched (usual case)
 								}
 							}
-							// add the value to the new key
-							// This is where the aggregation happens
-							dve.add( dataElement.getValue(i) )  ;
+							
+							if( matchedRowFilter ) {
+								// now turn the key into a hashable thing
+								String key = elementKey.toString() ;
+								DataViewElement dve = dataViewElements.get( key ) ;
+								if( dve == null ) {   // if we don't have a key create it
+									// Allow concurrent elem creates
+									DataViewElement newDve = new DataViewElement() ;
+									dve = dataViewElements.putIfAbsent( key, newDve ) ;
+									if( dve==null ) {
+										dve = newDve ;
+									}
+								}
+								// add the value to the new key
+								// This is where the aggregation happens
+								dve.add( dataElement.getValue(i) )  ;
+							}
 							elementKey.append( DataElement.SEPARATION_CHAR ) ;
 						}					
 						colKeyPiece.append( DataElement.SEPARATION_CHAR ) ;
