@@ -75,12 +75,13 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		Map<String,Map<String,String[]>> copyRowFilters = new HashMap<>() ;
 		
 		Map<String,Map<String,String>> rawRowFilters = viewDefinition.getRowFilters();
-		for( String k : rawRowFilters.keySet() ) {			
+		for( String k : rawRowFilters.keySet() ) {	
 			Map<String,String> rawRowFilter = rawRowFilters.get( k ) ;
 			Map<String,String[]> tmp = new HashMap<>() ;
 			copyRowFilters.put( k, tmp ) ;
 			
 			for( String k2 : rawRowFilter.keySet() ) {
+				//logger.info( "View {} - adding row filter @{} {} => {}", viewName, k, k2,rawRowFilter.get(k2) ) ;
 				tmp.put( k2, DataElement.splitComponents(rawRowFilter.get(k2)) )  ;
 			}
 		}
@@ -283,11 +284,10 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 									for( String k : mustMatch.keySet() ) {
 										String valueToMatch = dataElement.getAttribute( i, k ) ;
 										for( String value : mustMatch.get(k) ) {
-											matchedRowFilter &= value.equals( valueToMatch ) ;
+											matchedRowFilter |= value.equals( valueToMatch ) ;
+											break;
 										}
 									}
-								} else {
-									break ; // optimization to leave the loop early if ot matched (usual case)
 								}
 							}
 							
