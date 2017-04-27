@@ -153,12 +153,12 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 							 throw new IOException( "Invalid filter specified at " + viewDefinitionFile.getAbsolutePath() + " line #" + lineNum ) ;
 						 }
 						 viewDefinition.addFilter( kv[0], kv[1] ) ; 
-					 } else if( item.equalsIgnoreCase("ROW_FILTER") ) {
+					 } else if( item.equalsIgnoreCase("SET") ) {
 						 String kv[] = value.split( "=" ) ;
 						 if( kv.length<3) {
-							 throw new IOException( "Invalid row filter specified at " + viewDefinitionFile.getAbsolutePath() + " line #" + lineNum ) ;
+							 throw new IOException( "Invalid set value specified at " + viewDefinitionFile.getAbsolutePath() + " line #" + lineNum ) ;
 						 }
-						 viewDefinition.addRowFilter( kv[0], kv[1], kv[2] ) ; 
+						 viewDefinition.addSetValue( kv[0], kv[1], kv[2] ) ; 
 					 } else {
 						 throw new IOException( "Unrecognized element definition at " + viewDefinitionFile.getAbsolutePath() + " line #" + lineNum ) ;
 					 }

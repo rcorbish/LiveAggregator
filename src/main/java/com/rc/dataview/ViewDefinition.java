@@ -29,7 +29,14 @@ public class ViewDefinition {
 	private String colGroups[] ;
 	private String rowGroups[] ;
 	private Map<String,String> filters ;
-	private Map<String,Map<String,String>> rowFilters ;
+
+	// this is a map keyed on attribute name
+	// mapping to 2 strings
+	// string[0] = attribute value to match
+	// string[1] = attribute name to change
+	// i.e.
+	// 	if( key == string[0] ) then set key = string[1]
+	private Map<String,String[]> setValues ;
 	
 	public String getName() {
 		return name;
@@ -46,8 +53,8 @@ public class ViewDefinition {
 	public Map<String, String> getFilters() {
 		return filters;
 	}
-	public Map<String,Map<String,String>> getRowFilters() {
-		return rowFilters;
+	public Map<String,String[]> getSetValues() {
+		return setValues;
 	}
 
 	public ViewDefinition( String name ) {
@@ -55,7 +62,7 @@ public class ViewDefinition {
 		colGroups = new String[0] ;
 		rowGroups = new String[0] ;
 		filters = new HashMap<>() ;
-		rowFilters = new HashMap<>() ;
+		setValues = new HashMap<>() ;
 	}
 	
 	public void addColGroup( String colGroup ) {
@@ -77,20 +84,8 @@ public class ViewDefinition {
 		}
  	}
 	
-	public void addRowFilter( String rowValue, String attribute, String value ) {
-		Map<String,String> currentFilter = rowFilters.get( rowValue ) ;
-		
-		if( currentFilter==null ) {
-			currentFilter = new HashMap<>() ;
-			rowFilters.put( rowValue, currentFilter ) ;
-		}
-		
-		String currentRowFilter = currentFilter.get( attribute ) ;
-		if( currentRowFilter==null ) {
-			currentFilter.put( attribute, value) ;
-		} else {
-			currentFilter.put( attribute, currentRowFilter + DataElement.SEPARATION_CHAR + value) ;
-		}
+	public void addSetValue( String attributeName, String attributeValue, String whenAttributeValue ) {
+		this.setValues.put( attributeName, new String[]{ attributeValue, whenAttributeValue } ) ;
  	}
 	
 	public boolean equals( Object o ) {
@@ -100,5 +95,4 @@ public class ViewDefinition {
 	public int hashCode() {
 		return name.hashCode() ;
 	}
-
 }
