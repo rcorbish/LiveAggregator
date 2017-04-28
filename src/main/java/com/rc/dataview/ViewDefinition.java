@@ -31,12 +31,11 @@ public class ViewDefinition {
 	private Map<String,String> filters ;
 
 	// this is a map keyed on attribute name
-	// mapping to 2 strings
-	// string[0] = attribute value to match
-	// string[1] = attribute name to change
-	// i.e.
-	// 	if( key == string[0] ) then set key = string[1]
-	private Map<String,String[]> setValues ;
+	// mapping to another map
+	// key1 =>   ( name of field to remap )
+	// 	key2 = attribute value to match
+	// 	value2 = attribute name to change
+	private Map<String,Map<String,String>> setValues ;
 	
 	public String getName() {
 		return name;
@@ -53,7 +52,7 @@ public class ViewDefinition {
 	public Map<String, String> getFilters() {
 		return filters;
 	}
-	public Map<String,String[]> getSetValues() {
+	public Map<String,Map<String,String>> getSetValues() {
 		return setValues;
 	}
 
@@ -85,7 +84,12 @@ public class ViewDefinition {
  	}
 	
 	public void addSetValue( String attributeName, String attributeValue, String whenAttributeValue ) {
-		this.setValues.put( attributeName, new String[]{ attributeValue, whenAttributeValue } ) ;
+		Map<String,String> currentMap = this.setValues.get( attributeName ) ;
+		if( currentMap == null ) {
+			currentMap = new HashMap<>() ;
+			this.setValues.put( attributeName, currentMap ) ;
+		}
+		currentMap.put( attributeValue, whenAttributeValue ) ;
  	}
 	
 	public boolean equals( Object o ) {

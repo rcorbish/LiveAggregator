@@ -24,7 +24,8 @@ public class LiveAggregatorFile  {
 		try {
 			self = new LiveAggregatorFile() ;
 			self.aggregator = new LiveAggregator() ;
-			self.start() ;
+			String fileName = args.length>0 ? args[0] : "src/main/resources/Test1.txt" ;
+			self.start( fileName ) ;
 		} catch( Throwable t ) {
 			t.printStackTrace();
 			System.exit( -1 ) ;
@@ -32,9 +33,9 @@ public class LiveAggregatorFile  {
 	}
 
 
-	public void start() throws InterruptedException {
+	public void start( String fileName ) throws InterruptedException {
 
-		File dataFile = new File( "src/main/resources/Test1.txt") ;
+		File dataFile = new File( fileName ) ;
 		logger.info( "Starting to process {}", dataFile ); 
 
 		aggregator.startBatch();

@@ -9,11 +9,39 @@ html {
 	font-family: arial ;
 }
 
-#messageCount {
+#message-count {
 	font-size: 8pt ;
 	position:absolute;
 	right: 0 ;
 	top: 0 ;
+}
+#status {
+	font-size: 12pt ;
+	font-weight:bold ;
+	position:absolute;
+	right: 0 ;
+	top: 0 ;
+}
+#view-name {
+	font-size: 12pt ;
+	font-weight:bold ;
+	position:absolute;
+	left: 0 ;
+	top: 20px ;
+}
+.good-status {
+	color: limegreen ;
+}
+.bad-status {
+	color: red ;
+}
+
+#content {
+	position:absolute ;
+	left:0 ;
+	width:100% ;
+	bottom: 0 ;
+	top:45px ;
 }
 .grid {
 	border-collapse: collapse ;
@@ -102,7 +130,9 @@ html {
     var openViewName ;
     var numMessages = 0 ;
  	var messageCountAtPreviousHeartbeat = 0 ;	
-    
+    var numHeartbeatsMissed = 0 ;
+	var connectionActive = false ;
+
     openWebSocket() ;
     
     function openWebSocket() {
@@ -116,10 +146,13 @@ html {
     }
  
     function heartbeatTimeout() {
-    	if( numMessages === messageCountAtPreviousHeartbeat ) {
-    		statusBad( "Server connection lost" ) ;
-    		//openWebSocket() ;
-    	}
+		numHeartbeatsMissed = 0 ;
+		if( numHeartbeatsMissed>2 ) {
+			if( numMessages === messageCountAtPreviousHeartbeat ) {
+				statusBad( "Server connection lost" ) ;
+				//openWebSocket() ;
+			}
+		}
 		messageCountAtPreviousHeartbeat = numMessages ;    
 	}
     
@@ -127,15 +160,21 @@ html {
         timerFunction = setInterval(function(){heartbeatTimeout()},3000);
     	statusOK( "Server connection active" ) ;
     	sendObj( { command:"VIEWS" } ) ;
+		connectionActive = true ;
     }  
 
     function socketClose() {
     	socket = null ;
     	clearTimeout( timerFunction ) ;
     	statusBad( "Server connection closed" ) ;
+		connectionActive = false ;
     }      
     
     function socketMessage( msgText ) {
+		if( !connectionActive ) {
+	    	statusOK( "Server connection active" ) ;
+			connectionActive = true ;
+		}
     	numMessages++ ; // used by heartbeat timer.
     	var msgs = JSON.parse( msgText.data ) ;
     	for( var msgIndex = 0 ; msgIndex<msgs.length ; msgIndex++ ) {
@@ -145,7 +184,7 @@ html {
     		} 
     		 
 		  	if( msg.command === "UPD" ) {
-		  		document.getElementById( "messageCount" ).textContent = "Msg Count " + numberWithCommas(numMessages) ;
+		  		document.getElementById( "message-count" ).textContent = "Msg Count " + numberWithCommas(numMessages) ;
 	        	
 	       		var cell = findViewCell( 'grid', msg.colKeys, msg.rowKeys ) ;
 	           	if( cell != null ) {
@@ -168,7 +207,7 @@ html {
 	   			processViewResponse( msg.responses ) ;
 		  	} else if( msg.command === "DIM" ) {
 		  		numMessages = 1 ; // reset message count for a new View
-	       		statusOK( msg.description ) ;
+	       		setViewDescription( msg.description ) ;
 	       		colLevels = msg.colKeys ;
 	       		rowLevels = msg.rowKeys ;
 	       		numColLevels = msg.colKeys.length ;
@@ -534,14 +573,21 @@ html {
  		}
     }
 
+ 	function setViewDescription( desc ) {
+ 		var viewDesc = document.getElementById("view-name");    	
+ 		viewDesc.textContent = desc ;
+ 	}
+
  	function statusOK( msg ) {
  		var status = document.getElementById("status");    	
- 		status.innerHTML="<span style='color:green;font-weight:bold;'>" + msg + "</span>" ;
+ 		status.className = "good-status" ;
+		status.textContent = msg ;
  	}
  	
  	function statusBad( msg ) {
- 		var status = document.getElementById("status");    	
- 		status.innerHTML="<span style='color:red;font-weight:bold;'>" + msg + "</span>" ;
+ 		var status = document.getElementById("status");
+		status.className = "bad-status" ;    	
+		status.textContent = msg ;
  	}
 
  	
@@ -587,7 +633,8 @@ html {
 <body>
 
 <div id="status"></div>
-<div id="messageCount"></div>
+<div id="view-name"></div>
+<div id=="message-count"></div>
 
 <!--
 <div id="controlMenu">
@@ -599,8 +646,9 @@ html {
 <div id="viewMenu"></div>
 </div>
 
-
-<table id="grid" class='grid'></table>
+<div id="content">
+	<table id="grid" class='grid'></table>
+</div>
 
 </body>
 </html>

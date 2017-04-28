@@ -34,7 +34,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	public static int CLIENT_UPDATE_INTERVAL = 200 ;	
 	
 	private final Map<String,String[]> filters ; 	// what key = value is being filtered
-	private final Map<String,String[]> setValues ; 	// force change in value of an attribute on condition
+	private final Map<String,Map<String,String>> setValues ; 	// force change in value of an attribute on condition
 	private final String colGroups[] ; 				// what is getting grouped
 	private final String rowGroups[] ; 				// what is getting grouped
 
@@ -250,12 +250,9 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 						// cartesian ... 2 row keys & 3 col keys == 6 loops
 						for( String rowGroup : rowGroups ) {
 							if( this.setValues != null ) {
-								String s[] = this.setValues.get( rowGroup ) ;
-								if( s[0].equals( dataElement.getAttribute( i, rowGroup ) ) ) {
-									elementKey.append( s[1] ) ;
-								} else {
-									elementKey.append( "Other" ) ;
-								}
+								Map<String,String> setValuesForThisRowGroup = this.setValues.get( rowGroup ) ;
+								String replacementValue = setValuesForThisRowGroup.get( dataElement.getAttribute( i, rowGroup ) ) ;
+								elementKey.append( replacementValue==null ? "Other" : replacementValue ) ;
 							} else {
 								elementKey.append( dataElement.getAttribute( i, rowGroup ) ) ;
 							}
