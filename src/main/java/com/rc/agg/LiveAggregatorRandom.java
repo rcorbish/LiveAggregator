@@ -134,7 +134,7 @@ public class LiveAggregatorRandom  {
 					(random.nextInt( 100 ) - 50)) ;
 				}
 				aggregator.process( de ) ;									
-				Thread.sleep( 150 );  // distance between batch updates
+				Thread.sleep( 1000 );  // distance between batch updates
 			}
 		}
 	}

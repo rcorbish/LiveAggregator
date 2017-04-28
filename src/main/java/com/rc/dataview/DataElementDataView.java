@@ -151,7 +151,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	}
 
 
-	private boolean failedCoreMatch(DataElement element) {
+	private boolean matchesCoreElements(DataElement element) {
 		boolean rc = false ;
 		if( filters != null && !filters.isEmpty() ) {
 			for( String k : filters.keySet() ) {
@@ -160,7 +160,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 				String att = element.getCoreAttribute( k ) ;
 				if( att != null ) {
 					for( String couldMatchThis : mustMatchOneOfThese ) {
-						matcheOneOfThese |= !att.equals( couldMatchThis ) ;
+						matcheOneOfThese |= att.equals( couldMatchThis ) ;
 						if( matcheOneOfThese ) break ;
 					}
 					rc |= !matcheOneOfThese ;
@@ -168,7 +168,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 				}
 			}
 		}
-		return rc ;
+		return !rc ;
 	}
 
 
@@ -223,7 +223,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 */
 	public void process( DataElement dataElement ) {
 		
-		if( !failedCoreMatch( dataElement ) ) {
+		if( matchesCoreElements( dataElement ) ) {
 			// remember the column keys, we need to have a cartesian
 			// of rpw key & column key combinations. 
 			StringBuilder colKeyPiece = new StringBuilder( 256 ) ;
