@@ -61,8 +61,8 @@ public class LiveAggregatorRandom  {
 		logger.info( "Starting server. Connect to client @ server:8111/Client.html" ); 
 		for( ; ; ) {
 			long start = System.currentTimeMillis() ;
-
-			ExecutorService executor = Executors.newFixedThreadPool( 2 ) ;
+			logger.info( "Restarting processing of data" ) ;
+			ExecutorService executor = Executors.newFixedThreadPool( 3 ) ;
 			aggregator.startBatch() ;
 			
 			// FIRST create an initial view - send updates & stuff

@@ -56,12 +56,13 @@ public class ClientProxy implements ClientEventProcessor {
 				// Answer with the list of available views that can be shown on the client desktop
 				StringBuilder tmp = new StringBuilder() ;
 				boolean first = true ;
-				Collection<String> vds = DataElementStore.getInstance().getDataViewNames() ;
-				rc = new String[ vds.size() ] ;
+				Collection<String> vdns = DataElementStore.getInstance().getDataViewNames() ;
+				rc = new String[ vdns.size() ] ;
 				int i = 0 ;
-				for( String vd : vds ) {
-					rc[i++] = vd ;
+				for( String vdn : vdns ) {
+					rc[i++] = vdn ;
 				}
+				java.util.Arrays.sort( rc ) ;
 			} else if( request.command.equals("ATTRIBUTES") ) {
 				rc = new String[]{ "BOOK", "CCY", "TRADEID" } ;
 			}

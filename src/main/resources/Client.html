@@ -2,32 +2,49 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Test of WebSockets</title>
+<title>Data grid viewer</title>
 <style type="text/css">
 
-html {
+.html {
 	font-family: arial ;
+	margin: 0 ;
+	padding: 0 ;
 }
 
+#header-area {
+	position:absolute;
+	right: 0 ;
+	top: 0 ;
+	left: 0 ;
+	height: 50px ;
+}
 #message-count {
 	font-size: 8pt ;
 	position:absolute;
 	right: 0 ;
-	top: 0 ;
+	top: 15px ;
 }
 #status {
-	font-size: 12pt ;
+	font-size: 10pt ;
 	font-weight:bold ;
 	position:absolute;
 	right: 0 ;
 	top: 0 ;
 }
+#view-menu {
+	font-size: 11pt ;
+	font-weight:bold ;
+	position:absolute;
+	left: 0 ;
+	top: 0 ;
+}
+
 #view-name {
 	font-size: 12pt ;
 	font-weight:bold ;
 	position:absolute;
 	left: 0 ;
-	top: 20px ;
+	top: 30px ;
 }
 .good-status {
 	color: limegreen ;
@@ -41,7 +58,7 @@ html {
 	left:0 ;
 	width:100% ;
 	bottom: 0 ;
-	top:45px ;
+	top:55px ;
 }
 .grid {
 	border-collapse: collapse ;
@@ -54,11 +71,13 @@ html {
 .expand-button {
 	width:9pt;
 	height:9pt;
-	margin:0px;
-	padding:0px;
 	font-size:6pt;
 	font-weight:bold;
+	margin: 0 ;
+	padding: 0 ;
+	border: 0 ;
 }
+
 .hdrCell {
 	font-size: 8pt ;
 	color: navy ;
@@ -149,7 +168,7 @@ html {
 		numHeartbeatsMissed = 0 ;
 		if( numHeartbeatsMissed>2 ) {
 			if( numMessages === messageCountAtPreviousHeartbeat ) {
-				statusBad( "Server connection lost" ) ;
+				statusBad( "Can't connect" ) ;
 				//openWebSocket() ;
 			}
 		}
@@ -158,7 +177,7 @@ html {
     
     function socketOpen() {  
         timerFunction = setInterval(function(){heartbeatTimeout()},3000);
-    	statusOK( "Server connection active" ) ;
+    	statusOK() ;
     	sendObj( { command:"VIEWS" } ) ;
 		connectionActive = true ;
     }  
@@ -166,13 +185,13 @@ html {
     function socketClose() {
     	socket = null ;
     	clearTimeout( timerFunction ) ;
-    	statusBad( "Server connection closed" ) ;
+    	statusBad( "Closed" ) ;
 		connectionActive = false ;
     }      
     
     function socketMessage( msgText ) {
 		if( !connectionActive ) {
-	    	statusOK( "Server connection active" ) ;
+	    	statusOK() ;
 			connectionActive = true ;
 		}
     	numMessages++ ; // used by heartbeat timer.
@@ -217,13 +236,13 @@ html {
 		  		document.getElementById('grid').style.display="block";
 		  		sendObj( msg ) ;  // echo the ready message to enable updates in server
 		  	} else if( msg.command === "CLOSE" ) {
-	       		statusOK( "Received CLOSE for currently running view." ) ;
+	       		statusBad( "Closed" ) ;
 	       		resetView() ;
 		  	} else if( msg.command === "RESET" ) {
-	       		statusOK( "View definitions were change on the server, updating is temporarily paused." ) ;
+	       		setViewDescription( "View definitions were changed on the server, updating is temporarily paused." ) ;
 		  		openView( openViewName ) ;  		
 		  	} else {
-		  		statusBad( "Unknown server msg: " + msg.command ) ;
+		  		console.log( "Unknown server msg: " + msg.command ) ;
 		  	}
 		}
   	}
@@ -233,7 +252,7 @@ html {
 	views is an array of view names that can be opened
 */
     function processViewResponse( views ) {
-    	var viewMenu = document.getElementById("viewMenu");    	
+    	var viewMenu = document.getElementById("view-menu");    	
 		var lastOpenView = getKey( "openView" ) ;
     	
     	var menuHtml = "" ;
@@ -317,7 +336,7 @@ html {
 		setKey( "openView", view ) ;
 		document.getElementById('grid').style.display="none";
 
-		statusOK( "Requesting " + view + " from server.") ;
+		setViewDescription( "Requesting " + view + " from server.") ;
 		var msg = { viewName:openViewName, 
 					command:"START",
 					rowKeys:[],
@@ -578,10 +597,10 @@ html {
  		viewDesc.textContent = desc ;
  	}
 
- 	function statusOK( msg ) {
+ 	function statusOK() {
  		var status = document.getElementById("status");    	
  		status.className = "good-status" ;
-		status.textContent = msg ;
+		status.textContent = "OK" ;
  	}
  	
  	function statusBad( msg ) {
@@ -632,18 +651,11 @@ html {
 
 <body>
 
-<div id="status"></div>
-<div id="view-name"></div>
-<div id=="message-count"></div>
-
-<!--
-<div id="controlMenu">
-<button onclick="openWebSocket()">Connect</button>
-<button onclick="closeAll()">Disconnect</button>
-</div>
--->
-
-<div id="viewMenu"></div>
+<div id='header-area'>
+	<div id="status"></div>
+	<div id="view-name"></div>
+	<div id="message-count"></div>
+	<div id="view-menu"></div>
 </div>
 
 <div id="content">
