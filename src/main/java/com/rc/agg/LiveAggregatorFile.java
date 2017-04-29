@@ -2,8 +2,12 @@ package com.rc.agg;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.Charset;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,8 +44,10 @@ public class LiveAggregatorFile  {
 
 		aggregator.startBatch();
 		int lineNumber = 0 ;
-		try ( FileReader fr = new FileReader(dataFile) ; 
-			  BufferedReader br = new BufferedReader( fr ) ) {
+		
+ 		try ( FileInputStream fis = new FileInputStream(dataFile) ;
+			  Reader r = new InputStreamReader(fis, "UTF-8" ) ; 
+			  BufferedReader br = new BufferedReader( r ) ) {
 			lineNumber++ ;
 			String s=br.readLine() ;
 

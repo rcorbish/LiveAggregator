@@ -11,11 +11,17 @@ description = "Real-time data aggregation and viewing"
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+tasks.withType(FindBugs) {
+    reports {
+        xml.enabled = false
+        html.enabled = true
+    }
+}
+
 findbugs {
     sourceSets = [sourceSets.main]
     ignoreFailures = true
     reportsDir = file("$project.buildDir/findbugsReports")
-    effort = "min"
     reportLevel = "high"
 }
 

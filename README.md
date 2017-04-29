@@ -3,6 +3,8 @@ Perform real-time aggregation of data feeds
 The poor (wo)man's active pivot :). It's simple enough and is pretty fast (if I say so myself)
 The config. allows support to setup new views for clients.
 
+Class docs & APIS are [here](https://rcorbish.ydns.eu/live-aggregator-docs/)
+
 # How it works
 
 Implemented in pure java (v8 reqd), you need to feed the monster DataElements.
@@ -55,7 +57,34 @@ That's pretty much it:
 The supported display is a web page, connected to the Client Proxy using webscokets.
 The protocol is implemented in json
 
-# more to come
+# Installation
+
+## preferred means is to build from source
+
+### Download
+
+Get the source:
+
+`git clone https://github.com/rcorbish/LiveAggregator.git`
+
+Or a zipped file from [here](https://github.com/rcorbish/LiveAggregator/archive/master.zip)
+
+### Build
+
+Use one of these ...
+
+* build in eclipse
+* mvn build
+* gradle build
+
+## or use a docker image 
+
+### Docker image
+
+load a docker image from the hub
+ 
+`docker pull rcorbish/live-aggregator`
+
  
 
 

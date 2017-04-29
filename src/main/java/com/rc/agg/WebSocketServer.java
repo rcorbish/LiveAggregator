@@ -140,7 +140,7 @@ public class WebSocketServer  {
 	
 	/**
 	 * Used for debugging in the monitor page only
-	 * @return
+	 * @return a representation of the static parts of the class
 	 */
 	public static String toStringStatic() {
 		StringBuilder rc = new StringBuilder() ;
@@ -163,6 +163,9 @@ public class WebSocketServer  {
  * One of these is created for each client web-page. It handles the transmission to the 
  * server. 
  * 
+ * The transmission is separated from the caller using a queue. Transmit adds a message to that 
+ * queue. A different thread reads the queue and sends bunches of messages to the client
+ * 
  * @author richard
  *
  */
@@ -171,11 +174,12 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 
 	// tune this in sync with the client. It should be less than the client's value
 	// to prevent unnecessary timeouts.
-	private static int MIN_HEARTBEAT_INTERVAL_SECONDS = 1 ;
+	private static final int MIN_HEARTBEAT_INTERVAL_SECONDS = 1 ;
+	private static final int CLIENT_MESSAGE_SENDING_INTERVAL_MILLIS = 150 ;
 
-	private Session session ;
-	private BlockingQueue<String> messagesToBeSent ;
-	private volatile Thread reader ;
+	private final Session session ;
+	private final BlockingQueue<String> messagesToBeSent ;
+	private Thread reader ;
 	
 	public WebSocketCommandProcessor( Session session ) {
 		this.session = session ;
@@ -188,8 +192,9 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 	@Override
 	public void closeClient() {
 		logger.info( "Closing entire client {}", session.getRemoteAddress() ) ;
-		if( reader != null ) {
-			reader.interrupt(); 
+		Thread readerCopy = reader ;	// in case the thread dies after we checked for null !
+		if( readerCopy != null ) {
+			readerCopy.interrupt();
 		}
 	}
 	
@@ -208,7 +213,7 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 		try {
 			long nextHeartbeatMsg = 0 ;
 			while( !Thread.currentThread().isInterrupted() ) {
-				Thread.sleep( 150 ) ;
+				Thread.sleep( CLIENT_MESSAGE_SENDING_INTERVAL_MILLIS ) ;
 				int numMessages = messagesToBeSent.drainTo( messagesToSend ) ;
 				if( numMessages == 0 && System.currentTimeMillis() > nextHeartbeatMsg ) {
 					heartbeat() ;
@@ -233,12 +238,11 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 		}
 		
 		reader = null ;
-		messagesToBeSent = null ;
 	}
 	
 	@Override
 	protected void transmit(CharSequence message) throws ClientDisconnectedException {
-		if( messagesToBeSent != null ) {		// must not put a message on the queue if there's no queue (i.e. reader died unexpectedly)
+		if( reader != null ) {		// must not put a message on the queue if there's no queue (i.e. reader died unexpectedly)
 			try {
 				messagesToBeSent.put( message.toString() ) ;
 			} catch( InterruptedException e ) {
@@ -250,8 +254,12 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 		}
 	}
 	
-	public String toString() {
-		
+	/**
+	 * Used for the monitor & debugging
+	 * 
+	 * @return a text representing the instance
+	 */
+	public String toString() {		
 		return "WebSocket to " + session.getRemoteAddress() + "\n" +
 				messagesToBeSent.size()  + " pending messages \n" + 
 				"Reader is " + ( (reader==null) ? "dead\n" : "alive\n" ) ;

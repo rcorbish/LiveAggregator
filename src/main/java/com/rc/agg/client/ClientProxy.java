@@ -25,7 +25,7 @@ public class ClientProxy implements ClientEventProcessor {
 	Logger logger = LoggerFactory.getLogger( ClientProxy.class ) ;
 
 	private final Map<String,ClientDataView> openDataViews ;
-	private ClientCommandProcessor clientCommandProcessor ;
+	private final ClientCommandProcessor clientCommandProcessor ;
 
 	public ClientProxy( ClientCommandProcessor clientCommandProcessor ) {
 		openDataViews = new ConcurrentHashMap<>();

@@ -16,7 +16,7 @@ public class LiveAggregator implements DataElementProcessor {
 	
 	Logger logger = LoggerFactory.getLogger( LiveAggregator.class ) ;
 
-	DataElementStore processor ;
+	private final DataElementStore processor ;
 	
 	public static void main(String[] args) {
 		try {

@@ -2,14 +2,14 @@ FROM openjdk:8
 
 WORKDIR /home/la
 
-ADD run.sh  run.sh
-ADD src/main/resources  /home/la/resources
-ADD target/classes  	/home/la/classes
-ADD target/dependency 	/home/la/libs
+ADD run.sh  				run.sh
+ADD src/main/resources/*	/home/la/resources/
+ADD build/libs/*			/home/la/build/libs/
+ADD libs/*					/home/la/libs/
 
 RUN chmod 0500 run.sh 
 
-ENV CP classes:resources
+ENV CP resources
 
 VOLUME [ "/home/la/data" ]
 
