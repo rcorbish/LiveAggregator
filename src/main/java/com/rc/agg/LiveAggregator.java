@@ -3,6 +3,9 @@ package com.rc.agg;
 import java.io.IOException;
 import java.net.URL;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.rc.datamodel.DataElement;
 import com.rc.dataview.DataElementStore;
 import com.rc.dataview.ViewDefinitions;
@@ -11,6 +14,8 @@ import spark.resource.ClassPathResource;
 
 public class LiveAggregator implements DataElementProcessor {
 	
+	Logger logger = LoggerFactory.getLogger( LiveAggregator.class ) ;
+
 	DataElementStore processor ;
 	
 	public static void main(String[] args) {
@@ -23,6 +28,9 @@ public class LiveAggregator implements DataElementProcessor {
 	}
 
 	public LiveAggregator() throws IOException {
+		Runtime runtime = Runtime.getRuntime();
+		logger.info( "Starting aggregator - using {}Mb of RAM", runtime.maxMemory()/0x100000 );
+
 		processor = DataElementStore.getInstance() ;
 		URL viewsTxt = getClass().getClassLoader().getResource( "Views.txt" ) ;
 		

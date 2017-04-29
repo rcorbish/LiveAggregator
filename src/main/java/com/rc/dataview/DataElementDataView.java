@@ -31,7 +31,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
 
 	// How often to send an update to the client (millis)
-	public static int CLIENT_UPDATE_INTERVAL = 200 ;	
+	public static final int CLIENT_UPDATE_INTERVAL = 200 ;	
 	
 	private final Map<String,String[]> filters ; 	// what key = value is being filtered
 	private final Map<String,Map<String,String>> setValues ; 	// force change in value of an attribute on condition
@@ -43,7 +43,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	private final String description ;
 	
 	private volatile boolean serverBatchComplete ;
-	private List<ClientDataView> clientViews ;	// which clients need to be told about updates?
+	private final List<ClientDataView> clientViews ;	// which clients need to be told about updates?
 	private Thread messageSender ;
 
 

@@ -29,6 +29,7 @@ public class LiveAggregatorRandom  {
 	private final static String[] ATTRIBUTE_NAMES = new String[] { "TRADEID", "CPTY", "BOOK", "PRODUCT", "TYPE", "AXIS", "CCY" } ; 
 
 	public static void main(String[] args) {
+		
 		LiveAggregatorRandom self = null ;
 		try {
 			int itemsPerBatch = 1_000 ;

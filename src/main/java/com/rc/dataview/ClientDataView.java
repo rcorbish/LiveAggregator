@@ -151,7 +151,7 @@ public class ClientDataView  {
 		// isClosed - if the view is closed don't attempt to send anything
 		// otherwise make sure all the parent keys in each row & col expanded rows/cols
 		// are marked as expanded.
-		return parentRowKeysExpanded(rowKey) & parentColKeysExpanded(colKey) ;
+		return parentRowKeysExpanded(rowKey) && parentColKeysExpanded(colKey) ;
 	}
 
 	/**

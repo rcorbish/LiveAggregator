@@ -28,20 +28,20 @@ import java.util.regex.Pattern;
  */
 public class DataElement {
 
-	public static char ROW_COL_SEPARATION_CHAR = '\f' ;
-	public static char SEPARATION_CHAR = '\t' ;
+	public static final char ROW_COL_SEPARATION_CHAR = '\f' ;
+	public static final char SEPARATION_CHAR = '\t' ;
 	// @TODO - is this thread safe? 
-	public static Pattern SEPARATION_CHAR_PATTERN = Pattern.compile( Pattern.quote( String.valueOf(SEPARATION_CHAR) ) ) ;
+	public static final Pattern SEPARATION_CHAR_PATTERN = Pattern.compile( Pattern.quote( String.valueOf(SEPARATION_CHAR) ) ) ;
 	
-	private String invariantKey ;			// a key for this update - used to identify replacements
+	private final String invariantKey ;			// a key for this update - used to identify replacements
 	
 	private final double values[] ;			// each value 
 	
 	/** The column names ( e.g. Currency ), <b>in same order</b> as the coreValues + perimiter values */
 	private final String attributeNames[] ;	
 	
-	private String[] coreValues ;			// the core labels
-	private String[] perimeterValues[] ;	// the perimiter labels
+	private final String[] coreValues ;			// the core labels
+	private final String[] perimeterValues[] ;	// the perimiter labels
 
 	/**
 	 * Constructor takes the attribute names (label names), core labels and the invariant key

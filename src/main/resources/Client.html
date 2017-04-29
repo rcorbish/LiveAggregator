@@ -48,7 +48,7 @@ html {
 	top: 30px ;
 }
 .good-status {
-	color: limegreen ;
+	color: green ;
 }
 .bad-status {
 	color: red ;
@@ -166,7 +166,7 @@ html {
 		numHeartbeatsMissed = 0 ;
 		if( numHeartbeatsMissed>2 ) {
 			if( numMessages === messageCountAtPreviousHeartbeat ) {
-				statusBad( "Can't connect" ) ;
+				statusBad() ;
 				//openWebSocket() ;
 			}
 		}
@@ -183,7 +183,7 @@ html {
     function socketClose() {
     	socket = null ;
     	clearTimeout( timerFunction ) ;
-    	statusBad( "Closed" ) ;
+    	statusBad() ;
 		connectionActive = false ;
     }      
     
@@ -234,7 +234,7 @@ html {
 		  		document.getElementById('grid').style.display="block";
 		  		sendObj( msg ) ;  // echo the ready message to enable updates in server
 		  	} else if( msg.command === "CLOSE" ) {
-	       		statusBad( "Closed" ) ;
+	       		statusBad() ;
 	       		resetView() ;
 		  	} else if( msg.command === "RESET" ) {
 	       		setViewDescription( "View definitions were changed on the server, updating is temporarily paused." ) ;
@@ -598,13 +598,13 @@ html {
  	function statusOK() {
  		var status = document.getElementById("status");    	
  		status.className = "good-status" ;
-		status.textContent = "OK" ;
+		status.textContent = "Online" ;
  	}
  	
- 	function statusBad( msg ) {
+ 	function statusBad() {
  		var status = document.getElementById("status");
 		status.className = "bad-status" ;    	
-		status.textContent = msg ;
+		status.textContent = "Offline" ;
  	}
 
  	

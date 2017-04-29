@@ -40,7 +40,8 @@ public class LiveAggregatorFile  {
 
 		aggregator.startBatch();
 		int lineNumber = 0 ;
-		try ( FileReader fr = new FileReader(dataFile) ; BufferedReader br = new BufferedReader( fr ) ) {
+		try ( FileReader fr = new FileReader(dataFile) ; 
+			  BufferedReader br = new BufferedReader( fr ) ) {
 			lineNumber++ ;
 			String s=br.readLine() ;
 
