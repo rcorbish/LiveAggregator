@@ -61,12 +61,12 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		//
 		// if a filter is defined make sure any elements in the view
 		// match the filter
-		this.filters = new HashMap<>() ;		
-		
+		Map<String,String[]> tmp = new HashMap<>() ;
 		Map<String,String> rawFilters = viewDefinition.getFilters();
 		for( String k : rawFilters.keySet() ) {
-			this.filters.put( k, DataElement.splitComponents(rawFilters.get(k)) )  ;
+			tmp.put( k, DataElement.splitComponents(rawFilters.get(k)) )  ;
 		}
+		this.filters = tmp.isEmpty() ? null : tmp ;		
 		
 		//----------------------
 		// S E T   V A L U E S
@@ -126,13 +126,20 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 
 
 	/**
-	 * Does a data element match the currently set filter?
-	 * @param element
-	 * @return
+	 * Does a data element match the current filters?
+	 * This checks each item in the DataElement for a match
+	 * 
+	 * @TODO as an optimization decide whether the added complexity
+	 * of separating core filters and perimeter filters is worth it
+	 * This method does recheck the core filters again (unnecessarily)
+	 * 
+	 * @param index the index of the perimuter componets in an element
+	 * @param element the input DataElement
+	 * @return true means we match 
 	 */
 	private boolean matchesPerimeterElements(int index, DataElement element) {
 		boolean rc = true ;
-		if( filters != null && !filters.isEmpty() ) {
+		if( filters != null  ) {
 			for( String k : filters.keySet() ) {
 				String mustMatchOneOfThese[] = filters.get(k) ;
 				boolean matchedOneOfthese = false ;
@@ -151,9 +158,17 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	}
 
 
+	/**
+	 * Does a data element match the current filters?
+	 * This is actually an optimization, since a lot of
+	 * filters occur in the core elements. 
+	 * 
+	 * @param element
+	 * @return
+	 */
 	private boolean matchesCoreElements(DataElement element) {
 		boolean rc = false ;
-		if( filters != null && !filters.isEmpty() ) {
+		if( filters != null  ) {
 			for( String k : filters.keySet() ) {
 				String mustMatchOneOfThese[] = filters.get(k) ;
 				boolean matcheOneOfThese = false;

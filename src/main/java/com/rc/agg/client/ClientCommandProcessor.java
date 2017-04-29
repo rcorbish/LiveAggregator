@@ -2,13 +2,14 @@ package com.rc.agg.client;
 
 /**
  * Responsible for sending commands to the client. The below interface defines all mesaages
- * to go to the client
+ * to go to the client.
+ * 
+ * Implementations should transmit the intent over a useful medium to the client
  * 
  * @author richard
  *
  */
 public interface ClientCommandProcessor {
-
 	
 	// Commands TO client
 	public void defineView( String viewName, String columnKeys, String rowKeys, String description ) throws ClientDisconnectedException;

@@ -26,7 +26,7 @@ public class ClientProxy implements ClientEventProcessor {
 
 	private final Map<String,ClientDataView> openDataViews ;
 	private ClientCommandProcessor clientCommandProcessor ;
-	
+
 	public ClientProxy( ClientCommandProcessor clientCommandProcessor ) {
 		openDataViews = new ConcurrentHashMap<>();
 		this.clientCommandProcessor = clientCommandProcessor ;
@@ -62,9 +62,12 @@ public class ClientProxy implements ClientEventProcessor {
 				for( String vdn : vdns ) {
 					rc[i++] = vdn ;
 				}
-				java.util.Arrays.sort( rc ) ;
+				java.util.Arrays.sort( rc ) ;  // let's be nice - sort 'em
 			} else if( request.command.equals("ATTRIBUTES") ) {
-				rc = new String[]{ "BOOK", "CCY", "TRADEID" } ;
+				// *************************
+				// BAD BAD BAD - need to fix this ASAP
+				// *************************
+				rc = new String[]{ "BOOK", "CCY", "TRADEID" } ;	
 			}
 		} catch( Exception ex ) {
 			logger.error( "Error responding to request.", ex ) ;
@@ -101,18 +104,19 @@ public class ClientProxy implements ClientEventProcessor {
 		}
 	}
 
-	// CLient closed a view
+	// CLient closed a view, remove from active list
 	public void closeView( String viewName ) {
-		ClientDataView dgp = openDataViews.remove(viewName) ;
-		if( dgp == null ) {
+		ClientDataView cdv = openDataViews.remove(viewName) ;
+		if( cdv == null ) {
 			logger.warn( "Cannot find {} in the openViews.", viewName );
 		} else {
-			dgp.close();
+			cdv.close();
 			logger.info( "Removed '{}' from openViews. {} views remain.", viewName, openDataViews.size() );
 		}
 	}
 
-	// Client requested complete refresh of a view
+	// Client requested complete refresh of a view. Send everything to 
+	// client as an UPDate
 	public void resetView( String viewName ) {
 		logger.info( "Resetting view {}", viewName ) ;
 		ClientDataView dgp = openDataViews.get(viewName) ;
@@ -129,6 +133,14 @@ public class ClientProxy implements ClientEventProcessor {
 		}
 	}
 
+
+	/**
+	 * When opening a new view we need to set some flags on other compnenets
+	 * that we are active and ready to receive process events
+	 * Also we set the current expand/collpase state of our view, add the view
+	 * to active views and  ask for the current state to be sent to the client
+	 * 
+	 */
 	public void openView( String viewName, String openColKeys[], String openRowKeys[] ) {
 		DataElementDataView dedv = DataElementStore.getInstance().getDataElementDataView(viewName) ;
 		if( dedv==null ) {
@@ -149,7 +161,7 @@ public class ClientProxy implements ClientEventProcessor {
 				logger.debug( "Replaying all data elements to {}", viewName ) ;
 				newView.sendAll() ;
 				logger.info( "Replayed all elements to {}", viewName );
-				
+
 				clientCommandProcessor.initializationComplete(viewName);
 				openDataViews.put( viewName, newView ) ;			
 				logger.info( "Added new dataView '{}'. {} views now exist.", viewName, openDataViews.size() );
@@ -159,6 +171,10 @@ public class ClientProxy implements ClientEventProcessor {
 		}
 	}
 
+	/**
+	 * When the client shuts down - closes web page, this is called
+	 * we shut down everything attached to the same websocket
+	 */
 	public void close() {		
 		logger.info( "Requesting close of entire client - removing all views." ) ;
 		for( String viewName : openDataViews.keySet() ) {
@@ -168,7 +184,9 @@ public class ClientProxy implements ClientEventProcessor {
 		logger.info( "All views cleared. ClientProxy is terminated.");
 	}
 
-
+	/**
+	 * Debug stuff - can be useful for logging too
+	 */
 	public String toString() {
 		StringBuilder rc = new StringBuilder( "Open views [ " ) ; 	
 		for( String openView : openDataViews.keySet() ) {

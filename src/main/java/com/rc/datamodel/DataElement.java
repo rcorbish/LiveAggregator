@@ -30,13 +30,14 @@ public class DataElement {
 
 	public static char ROW_COL_SEPARATION_CHAR = '\f' ;
 	public static char SEPARATION_CHAR = '\t' ;
+	// @TODO - is this thread safe? 
 	public static Pattern SEPARATION_CHAR_PATTERN = Pattern.compile( Pattern.quote( String.valueOf(SEPARATION_CHAR) ) ) ;
 	
 	private String invariantKey ;			// a key for this update - used to identify replacements
 	
 	private final double values[] ;			// each value 
 	
-	/** The column names ( e.g. Currency ), in same order as the coreValues + perimiter values */
+	/** The column names ( e.g. Currency ), <b>in same order</b> as the coreValues + perimiter values */
 	private final String attributeNames[] ;	
 	
 	private String[] coreValues ;			// the core labels
