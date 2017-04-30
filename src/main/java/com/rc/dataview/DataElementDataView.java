@@ -167,8 +167,9 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 * @return
 	 */
 	private boolean matchesCoreElements(DataElement element) {
-		boolean rc = false ;
+		boolean rc = true ;
 		if( filters != null  ) {
+			rc = false ;
 			for( String k : filters.keySet() ) {
 				String mustMatchOneOfThese[] = filters.get(k) ;
 				boolean matcheOneOfThese = false;
@@ -178,12 +179,12 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 						matcheOneOfThese |= att.equals( couldMatchThis ) ;
 						if( matcheOneOfThese ) break ;
 					}
-					rc |= !matcheOneOfThese ;
+					rc |= matcheOneOfThese ;
 					if( rc ) break ;
 				}
 			}
 		}
-		return !rc ;
+		return rc ;
 	}
 
 
@@ -197,16 +198,16 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 			List<String>	removedKeys = new ArrayList<>() ;
 			for( String elementKey : dataViewElements.keySet() ) {
 				DataViewElement dve = dataViewElements.get( elementKey ) ;
-				if( dve.unused ) {					
+				if( dve.isUnused() ) {					
 					for( ClientDataView cdv : clientViews ) {
 						cdv.unusedElement( elementKey ) ;
 					}
 					removedKeys.add( elementKey ) ;						
-				} else if( dve.updated ) {
+				} else if( dve.isUpdated() ) {
 					for( ClientDataView cdv : clientViews ) {
 						cdv.updatedElement( elementKey, dve.getValue() ) ;
 					}
-					dve.clear();
+					dve.clearUpdatedFlag();
 				}
 			}
 			for( String removedKey : removedKeys ) {
@@ -285,7 +286,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 							}
 							// add the value to the new key
 							// This is where the aggregation happens
-							dve.add( dataElement.getValue(i) )  ;							
+							dve.add( dataElement.getValue(i) )  ; 							
 							elementKey.append( DataElement.SEPARATION_CHAR ) ;
 						}					
 						colKeyPiece.append( DataElement.SEPARATION_CHAR ) ;

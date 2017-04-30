@@ -60,35 +60,36 @@ public class LiveAggregatorRandom  {
 		final DataElementAttributes dae = new DataElementAttributes(ATTRIBUTE_NAMES) ;
 		
 		final Random random = new Random() ;
-		final int UPDATES_PER_MSG = dataPointsPerItem ;
-		final int N = itemsPerBatch ;
+		final int DATA_POINTS_PER_ELEMENT = dataPointsPerItem ;
+		final int N = itemsPerBatch * batchSize ;
 		final int BATCH_SIZE = batchSize ;
 		logger.info( "Starting server. Connect to client @ server:8111/Client.html" ); 
 		for( ; ; ) {
-			long start = System.currentTimeMillis() ;
+			long startTime = System.currentTimeMillis() ;
 			logger.info( "Restarting processing of data" ) ;
 			ExecutorService executor = Executors.newFixedThreadPool( 3 ) ;
 			aggregator.startBatch() ;
 			
 			// FIRST create an initial view - send updates & stuff
-			for( int i=0 ; i<N ; i++ ) {
-				final int START = i * BATCH_SIZE ;
+			for( int i=0 ; i<N ; i+=BATCH_SIZE ) {
+				final int START = i ;
 				executor.execute(
 						new Runnable() {
 							public void run() {
 								Thread.currentThread().setName( "Start: " + START );
 								for( int n=0 ; n<BATCH_SIZE ; n++ ) {
+									final String invariantKey = String.valueOf(n+START) ;
 									int ix = START + n ;
 									DataElement de = new DataElement(												
-											UPDATES_PER_MSG,
+											DATA_POINTS_PER_ELEMENT,
 											dae,
 											new String[] { 
-													String.valueOf( ix ),
+													invariantKey,
 													CPTYS[ ix % (CPTYS.length - 1) ],
 													BOOKS[ ix % (BOOKS.length - 1) ],
 													PRODUCTS[ ix % (PRODUCTS.length) ]
 											},
-											String.valueOf( ix )
+											invariantKey
 											) ;				
 									for( int j=0 ; j<de.size() ; j++ ) {
 										de.set(j,
@@ -97,7 +98,8 @@ public class LiveAggregatorRandom  {
 												AXES[ ix % (AXES.length) ],
 												CCYS[ ix % (CCYS.length - 1) ]
 										},
-										(ix/10_000_000.0f) ) ;
+										(random.nextInt( 101 ) - 50) / 100.f
+										) ;
 									}
 									aggregator.process( de ) ;
 								}
@@ -108,26 +110,27 @@ public class LiveAggregatorRandom  {
 			if( !executor.awaitTermination( 10, TimeUnit.MINUTES ) ) {
 				throw new Exception( "Horror of horrors - we timed out waiting for the initial population to finish.");
 			}
-			logger.info( "Finished processing {} cells in {} mS", decimalFormat.format(N*BATCH_SIZE), decimalFormat.format( (System.currentTimeMillis() - start) ) );
-			start = System.nanoTime() ;
+			logger.info( "Finished processing {} cells in {} mS", decimalFormat.format(N), decimalFormat.format( (System.currentTimeMillis() - startTime) ) );
+			startTime = System.nanoTime() ;
 			aggregator.endBatch();
 
 			long tPlus5Mins = System.currentTimeMillis() + (5 * 60 * 1000) ;
-			
+
+			//int invariantKey = 0 ;
+
 			// Now send random crap for 5 mins
 			while( System.currentTimeMillis()<tPlus5Mins ) {
-				int ix = random.nextInt( N ) ;
-
+				String invariantKey = String.valueOf( random.nextInt( N ) ) ;
 				DataElement de = new DataElement(												
-						UPDATES_PER_MSG,
+						DATA_POINTS_PER_ELEMENT,
 						dae,
 						new String[] { 
-								String.valueOf( ix ),
+								invariantKey,
 								CPTYS[ random.nextInt(CPTYS.length) ],
 								BOOKS[ random.nextInt(BOOKS.length) ],
 								PRODUCTS[ random.nextInt(PRODUCTS.length) ]
-						},
-						String.valueOf( ix )
+								},
+							invariantKey
 						) ;				
 				for( int j=0 ; j<de.size() ; j++ ) {
 					de.set(j,
@@ -135,11 +138,12 @@ public class LiveAggregatorRandom  {
 							TYPES[ random.nextInt(TYPES.length) ],
 							AXES[ random.nextInt(AXES.length) ],
 							CCYS[ random.nextInt(CCYS.length) ]
-					},
-					(random.nextInt( 100 ) - 50)) ;
+							},
+							(random.nextInt( 101 ) - 50) / 100.f
+					) ;
 				}
 				aggregator.process( de ) ;									
-				Thread.sleep( 1000 );  // distance between batch updates
+				Thread.sleep( 250 );  // distance between batch updates
 			}
 		}
 	}

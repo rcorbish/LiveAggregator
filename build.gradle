@@ -1,6 +1,19 @@
+
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.12.0"
+  }
+}
+
 apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'findbugs'
+apply plugin: 'com.palantir.docker'
 
 
 group = 'LiveAggregator'
@@ -44,4 +57,14 @@ task copyDependencies(type: Copy) {
     into new File(".", "libs")
 }
 
+task buildDockerImage {
+	inputs.file 'Dockerfile'
+	description 'Builds the docker image'
+	
+	docker {
+    	name 'rcorbish/live-aggregator'
+    	dockerfile 'Dockerfile'
+		buildArgs( ['-H': 'tcp://mercury.rac.local:2375'] )
+	}
+}
 

@@ -10,14 +10,27 @@ package com.rc.dataview;
  *
  */
 public class DataViewElement {
-	float value = 0.0f ;
-	boolean updated = false ;		// has this been updated since last send?
-	boolean unused = false ;		// Mark this as potentially no longer used
+	private float value = 0.0f ;
+	private boolean updated = false ;		// has this been updated since last send?
+	private boolean unused = false ;		// Mark this as potentially no longer used
 
+	/**
+	 * Be careful with this, the data is read and written by 2
+	 * separate threads - the view (to updated new elelemnts ) 
+	 * and the message sender (which may reset the updated & unused flags)
+	 * The order of processing is important to avoid thread issues
+	 * @param value
+	 */
 	public synchronized void add( float value ) {
 		this.value += value ;
-		updated |= value != 0.0f ;
-		unused = this.value == 0.0f ;
+		if(value != 0.0f) {
+			this.updated = true ;
+		}
+		if( this.value<1e-4f && this.value>-1e-4f ) {
+			markUnused();
+		} else {
+			this.unused = false ;
+		}
 	}
 
 	public float getValue() {
@@ -27,13 +40,17 @@ public class DataViewElement {
 	public boolean isUnused() {
 		return unused ;
 	}
+	public boolean isUpdated() {
+		return updated ;
+	}
 	// This should only be called at the start of a batch - we reset the totals 
 	public void markUnused() {
 		value=0.0f ;
 		unused = true ;
+		updated = true ;
 	}
 	
-	public void clear() {
+	public void clearUpdatedFlag() {
 		updated = false ;
 	}
 }

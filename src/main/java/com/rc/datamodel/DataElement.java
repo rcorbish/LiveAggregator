@@ -142,7 +142,7 @@ public class DataElement {
 	 */
 	public String getAttribute( int index, String attributeName ) {
 		int ix = attributes.getAttributeIndex(attributeName) ;		
-		return ix<0 ? "-none-" : ix<coreValues.length ? coreValues[ix] : perimeterValues[index][ix-coreValues.length] ;
+		return ix<0 ? attributeName : ix<coreValues.length ? coreValues[ix] : perimeterValues[index][ix-coreValues.length] ;
 	}
 
 	/**
@@ -183,7 +183,7 @@ public class DataElement {
 	 * @param in the input key as a flat string
 	 * @return the array of components 
 	 */
-	static public String[] splitComponents( String in ) {
+	static public synchronized String[] splitComponents( String in ) {
 		return DataElement.SEPARATION_CHAR_PATTERN.split( in ) ;
 	}
 

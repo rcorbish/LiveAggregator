@@ -49,8 +49,9 @@ public class DataElementStore  implements DataElementProcessor {
 	public void process(DataElement dataElement) {
 		DataElement previous = currentElements.put( dataElement.getInvariantKey(), dataElement) ;
 		if( previous != null ) {
+			DataElement negatedCopy = previous.negatedCopy() ;
 			for( DataElementDataView dedv : availableViews.values() ) {
-				dedv.process( previous.negatedCopy() ) ;
+				dedv.process( negatedCopy ) ;
 			}
 		}
 		for( DataElementDataView dedv : availableViews.values() ) {
