@@ -15,7 +15,7 @@ import com.rc.dataview.DataElementStore;
 /**
  * This handles all messages from the client.
  * 
- * @see ClientCommaneProcessor which handles events to the client.
+ * @see ClientCommandProcessor which handles events to the client.
  * 
  * @author richard
  *

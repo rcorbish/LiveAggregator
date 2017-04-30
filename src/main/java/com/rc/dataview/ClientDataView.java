@@ -28,6 +28,15 @@ public class ClientDataView  {
 	private final Set<String> expandedCols ;
 	private boolean closed ;
 
+	/**
+	 * Create one of these, called when a client connects.
+	 * It keeps a reference to the dataElementDataView and
+	 * the Ccommand processor (used to send messages to the client)
+	 * 
+	 * @param dataElementDataView
+	 * @param clientCommandProcessor
+	 * @throws ClientDisconnectedException
+	 */
 	public ClientDataView( 
 			DataElementDataView dataElementDataView,
 			ClientCommandProcessor clientCommandProcessor ) throws ClientDisconnectedException {
@@ -47,17 +56,32 @@ public class ClientDataView  {
 				dataElementDataView.getDescription() ) ;
 	}
 
-	
+	/**
+	 * When the view is closed (client disconnects) this is set
+	 * so that no further messaging is done during shutdown processing
+	 * The instance is NOT expected to live beyond closure.
+	 * @return whether the view is set to close soon
+	 */
 	public boolean isClosed() {
 		return closed;
 	}
 
+	/**
+	 * Call this to disconnect a client (on request or shutdown of client messaging)
+	 * 
+	 */
 	public void close() {
 		logger.info( "Marking ClientDataView {} as closed.", getViewName() ) ;
 		clientCommandProcessor.close( getViewName() ) ;
 		closed = true ; 
 	}
 
+	/**
+	 * If the client wishes this will resnd a copy of the entire view
+	 * as updates. 
+	 * It should be called whenever the client believes it has lost sync
+	 * (or perhaps a client that ignores updates)
+	 */
 	public void reset() {
 		logger.info( "Informing ClientDataView {} that a reset is required.", getViewName() ) ;
 		try {
@@ -67,16 +91,32 @@ public class ClientDataView  {
 			close(); 
 		}
 	}
-
+	/**
+	 * This is called when a client expands or closes a row. It maintains a set of
+	 * currently expanded keys. Rows that are collapsed will not receive updated messages
+	 * @param rowKey
+	 * @param expanded
+	 */
 	public void expandCollapseRow( String rowKey, boolean expanded) {
 		if( expanded ) { expandedRows.add( rowKey ) ; } else { expandedRows.remove(rowKey) ; } 
 	}
+	
+	/**
+	 * This is called when a client expands or closes a column. It maintains a set of
+	 * currently expanded keys. Columns that are collapsed will not receive updated messages
+	 * @param colKey
+	 * @param expanded
+	 */
 	public void expandCollapseCol( String colKey, boolean expanded) {
 		if( expanded ) { expandedCols.add( colKey ) ; } else { expandedCols.remove(colKey) ; } 
 	}
 
-
-	public void unusedElement( String elementKey, DataViewElement dve ) {
+	/**
+	 * Mark an element as unused ( just beenb hidded for example by closing a row or column )
+	 * An usused element is deleted from the client view.
+	 * @param elementKey
+	 */
+	public void unusedElement( String elementKey ) {
 		int ix = elementKey.indexOf( DataElement.ROW_COL_SEPARATION_CHAR ) ;
 		String colKey = elementKey.substring(0,ix) ;
 		String rowKey = elementKey.substring(ix+1) ;
@@ -96,7 +136,14 @@ public class ClientDataView  {
 	}
 
 
-	public void updatedElement( String elementKey, DataViewElement dve ) {
+	/**
+	 * When an element is marked as updated it will be sent to the client
+	 * in an update message
+	 * 
+	 * @param elementKey the full key
+	 * @param value the new data value
+	 */
+	public void updatedElement( String elementKey, float value ) {
 		if( isClosed() ) return ;
 		
 		int ix = elementKey.indexOf( DataElement.ROW_COL_SEPARATION_CHAR ) ;
@@ -109,28 +156,12 @@ public class ClientDataView  {
 			
 			if( rowExpanded && colExpanded ) {
 				DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
-				if( dve != null ) {   // it may be null at first view open
-					clientCommandProcessor.updateCell( 
+				clientCommandProcessor.updateCell( 
 						getViewName(), 
 						colKey, 
 						rowKey,
-						numberFormatter.format(dve.getValue())  
+						numberFormatter.format(value)  
 						) ;
-				}
-			} else {
-				/*				
-				if( !rowExpanded ) {
-					clientCommandProcessor.deleteRow( 
-							getViewName(), 
-							rowKey
-							) ;
-				} else {
-					clientCommandProcessor.deleteCol( 
-							getViewName(), 
-							colKey 
-							) ;
-				}
-				*/
 			}
 		} catch (ClientDisconnectedException e) {
 			logger.warn( "Remote client for {} disconnected during cell update.", getViewName() ) ;
@@ -147,6 +178,15 @@ public class ClientDataView  {
 	}
 
 
+	/**
+	 * Verify that ALL parent keys of the given key are currently expanded.
+	 * Just because a grandchild is 'open' it may not be visible
+	 * if its parent is 'closed'. 
+	 * 
+	 * @param colKey the child column key to search up the path from
+	 * @param rowKey the child row key to search up the path from
+	 * @return whether the parent rows keys are expanded
+	 */
 	protected boolean parentKeysExpanded( String colKey, String rowKey ) {
 		// isClosed - if the view is closed don't attempt to send anything
 		// otherwise make sure all the parent keys in each row & col expanded rows/cols
@@ -157,10 +197,10 @@ public class ClientDataView  {
 	/**
 	 * Verify that ALL parent keys of the given key are currently expanded.
 	 * Just because a grandchild is 'open' it may not be visible
-	 * if its parent is 'closed'
+	 * if its parent is 'closed'. 
 	 * 
-	 * @param rowKey
-	 * @return
+	 * @param rowKey the child row key to search up the path from
+	 * @return whether the parent rows keys are expanded
 	 */
 	protected boolean parentRowKeysExpanded( String rowKey ) {
 		boolean rc = !isClosed() ;				
@@ -172,6 +212,14 @@ public class ClientDataView  {
 		return rc ;
 	}
 
+	/**
+	 * Verify that ALL parent keys of the given key are currently expanded.
+	 * Just because a grandchild is 'open' it may not be visible
+	 * if its parent is 'closed'. 
+	 * 
+	 * @param colKey the child column key to search up the path from
+	 * @return whether the parent rows keys are expanded
+	 */
 	protected boolean parentColKeysExpanded( String colKey ) {
 		boolean rc = !isClosed()  ;				
 		String parentColKey = colKey ; 
@@ -182,12 +230,19 @@ public class ClientDataView  {
 		return rc ;
 	}
 
-
+	/**
+	 * Used for debug etc.
+	 */
 	public String toString() {
 		return getViewName() + " Expanded Cols :" + expandedCols.size() + " Expanded Rows :" + expandedRows.size() + " " + (isClosed()?"Closed" : "Active") ; 
 	}
 
-
+	/**
+	 * Return the name of this view - used in keying. This is NOT the description
+	 * It copies the name from the dataElementDataView instance.
+	 * 
+	 * @return the name of the view
+	 */
 	protected String getViewName() {
 		return dataElementDataView.getViewName() ;
 	}

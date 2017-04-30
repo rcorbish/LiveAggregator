@@ -12,7 +12,7 @@ do
 done 
 
 RAM_SIZE=$( free -g | awk 'NR==2 {print $4}' )
-BATCH_SIZE=$( free -g | awk 'NR==2 {print $4*1666}' )
+BATCH_SIZE=$( free -g | awk 'NR==2 {print $4*1500}' )
 
 if [ $# -gt 0 ]
 then

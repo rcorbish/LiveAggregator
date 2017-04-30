@@ -10,17 +10,17 @@ package com.rc.dataview;
  *
  */
 public class DataViewElement {
-	double value = 0.0 ;
+	float value = 0.0f ;
 	boolean updated = false ;		// has this been updated since last send?
 	boolean unused = false ;		// Mark this as potentially no longer used
 
-	public synchronized void add( double value ) {
+	public synchronized void add( float value ) {
 		this.value += value ;
-		updated |= value != 0.0 ;
-		unused = this.value == 0.0 ;
+		updated |= value != 0.0f ;
+		unused = this.value == 0.0f ;
 	}
 
-	public double getValue() {
+	public float getValue() {
 		return value ;
 	}
 
@@ -29,7 +29,7 @@ public class DataViewElement {
 	}
 	// This should only be called at the start of a batch - we reset the totals 
 	public void markUnused() {
-		value=0.0 ;
+		value=0.0f ;
 		unused = true ;
 	}
 	

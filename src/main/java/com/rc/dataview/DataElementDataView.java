@@ -199,12 +199,12 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 				DataViewElement dve = dataViewElements.get( elementKey ) ;
 				if( dve.unused ) {					
 					for( ClientDataView cdv : clientViews ) {
-						cdv.unusedElement( elementKey, dve ) ;
+						cdv.unusedElement( elementKey ) ;
 					}
 					removedKeys.add( elementKey ) ;						
 				} else if( dve.updated ) {
 					for( ClientDataView cdv : clientViews ) {
-						cdv.updatedElement( elementKey, dve ) ;
+						cdv.updatedElement( elementKey, dve.getValue() ) ;
 					}
 					dve.clear();
 				}
@@ -224,7 +224,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	public void sendAll( ClientDataView cdv ) {
 		for( String elementKey : dataViewElements.keySet() ) {
 			DataViewElement dve = dataViewElements.get( elementKey ) ;
-			cdv.updatedElement( elementKey, dve ) ;
+			cdv.updatedElement( elementKey, dve.getValue() ) ;
 		}
 	}
 

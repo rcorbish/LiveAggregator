@@ -31,33 +31,35 @@ public class DataElement {
 	public static final char ROW_COL_SEPARATION_CHAR = '\f' ;
 	public static final char SEPARATION_CHAR = '\t' ;
 	// @TODO - is this thread safe? 
-	public static final Pattern SEPARATION_CHAR_PATTERN = Pattern.compile( Pattern.quote( String.valueOf(SEPARATION_CHAR) ) ) ;
+	private static final Pattern SEPARATION_CHAR_PATTERN = Pattern.compile( Pattern.quote( String.valueOf(SEPARATION_CHAR) ) ) ;
 	
 	private final String invariantKey ;			// a key for this update - used to identify replacements
 	
-	private final double values[] ;			// each value 
+	private final float values[] ;				// each value 
+
+	/**
+	 * This is a helper to get the index of an attribute given its name
+	 */
+	private final DataElementAttributes attributes ;	
 	
-	/** The column names ( e.g. Currency ), <b>in same order</b> as the coreValues + perimiter values */
-	private final String attributeNames[] ;	
-	
-	private final String[] coreValues ;			// the core labels
-	private final String[] perimeterValues[] ;	// the perimiter labels
+	private final String coreValues[] ;			// the core labels
+	private final String perimeterValues[][] ;	// the perimiter labels
 
 	/**
 	 * Constructor takes the attribute names (label names), core labels and the invariant key
 	 * for the element. This version of the constructor expects a single value (one perimiter
-	 * value).
+	 * value). 
 	 * 
 	 * After construction: call set - to set the actual values
 	 *  
-	 * @see set
+	 * @see #set(int, String[], float)
 	 * 
-	 * @param attributeNames
-	 * @param coreValues
-	 * @param invariantKey
+	 * @param attributes how to get an attribute index from its name
+	 * @param coreValues the corevalues - specified once per element
+	 * @param invariantKey the special attribute - the unique ID of this item
 	 */
-	public DataElement(String attributeNames[], String coreValues[], String invariantKey ) {
-		this( 1, attributeNames, coreValues, invariantKey ) ;
+	public DataElement(DataElementAttributes attributes, String coreValues[], String invariantKey ) {
+		this( 1, attributes, coreValues, invariantKey ) ;
 	}
 	
 	
@@ -67,18 +69,18 @@ public class DataElement {
 	 * 
 	 * After construction: call set - to set the actual values
 	 *  
-	 * @see set
+	 * @see #set(int, String[], float)
 	 * 
-	 * @param length
-	 * @param attributeNames
-	 * @param coreValues
-	 * @param invariantKey
+	 * @param length number of values in this element
+	 * @param attributes how to get an attribute index from its name
+	 * @param coreValues the corevalues - specified once per element
+	 * @param invariantKey the special attribute - the unique ID of this item
 	 */
-	public DataElement(int length, String attributeNames[], String coreValues[], String invariantKey ) {
+	public DataElement(int length, DataElementAttributes attributes, String coreValues[], String invariantKey ) {
 		this.invariantKey 	= invariantKey ;		
-		this.attributeNames = attributeNames ;
+		this.attributes		= attributes ;
 		this.coreValues 	= coreValues ;
-		values 				= new double[length] ;
+		values 				= new float[length] ;
 		perimeterValues 	= new String[length][] ;
 	}
 
@@ -88,7 +90,7 @@ public class DataElement {
 	 * @param attributeValues
 	 * @param value
 	 */
-	public void set( String attributeValues[], double value ) {
+	public void set( String attributeValues[], float value ) {
 		set( 0, attributeValues, value ) ;
 	}
 	
@@ -100,7 +102,7 @@ public class DataElement {
 	 * @param perimeterValues
 	 * @param value
 	 */
-	public void set( int index, String perimeterValues[], double value ) {
+	public void set( int index, String perimeterValues[], float value ) {
 		this.perimeterValues[index] = perimeterValues ;
 		this.values[index] = value ;		
 	}
@@ -111,10 +113,10 @@ public class DataElement {
 	 * 
 	 * The original data element is unchanged by this operation.
 	 * 
-	 * @return
+	 * @return anew DataElement with all values having the opposite sign as the receiver
 	 */
 	public DataElement negatedCopy() {
-		DataElement rc = new DataElement(size(), attributeNames, coreValues, getInvariantKey() ) ;
+		DataElement rc = new DataElement(size(), this.attributes, this.coreValues, getInvariantKey() ) ;
 		for( int i=0 ; i<rc.size() ; i++ ) {
 			rc.set(i, perimeterValues[i], -values[i] );
 		}
@@ -123,7 +125,7 @@ public class DataElement {
 	/**
 	 * Return the primary key for this item
 	 * 
-	 * @return
+	 * @return the uniqueu ID used for this instance
 	 */
 	public String getInvariantKey() {
 		return invariantKey ;
@@ -139,14 +141,8 @@ public class DataElement {
 	 * @return the value of the given attribute key
 	 */
 	public String getAttribute( int index, String attributeName ) {
-		int ix = 0 ;
-		for( String a : attributeNames ) {
-			if( a.equals( attributeName ) ) {
-				return ix<coreValues.length ? coreValues[ix] : perimeterValues[index][ix-coreValues.length] ;
-			}
-			ix++ ;
-		}
-		return "-none-" ;
+		int ix = attributes.getAttributeIndex(attributeName) ;		
+		return ix<0 ? "-none-" : ix<coreValues.length ? coreValues[ix] : perimeterValues[index][ix-coreValues.length] ;
 	}
 
 	/**
@@ -155,20 +151,16 @@ public class DataElement {
 	 *  
 	 * @param attributeName
 	 * @return the label value for the attribute name or null if no attribute exists
+	 * 
 	 */
 	public String getCoreAttribute( String attributeName ) {
-		for( int ix = 0 ; ix < coreValues.length ; ix++ ) {
-			if( attributeNames[ix].equals( attributeName ) ) {
-				return coreValues[ix] ;
-			}			
-		}
-		return null ;
+		return getAttribute( 0, attributeName) ;
 	}
 
 	/**
 	 * How many values exist in this DataElement. 
 	 * 
-	 * @return
+	 * @return the number of values in this instance
 	 */
 	public int size() {
 		return values.length ;
@@ -177,9 +169,9 @@ public class DataElement {
 	/**
 	 * Return the value at the given index.
 	 * @param index
-	 * @return
+	 * @return the value for this element
 	 */
-	public double getValue( int index ) {
+	public float getValue( int index ) {
 		return values[index] ;
 	}
 	

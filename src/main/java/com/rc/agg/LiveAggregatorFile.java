@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rc.datamodel.DataElement;
+import com.rc.datamodel.DataElementAttributes;
 
 public class LiveAggregatorFile  {
 
@@ -41,7 +42,7 @@ public class LiveAggregatorFile  {
 
 		File dataFile = new File( fileName ) ;
 		logger.info( "Starting to process {}", dataFile ); 
-
+		
 		aggregator.startBatch();
 		int lineNumber = 0 ;
 		
@@ -64,6 +65,7 @@ public class LiveAggregatorFile  {
 						break ;
 					}
 				}
+				final DataElementAttributes dae = new DataElementAttributes(ATTRIBUTE_NAMES) ;
 
 				if( valueIndex>=0 ) {
 					for( s=br.readLine() ; s!=null ; s=br.readLine() ) {
@@ -80,8 +82,8 @@ public class LiveAggregatorFile  {
 						for( int j=0 ; j<colsWithoutValue.length ; j++ ) {
 							colsWithoutValue[j] = cols[j<valueIndex?j:(j+1)] ;
 						}
-						double value = Double.parseDouble( cols[ valueIndex ] ) ;
-						DataElement dataElement = new DataElement( ATTRIBUTE_NAMES, colsWithoutValue, colsWithoutValue[0] ) ;
+						float value = Float.parseFloat( cols[ valueIndex ] ) ;
+						DataElement dataElement = new DataElement( dae, colsWithoutValue, colsWithoutValue[0] ) ;
 						dataElement.set( colsWithoutValue, value) ;
 						aggregator.process(dataElement);
 					}

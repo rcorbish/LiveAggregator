@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rc.datamodel.DataElement;
+import com.rc.datamodel.DataElementAttributes;
 
 public class LiveAggregatorRandom  {
 	Logger logger = LoggerFactory.getLogger( LiveAggregatorRandom.class ) ;
@@ -55,6 +56,9 @@ public class LiveAggregatorRandom  {
 
 
 	public void start( int itemsPerBatch, int batchSize, int dataPointsPerItem ) throws Exception {
+		
+		final DataElementAttributes dae = new DataElementAttributes(ATTRIBUTE_NAMES) ;
+		
 		final Random random = new Random() ;
 		final int UPDATES_PER_MSG = dataPointsPerItem ;
 		final int N = itemsPerBatch ;
@@ -77,7 +81,7 @@ public class LiveAggregatorRandom  {
 									int ix = START + n ;
 									DataElement de = new DataElement(												
 											UPDATES_PER_MSG,
-											ATTRIBUTE_NAMES,
+											dae,
 											new String[] { 
 													String.valueOf( ix ),
 													CPTYS[ ix % (CPTYS.length - 1) ],
@@ -93,7 +97,7 @@ public class LiveAggregatorRandom  {
 												AXES[ ix % (AXES.length) ],
 												CCYS[ ix % (CCYS.length - 1) ]
 										},
-										(ix/10_000_000.0) ) ;
+										(ix/10_000_000.0f) ) ;
 									}
 									aggregator.process( de ) ;
 								}
@@ -116,7 +120,7 @@ public class LiveAggregatorRandom  {
 
 				DataElement de = new DataElement(												
 						UPDATES_PER_MSG,
-						ATTRIBUTE_NAMES,
+						dae,
 						new String[] { 
 								String.valueOf( ix ),
 								CPTYS[ random.nextInt(CPTYS.length) ],
