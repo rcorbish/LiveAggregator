@@ -171,14 +171,15 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		if( filters != null  ) {
 			for( String k : filters.keySet() ) {
 				String mustMatchOneOfThese[] = filters.get(k) ;
-				boolean matcheOneOfThese = false;
 				String att = element.getCoreAttribute( k ) ;
 				if( att != null ) {
+					boolean matchedOneOfThese = false;
 					for( String couldMatchThis : mustMatchOneOfThese ) {
-						matcheOneOfThese |= att.equals( couldMatchThis ) ;
-						if( matcheOneOfThese ) break ;
+						matchedOneOfThese |= att.equals( couldMatchThis ) ;
+						if( matchedOneOfThese ) break ;
 					}
-					rc &= matcheOneOfThese ;
+					rc &= matchedOneOfThese ;
+					if( !rc ) break ;
 				}
 			}
 		}
