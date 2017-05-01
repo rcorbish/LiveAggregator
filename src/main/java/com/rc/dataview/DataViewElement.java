@@ -4,7 +4,6 @@ package com.rc.dataview;
 /**
  * This is the actual thing that is stored in the DataElementStore. It's a
  * piece of data with flags to indicate it's been changed (updated) or deleted (unused)
- * The actual data being stored is a double. @TODO make it a float to save a bit of space
  * 
  * @author richard
  *
@@ -15,22 +14,26 @@ public class DataViewElement {
 	private boolean unused = false ;		// Mark this as potentially no longer used
 
 	/**
-	 * Be careful with this, the data is read and written by 2
-	 * separate threads - the view (to updated new elelemnts ) 
-	 * and the message sender (which may reset the updated & unused flags)
-	 * The order of processing is important to avoid thread issues
+	 * Adds a value to the cell in a view. If the value 
+	 * is non-zero the cell is marked as updated. If the cell
+	 * value is (very close to) zero it is marked as unused
+	 * and will be removed from the view
+	 * 
 	 * @param value
 	 */
 	public synchronized void add( float value ) {
+//		Be careful with this, the data is read and written by 2
+//		separate threads - the view (to updated new elelemnts ) 
+//		and the message sender (which may reset the updated & unused flags)
+//		The order of processing is important to avoid thread issues
 		this.value += value ;
-		if(value != 0.0f) {
+//		if(value != 0.0f) {			
 			this.updated = true ;
-		}
-		if( this.value<1e-4f && this.value>-1e-4f ) {
-			markUnused();
-		} else {
-			this.unused = false ;
-		}
+//		}
+//		if( this.value<1e-6f && this.value>-1e-6f ) {
+//			value = 0.f ;
+//			this.updated = true ;
+//		}
 	}
 
 	public float getValue() {
@@ -43,14 +46,26 @@ public class DataViewElement {
 	public boolean isUpdated() {
 		return updated ;
 	}
-	// This should only be called at the start of a batch - we reset the totals 
+	
+	/**
+	 * Mark a cell as unused, causing it to be removed
+	 * from the output during processing. 
+	 */
 	public void markUnused() {
 		value=0.0f ;
 		unused = true ;
 		updated = true ;
 	}
-	
+	/**
+	 * Call this after notifying the client that the
+	 * update has been sent to the client. 
+	 */
 	public void clearUpdatedFlag() {
+		// possible race condition when this is cleared at the 
+		// same time as the add() method is running. 
+		
+		// There's not a lot we can do to fix it w/o hugely
+		// complex event processing which would be very expensive
 		updated = false ;
 	}
 }

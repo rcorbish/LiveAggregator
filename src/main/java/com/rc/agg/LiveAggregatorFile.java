@@ -15,14 +15,22 @@ import org.slf4j.LoggerFactory;
 import com.rc.datamodel.DataElement;
 import com.rc.datamodel.DataElementAttributes;
 
+/**
+ * This reads a csv file and fires the attributes into an aggregator.
+ * The csv header ro defines the attribute names. A special column 
+ * named "#VALUE#" is used as the data element value. All other columns 
+ * are labels
+ * 
+ * @author richard
+ *
+ */
 public class LiveAggregatorFile  {
 
 	Logger logger = LoggerFactory.getLogger( LiveAggregatorFile.class ) ;
 
-	private LiveAggregator aggregator ;
-
-	private String[] ATTRIBUTE_NAMES = null; 
 	private final static String VALUE_KEY = "#VALUE#" ;
+
+	private LiveAggregator aggregator ;
 
 	public static void main(String[] args) {
 		LiveAggregatorFile self = null ;
@@ -53,19 +61,20 @@ public class LiveAggregatorFile  {
 			String s=br.readLine() ;
 
 			if( s!=null ) {
+				String attributeNames[] = null ; 
 				String cols[] = DataElement.splitComponents(s) ;
 				int valueIndex = -1 ;
 				for(int i=0 ; i<cols.length ; i++ ) {
 					if( cols[i].equals( VALUE_KEY ) ) {						
 						valueIndex = i ;
-						ATTRIBUTE_NAMES = new String[cols.length-1] ;
-						for( int j=0 ; j<ATTRIBUTE_NAMES.length ; j++ ) {
-							ATTRIBUTE_NAMES[j] = cols[j<valueIndex?j:(j+1)] ;
+						attributeNames = new String[cols.length-1] ;
+						for( int j=0 ; j<attributeNames.length ; j++ ) {
+							attributeNames[j] = cols[j<valueIndex?j:(j+1)] ;
 						}
 						break ;
 					}
 				}
-				final DataElementAttributes dae = new DataElementAttributes(ATTRIBUTE_NAMES) ;
+				final DataElementAttributes dae = new DataElementAttributes(attributeNames) ;
 
 				if( valueIndex>=0 ) {
 					for( s=br.readLine() ; s!=null ; s=br.readLine() ) {

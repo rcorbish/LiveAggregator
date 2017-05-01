@@ -169,7 +169,6 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	private boolean matchesCoreElements(DataElement element) {
 		boolean rc = true ;
 		if( filters != null  ) {
-			rc = false ;
 			for( String k : filters.keySet() ) {
 				String mustMatchOneOfThese[] = filters.get(k) ;
 				boolean matcheOneOfThese = false;
@@ -179,8 +178,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 						matcheOneOfThese |= att.equals( couldMatchThis ) ;
 						if( matcheOneOfThese ) break ;
 					}
-					rc |= matcheOneOfThese ;
-					if( rc ) break ;
+					rc &= matcheOneOfThese ;
 				}
 			}
 		}
@@ -284,6 +282,17 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 									dve = newDve ;
 								}
 							}
+							/*
+							if( key.equals( "AUD\fBookX" ) ) {
+								logger.info( "Setting {} value to {} in {}", key.substring(4), dve.getValue(), getViewName() );
+							}
+							if( key.equals( "AUD\fBook1" ) ) {
+								logger.info( "Setting {} value to {} in {}", key.substring(4), dve.getValue(), getViewName() );
+							}
+							if( key.equals( "AUD\fBook2" ) ) {
+								logger.info( "Setting {} value to {} in {}", key.substring(4), dve.getValue(), getViewName() );
+							}
+							*/
 							// add the value to the new key
 							// This is where the aggregation happens
 							dve.add( dataElement.getValue(i) )  ; 							

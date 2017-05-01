@@ -132,6 +132,19 @@ public class DataElement {
 	}
 
 	/**
+	 * Return the value of the core attribute given the name of the attribute. 
+	 * The attributeName will be found by searching the list of attributes 
+	 * to find the index of the attribute.   
+	 * 
+	 * @param attributeName 
+	 * @return the value of the given attribute key
+	 */
+	public String getAttribute( String attributeName ) {
+		int ix = attributes.getAttributeIndex(attributeName) ;		
+		return ix<0 ? null : ix<coreValues.length ? coreValues[ix] : null ;
+	}
+
+	/**
 	 * Return the value of the attribute given the name of the attribute. 
 	 * The attributeName will be found by searching the list of attributes 
 	 * to find the index of the attribute.  
@@ -154,7 +167,7 @@ public class DataElement {
 	 * 
 	 */
 	public String getCoreAttribute( String attributeName ) {
-		return getAttribute( 0, attributeName) ;
+		return getAttribute( attributeName ) ;
 	}
 
 	/**

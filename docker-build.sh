@@ -1,6 +1,8 @@
 #!/bin/sh
 
 
+gradle build
+
 DPID=$( docker -H tcp://mercury.rac.local:2375 ps | grep live-aggregator | cut -c1-16 )
 
 if [ ! -z ${DPID} ] 

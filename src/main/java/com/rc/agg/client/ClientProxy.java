@@ -13,9 +13,13 @@ import com.rc.dataview.DataElementDataView;
 import com.rc.dataview.DataElementStore;
 
 /**
- * This handles all messages from the client.
+ * This handles all messages <b>from</b> the client. INterprets the
+ * message and makes a request to the ClientDataView which keeps 
+ * client state. Outbound messages are sent <b>to</b> the client
+ * in the ClientCommandProcessor. [Could these two be merged?]
  * 
- * @see ClientCommandProcessor which handles events to the client.
+ * 
+ * @see ClientCommandProcessor .
  * 
  * @author richard
  *

@@ -59,7 +59,7 @@ public class LiveAggregatorRandom  {
 		
 		final DataElementAttributes dae = new DataElementAttributes(ATTRIBUTE_NAMES) ;
 		
-		final Random random = new Random() ;
+		final Random random = new Random( 100 ) ;
 		final int DATA_POINTS_PER_ELEMENT = dataPointsPerItem ;
 		final int N = itemsPerBatch * batchSize ;
 		final int BATCH_SIZE = batchSize ;
@@ -117,7 +117,7 @@ public class LiveAggregatorRandom  {
 			long tPlus5Mins = System.currentTimeMillis() + (5 * 60 * 1000) ;
 
 			//int invariantKey = 0 ;
-
+			
 			// Now send random crap for 5 mins
 			while( System.currentTimeMillis()<tPlus5Mins ) {
 				String invariantKey = String.valueOf( random.nextInt( N ) ) ;
@@ -142,8 +142,32 @@ public class LiveAggregatorRandom  {
 							(random.nextInt( 101 ) - 50) / 100.f
 					) ;
 				}
-				aggregator.process( de ) ;									
-				Thread.sleep( 250 );  // distance between batch updates
+				aggregator.process( de ) ;
+				/*
+				DataElement de2 = new DataElement(												
+						10,
+						dae,
+						new String[] { 
+								"XXX",
+								"Cpty",
+								"Book1",
+								"Prd"
+								},
+						invariantKey
+						) ;				
+				for( int j=0 ; j<de2.size() ; j++ ) {
+					de2.set(j,
+						new String[] { 
+						TYPES[ random.nextInt(TYPES.length) ],
+						"0B",
+						"AAA"
+						},
+						(random.nextInt( 101 ) - 50) / 100.f
+					) ;
+				}
+				aggregator.process( de2 ) ;
+				 */
+				Thread.sleep( 500 );  // distance between batch updates
 			}
 		}
 	}

@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * This class is used to map an attribute name to it's index in the 
+ * This class is used to map an attribute name to its index in the 
  * label array in a DataElement.
  * 
  * @author richard
