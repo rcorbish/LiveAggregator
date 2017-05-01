@@ -27,9 +27,7 @@ public class DataViewElement {
 //		and the message sender (which may reset the updated & unused flags)
 //		The order of processing is important to avoid thread issues
 		this.value += value ;
-//		if(value != 0.0f) {			
-			this.updated = true ;
-//		}
+		this.updated = true ;
 //		if( this.value<1e-6f && this.value>-1e-6f ) {
 //			value = 0.f ;
 //			this.updated = true ;

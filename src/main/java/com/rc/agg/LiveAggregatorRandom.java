@@ -143,31 +143,7 @@ public class LiveAggregatorRandom  {
 					) ;
 				}
 				aggregator.process( de ) ;
-				/*
-				DataElement de2 = new DataElement(												
-						10,
-						dae,
-						new String[] { 
-								"XXX",
-								"Cpty",
-								"Book1",
-								"Prd"
-								},
-						invariantKey
-						) ;				
-				for( int j=0 ; j<de2.size() ; j++ ) {
-					de2.set(j,
-						new String[] { 
-						TYPES[ random.nextInt(TYPES.length) ],
-						"0B",
-						"AAA"
-						},
-						(random.nextInt( 101 ) - 50) / 100.f
-					) ;
-				}
-				aggregator.process( de2 ) ;
-				 */
-				Thread.sleep( 500 );  // distance between batch updates
+				Thread.sleep( 250 );  // distance between batch updates
 			}
 		}
 	}
