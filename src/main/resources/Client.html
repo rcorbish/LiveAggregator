@@ -47,6 +47,16 @@ html {
 	left: 0 ;
 	top: 30px ;
 }
+#selection-total {
+	font-size: 10pt ;
+	position:absolute;
+	background: #b5d8d0 ;
+	color: #000 ;  
+	right: 0 ;
+	top: 30px ;
+	padding-left: 10px ;
+	padding-right: 10px ;
+}
 .good-status {
 	color: green ;
 }
@@ -79,64 +89,73 @@ html {
 	border: 0 ;
 }
 
-.hdrCell {
+.hdr-cell {
 	font-size: 8pt ;
 	color: #1f0810 ;
 	width: 1.3cm ;
 	text-align: right;
 	font-weight: bold ;
-} 
-.labelHdrCell {
+}
+ 
+.label-hdr-cell {
 	font-size: 8pt ;
 	color: #1f0810 ;
-	width: 1.7cm ;
+	width: 2.0cm ;
 	text-align: left;
 } 
-.dataCell {
+
+.data-cell {
 	font-size: 8pt ;
 	text-align: right;
 	padding-left: 0.02cm;
-} 
-.hdrRow2 {
+	user-select: none;
+	 -moz-user-select: none; 
+	 -webkit-user-select: none ;
+}
+
+.hdr-row-2 {
 	background: #c0c0d0 ;
 	line-height: 11pt ;
 } 
-.hdrRow1 {
+.hdr-row-1 {
 	background: #d0d0e0 ;
 	line-height: 11pt ;
 } 
-.hdrRow0 {
+.hdr-row-0 {
 	background: #e0e0f0 ;
 	line-height: 11pt ;
 } 
-.totalRow2 {
+.total-row-2 {
 	background: #c0c0d0 ;
 	border-bottom: solid 1px #204080 ;
 	line-height: 9pt ;
 } 
-.totalRow1 {
-	background: #d0d0e0 ;
+.total-row-1 {
+	background: #d8d8e8 ;
 	border-bottom: solid 1px #305080 ;
 	line-height: 9pt ;
 } 
-.totalRow0 {
-	background: #e0e0f0 ;
+.total-row-0 {
+	background: #f0f0ff ;
 	border-bottom: solid 1px #406080 ;
 	line-height: 9pt ;
 } 
 .dataRow:nth-child(odd) {
-	background: #efefff ;
+	background: #e4deef ;
 	line-height: 9pt ;
 } 
 
-.dataRow:hover, tr:hover {
-	  background: #e8f8e8 ; 
+.dataRow:hover, .total-row-0:hover, .total-row-1:hover, .total-row-2:hover {
+	  background: #caf0e5 ; 
+}
+
+td.selected {
+	  background: #aed2c9 ; 
 }
 
 </style>
 
 <script>
-
 	
     var socket;
     var timerFunction ;
@@ -205,6 +224,7 @@ html {
 	       		var cell = findViewCell( 'grid', msg.colKeys, msg.rowKeys ) ;
 	           	if( cell != null ) {
 	        		cell.textContent= msg.value ;
+	        		updateSelectionTotal() ;
 	        	}
 		  	} else if( msg.command === "DEL" ) {
 	        	
@@ -279,12 +299,12 @@ html {
 
 		var gridHTML = "" ;
 		for( var i=0 ; i<numColLevels ; i++ ) {
-			gridHTML += "<tr class='hdrRow" + (i%3) + "'>" ;
+			gridHTML += "<tr class='hdr-row-" + (i%3) + "'>" ;
 			for( var j=0 ; j<numRowLevels ; j++ ) {				
 				if( i== (numColLevels-1) ) { 
-					gridHTML += "<th class='labelHdrCell'>" + rowLevels[j] +"</th>" ;
+					gridHTML += "<th class='label-hdr-cell'>" + rowLevels[j] +"</th>" ;
 				} else {
-					gridHTML += "<th class='labelHdrCell'>&nbsp;</th>" ;
+					gridHTML += "<th class='label-hdr-cell'>&nbsp;</th>" ;
 				}
 			}
 			gridHTML += "</tr>" ;		
@@ -482,11 +502,11 @@ html {
  		// Insert enough new columns for each level in a row
 		for( var i=0 ; i<numRowLevels ; i++ ) {
 			var newCell  = newRow.insertCell(i);
-			newCell.setAttribute("class", "labelHdrCell");
+			newCell.setAttribute("class", "label-hdr-cell");
 			if( i<rowKeys.length ) {
 				newCell.textContent = rowKeys[i] ;
 			} else {
-				newRow.setAttribute("class", ("totalRow" + (numButtonsAddedInThisRow % 3) ) );
+				newRow.setAttribute("class", ("total-row-" + (numButtonsAddedInThisRow % 3) ) );
 				if( numButtonsAddedInThisRow == 0 ) {
 			        var key = openViewName+"\fEXR\f"+rowKey ;
 			 		var state = getKey( key ) ;
@@ -498,7 +518,7 @@ html {
 
 		for( var j=newRow.cells.length ; j<rows[0].cells.length ; j++ ) {
 			newCell  = newRow.insertCell(j);
-			newCell.setAttribute("class", "dataCell");
+			newCell.setAttribute("class", "data-cell");
 			var colKey = rows[0].cells[j].getAttribute( "id" ) ;
 			newCell.setAttribute("id", makeCompoundKeyFromText( colKey, rowKey ) ) ; 
 		}
@@ -542,7 +562,7 @@ html {
 		numColumns++ ;
 		for( var i=0 ; i<numColLevels ; i++ ) {
 			var newCell = rows[i].insertCell(insertionPoint);
-			newCell.setAttribute("class", "hdrCell");
+			newCell.setAttribute("class", "hdr-cell");
 			if( i<colKeys.length ) {
 				if( i==0 ) {	// only set the ID of the first header row 
 					newCell.setAttribute("id", colKey );
@@ -562,7 +582,7 @@ html {
 			// Add new cells if required to make sure all rows have the proper amount of cells
 			newCell = row.insertCell(insertionPoint);
 			newCell.setAttribute("id", makeCompoundKeyFromText( colKey, row.getAttribute("id") ) ); 
-			newCell.setAttribute("class", "dataCell"); 
+			newCell.setAttribute("class", "data-cell"); 
 		}
 			
 		return  document.getElementById(fullKey);
@@ -642,6 +662,51 @@ html {
  		sendObj( { "viewName": view, "command": "RST" } ) ;
  	}
 
+	function updateSelectionTotal() {
+		var selectedCells = document.querySelectorAll( "td.selected" ) ;
+		var total = 0 ;
+		for( var i=0 ; i<selectedCells.length ; i++ ) {
+			var tc = selectedCells[i].textContent ;
+			if( tc !== null && tc.length>0 ) {
+				if( tc[0] === '(' ) {
+					total -= Number( tc.substring(1,tc.length-1) ) ;
+				} else {
+					total += Number( tc ) ;
+				}
+			}
+		}
+		var selectionTotal = document.getElementById('selection-total') ;
+		selectionTotal.textContent = selectedCells.length == 0 ? "" : total ;
+	}
+
+	function clickedOnGrid( e ) {
+		var selectedCells = document.querySelectorAll( "td.selected" ) ;
+		for( var i=0 ; i<selectedCells.length ; i++ ) {
+			selectedCells[i].classList.remove( "selected" ) ;
+		}
+		var grid = document.getElementById('grid');
+		grid.addEventListener( 'mouseup', unclickedOnGrid, false ) ;
+		grid.addEventListener( 'mousemove', movedOnGrid, false ) ;
+		
+	}
+	
+	function movedOnGrid( e ) {
+		if( e.target.classList.contains( 'data-cell' ) ) {
+			e.target.classList.add( "selected" ) ;
+		}
+	}
+
+	function unclickedOnGrid( e ) {
+		var grid = document.getElementById('grid');
+		grid.removeEventListener( 'mouseup', unclickedOnGrid, false ) ;		
+		grid.removeEventListener( 'mousemove', movedOnGrid, false ) ;
+		updateSelectionTotal() ;
+	}
+	
+	window.addEventListener( "load", function() {
+			var grid = document.getElementById('grid');
+			grid.addEventListener( 'mousedown', clickedOnGrid, false )		
+			}, false ) ;
 </script>
 
 </head>
@@ -649,10 +714,11 @@ html {
 <body>
 
 <div id='header-area'>
-	<div id="status"></div>
-	<div id="view-name"></div>
-	<div id="message-count"></div>
 	<div id="view-menu"></div>
+	<div id="status"></div>
+	<div id="message-count"></div>
+	<div id="view-name"></div>	
+	<div id="selection-total"></div>
 </div>
 
 <div id="content">
