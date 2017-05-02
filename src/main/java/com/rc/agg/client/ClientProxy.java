@@ -58,8 +58,6 @@ public class ClientProxy implements ClientEventProcessor {
 				rc = new String[] { "OK" } ;
 			} else if( request.command.equals("VIEWS") ) {		// list available views
 				// Answer with the list of available views that can be shown on the client desktop
-				StringBuilder tmp = new StringBuilder() ;
-				boolean first = true ;
 				Collection<String> vdns = DataElementStore.getInstance().getDataViewNames() ;
 				rc = new String[ vdns.size() ] ;
 				int i = 0 ;

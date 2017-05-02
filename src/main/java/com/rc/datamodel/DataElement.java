@@ -167,7 +167,8 @@ public class DataElement {
 	 * 
 	 */
 	public String getCoreAttribute( String attributeName ) {
-		return getAttribute( attributeName ) ;
+		int ix = attributes.getAttributeIndex(attributeName) ;		
+		return ix<0 ? attributeName : ix<coreValues.length ? coreValues[ix] : null ;
 	}
 
 	/**

@@ -21,9 +21,6 @@ import spark.Response;
  */
 public class Monitor implements AutoCloseable {
 
-	//ClientManager clientManager ;
-
-
 	public void start() {
 		try {
 			spark.Spark.port( 8111 ) ;
@@ -64,8 +61,6 @@ public class Monitor implements AutoCloseable {
 		rc.append( "</html>");
 		return rc ;
 	}
-
-
 
 	@Override
 	public void close() throws Exception {

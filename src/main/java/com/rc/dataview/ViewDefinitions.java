@@ -3,7 +3,6 @@ package com.rc.dataview;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -15,8 +14,6 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.rc.agg.WebSocketServer;
 /**
  * This looks after reading the config file to define views. If the config file
  * changes, this jobby will wake up and reset the views. Note that the old view is
@@ -34,7 +31,6 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 	private File viewDefinitionFile ;
 	private volatile Thread fileWatcherThread  ;
 	private Map<String,ViewDefinition> viewDefinitions ;
-	private Map<String,ViewDefinition> potentialViewDefinitions ;
 
 	private final DataElementStore dataElementStore ;
 
@@ -61,9 +57,9 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 			logger.warn( "FileWatcher Thread was already running - requested kill." ) ;
 			fileWatcherThread.interrupt();
 		}
-		loadViewDefinitions();
-		commitViewDefinitions();
-		fileWatcherThread = new Thread( this ) ;
+		Map<String,ViewDefinition> potentialViewDefinitions = loadViewDefinitions();
+		commitViewDefinitions( potentialViewDefinitions ) ;
+  		fileWatcherThread = new Thread( this ) ;
 		fileWatcherThread.start(); 
 	}
 
@@ -93,12 +89,12 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 					for( ; ; )  { 
 						try {
 							long currentFileTimestamp = viewDefinitionFile.lastModified() ;
-							loadViewDefinitions() ;
+							Map<String,ViewDefinition> potentialViewDefinitions = loadViewDefinitions() ;
 							long currentFileTimestamp2 = viewDefinitionFile.lastModified() ;
 							if( currentFileTimestamp != currentFileTimestamp2 ) {
 								throw new IOException( "File contents changed during load - reloading" ) ;
 							}
-							commitViewDefinitions() ;
+							commitViewDefinitions( potentialViewDefinitions ) ;
 							loadedFileTimestamp = currentFileTimestamp ;
 							break ;
 						} catch( IOException error ) {
@@ -114,14 +110,14 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 		}
 	}
 
-	private void commitViewDefinitions() {
+	private void commitViewDefinitions( Map<String,ViewDefinition> potentialViewDefinitions ) {
 		viewDefinitions = potentialViewDefinitions ;
 		logger.info( "Committed new definitions: {} views available.", viewDefinitions.size() ) ;
 		dataElementStore.setViewDefinitions( this ) ;
 	}
 
-	private synchronized void loadViewDefinitions() throws IOException {
-		potentialViewDefinitions = new HashMap<>() ;
+	private synchronized Map<String,ViewDefinition> loadViewDefinitions() throws IOException {
+		Map<String,ViewDefinition> potentialViewDefinitions = new HashMap<>() ;
 
 		Pattern viewDefinitionPattern = Pattern.compile( "([^\\.]+)\\.([^\\=]+)\\=(.*)" ) ;
 		int lineNum = 0 ;
@@ -170,5 +166,6 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 				}
 			}
 		}		
+	return potentialViewDefinitions ;
 	}
 }

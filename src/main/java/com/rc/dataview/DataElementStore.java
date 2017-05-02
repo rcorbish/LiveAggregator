@@ -14,6 +14,7 @@ import com.rc.datamodel.DataElement;
 /**
  * This is the cache of all currently valaid data. It's big and stupid and fast!
  * Any data element that might contribute to a view will be cached in here.
+ * This is a singleton.
  * 
  * @author richard
  *
@@ -21,18 +22,21 @@ import com.rc.datamodel.DataElement;
 public class DataElementStore  implements DataElementProcessor {
 
 	Logger logger = LoggerFactory.getLogger( DataElementStore.class ) ;
+	private final static DataElementStore instance = new DataElementStore() ;
 	
 	private final Map<String,DataElement> 	currentElements ;
 	private boolean							serverBatchComplete ;
 	private Map<String,DataElementDataView>	availableViews ;		// current available views
 
+/**
+ * The singleton constructor. Sets up a huge hash map to store data
+ */
 	private DataElementStore() {
 		currentElements =  new ConcurrentHashMap<>( 7_000_000 ) ;
 		availableViews = new HashMap<>() ;
 	}
 
 	
-	private static DataElementStore instance = new DataElementStore() ;
 	 
 	public static DataElementStore getInstance() {
 		return instance ;

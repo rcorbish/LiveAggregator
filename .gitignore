@@ -4,6 +4,7 @@
 .settings
 .svn
 .gradle
+bin
 target
 build
 libs

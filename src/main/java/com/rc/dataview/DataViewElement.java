@@ -28,7 +28,7 @@ public class DataViewElement {
 //		The order of processing is important to avoid thread issues
 		this.value += value ;
 		this.updated = true ;
-		this.unused = value == 0.f ;
+		this.unused = (value == 0.f) ;
 	}
 
 	public float getValue() {
@@ -49,7 +49,6 @@ public class DataViewElement {
 	public void markUnused() {
 		value=0.0f ;
 		unused = true ;
-		updated = true ;
 	}
 	/**
 	 * Call this after notifying the client that the
