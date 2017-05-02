@@ -28,10 +28,7 @@ public class DataViewElement {
 //		The order of processing is important to avoid thread issues
 		this.value += value ;
 		this.updated = true ;
-//		if( this.value<1e-6f && this.value>-1e-6f ) {
-//			value = 0.f ;
-//			this.updated = true ;
-//		}
+		this.unused = value == 0.f ;
 	}
 
 	public float getValue() {

@@ -306,7 +306,6 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 
 	public void endBatch() {
 		serverBatchComplete = true ;
-		sendUpdates();
 	}
 
 	public String[] getColGroups() {

@@ -30,7 +30,7 @@ public class LiveAggregatorRandom  {
 	private final static String[] ATTRIBUTE_NAMES = new String[] { "TRADEID", "CPTY", "BOOK", "PRODUCT", "TYPE", "AXIS", "CCY" } ; 
 
 	public static void main(String[] args) {
-		
+
 		LiveAggregatorRandom self = null ;
 		try {
 			int itemsPerBatch = 1_000 ;
@@ -56,9 +56,9 @@ public class LiveAggregatorRandom  {
 
 
 	public void start( int itemsPerBatch, int batchSize, int dataPointsPerItem ) throws Exception {
-		
+
 		final DataElementAttributes dae = new DataElementAttributes(ATTRIBUTE_NAMES) ;
-		
+
 		final Random random = new Random( 100 ) ;
 		final int DATA_POINTS_PER_ELEMENT = dataPointsPerItem ;
 		final int N = itemsPerBatch * batchSize ;
@@ -69,7 +69,7 @@ public class LiveAggregatorRandom  {
 			logger.info( "Restarting processing of data" ) ;
 			ExecutorService executor = Executors.newFixedThreadPool( 3 ) ;
 			aggregator.startBatch() ;
-			
+
 			// FIRST create an initial view - send updates & stuff
 			for( int i=0 ; i<N ; i+=BATCH_SIZE ) {
 				final int START = i ;
@@ -85,21 +85,21 @@ public class LiveAggregatorRandom  {
 											dae,
 											new String[] { 
 													invariantKey,
-													CPTYS[ ix % (CPTYS.length - 1) ],
-													BOOKS[ ix % (BOOKS.length - 1) ],
-													PRODUCTS[ ix % (PRODUCTS.length) ]
+													CPTYS[ random.nextInt(CPTYS.length) ],
+													BOOKS[ random.nextInt(BOOKS.length) ],
+													PRODUCTS[ random.nextInt(PRODUCTS.length) ]
 											},
 											invariantKey
 											) ;				
 									for( int j=0 ; j<de.size() ; j++ ) {
 										de.set(j,
 												new String[] { 
-												TYPES[ ix % (TYPES.length) ],
-												AXES[ ix % (AXES.length) ],
-												CCYS[ ix % (CCYS.length - 1) ]
+														TYPES[ random.nextInt(TYPES.length) ],
+														AXES[ random.nextInt(AXES.length) ],
+														CCYS[ random.nextInt(CCYS.length) ]
 										},
-										(random.nextInt( 101 ) - 50) / 100.f
-										) ;
+												(random.nextInt( 101 ) - 50) / 100.f
+												) ;
 									}
 									aggregator.process( de ) ;
 								}
@@ -117,7 +117,7 @@ public class LiveAggregatorRandom  {
 			long tPlus5Mins = System.currentTimeMillis() + (5 * 60 * 1000) ;
 
 			//int invariantKey = 0 ;
-			
+
 			// Now send random crap for 5 mins
 			while( System.currentTimeMillis()<tPlus5Mins ) {
 				String invariantKey = String.valueOf( random.nextInt( N ) ) ;
@@ -129,18 +129,18 @@ public class LiveAggregatorRandom  {
 								CPTYS[ random.nextInt(CPTYS.length) ],
 								BOOKS[ random.nextInt(BOOKS.length) ],
 								PRODUCTS[ random.nextInt(PRODUCTS.length) ]
-								},
-							invariantKey
+						},
+						invariantKey
 						) ;				
 				for( int j=0 ; j<de.size() ; j++ ) {
 					de.set(j,
 							new String[] { 
-							TYPES[ random.nextInt(TYPES.length) ],
-							AXES[ random.nextInt(AXES.length) ],
-							CCYS[ random.nextInt(CCYS.length) ]
-							},
+									TYPES[ random.nextInt(TYPES.length) ],
+									AXES[ random.nextInt(AXES.length) ],
+									CCYS[ random.nextInt(CCYS.length) ]
+					},
 							(random.nextInt( 101 ) - 50) / 100.f
-					) ;
+							) ;
 				}
 				aggregator.process( de ) ;
 				Thread.sleep( 250 );  // distance between batch updates
