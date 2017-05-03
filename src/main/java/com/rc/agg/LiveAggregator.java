@@ -10,13 +10,12 @@ import com.rc.datamodel.DataElement;
 import com.rc.dataview.DataElementStore;
 import com.rc.dataview.ViewDefinitions;
 
-import spark.resource.ClassPathResource;
 
 public class LiveAggregator implements DataElementProcessor {
 	
 	Logger logger = LoggerFactory.getLogger( LiveAggregator.class ) ;
 
-	private final DataElementStore processor ;
+	private final DataElementStore dataElementStore ;
 	
 	public static void main(String[] args) {
 		try {
@@ -31,10 +30,10 @@ public class LiveAggregator implements DataElementProcessor {
 		Runtime runtime = Runtime.getRuntime();
 		logger.info( "Starting aggregator - using {}Mb of RAM", runtime.maxMemory()/0x100000 );
 
-		processor = DataElementStore.getInstance() ;
+		this.dataElementStore = DataElementStore.getInstance() ;
 		URL viewsTxt = getClass().getClassLoader().getResource( "Views.txt" ) ;
 		
-		ViewDefinitions viewDefinitions = new ViewDefinitions( viewsTxt, processor ) ;
+		ViewDefinitions viewDefinitions = new ViewDefinitions( viewsTxt, this.dataElementStore ) ;
 		viewDefinitions.start();
 						
 		Monitor m = new Monitor() ;
@@ -43,13 +42,17 @@ public class LiveAggregator implements DataElementProcessor {
 	
 	@Override
 	public void process( DataElement dataElement ) {
-		processor.process(dataElement);
+		this.dataElementStore.process(dataElement);
 	}
 
 	public void startBatch() {
-		processor.startBatch();
+		this.dataElementStore.startBatch();
 	}
 	public void endBatch() {
-		processor.endBatch();
+		this.dataElementStore.endBatch();
+	}
+
+	public int size() {
+		return this.dataElementStore.size() ;
 	}
 }

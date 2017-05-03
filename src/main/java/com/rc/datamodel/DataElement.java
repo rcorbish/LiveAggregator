@@ -214,4 +214,7 @@ public class DataElement {
 		return rc.toString() ;
 	}
 
+	public String toString() {
+		return invariantKey + "=>" + values[0] ;
+	}
 }

@@ -2,8 +2,14 @@ package com.rc.agg;
 
 import java.io.File;
 import java.net.URL;
+import java.util.Collection;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.rc.datamodel.DataElement;
 import com.rc.dataview.DataElementStore;
+
 
 //import com.rc.agg.client.ClientManager;
 
@@ -20,6 +26,10 @@ import spark.Response;
  *
  */
 public class Monitor implements AutoCloseable {
+	
+	final static Logger logger = LoggerFactory.getLogger( Monitor.class ) ;
+	final static String ELEMENT_KEY_PARAM = "element-key" ;
+	final static String LIMIT_PARAM = "limit" ;
 
 	public void start() {
 		try {
@@ -29,10 +39,30 @@ public class Monitor implements AutoCloseable {
 			spark.Spark.staticFiles.externalLocation( path.getParent() ) ;
 			spark.Spark.webSocket("/live", WebSocketServer.class);
 			spark.Spark.get( "/", this::index ) ;
+			spark.Spark.get( "/data/:" + ELEMENT_KEY_PARAM, this::dataElements ) ;
 			spark.Spark.awaitInitialization() ;
 		} catch( Exception ohohChongo ) {
 
 		}
+	}
+
+	public Object dataElements(Request req, Response rsp) {
+		Object rc = null ;
+		try {
+			String elementKey = req.params( ELEMENT_KEY_PARAM ) ;
+			String tmp = req.queryParams(LIMIT_PARAM) ;
+			int limit = Integer.parseInt(tmp) ;
+			logger.info( "Querying for {}", elementKey ) ;
+			DataElementStore des = DataElementStore.getInstance() ;
+			Collection<DataElement> matching = des.query(elementKey, limit) ;
+			rc = matching ;
+			logger.info( "Found {} items", matching.size() ) ;
+		} catch ( Throwable t ) {
+			logger.warn( "Error processing data request", t ) ;
+			rc = "Orig URL = " + req.url() + "<br>/data/key?limit=xxx" ;
+			rsp.status( 400 ) ;	
+		}
+		return rc ;
 	}
 
 	// by default print active clients

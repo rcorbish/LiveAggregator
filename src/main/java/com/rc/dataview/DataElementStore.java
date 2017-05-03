@@ -1,8 +1,12 @@
 package com.rc.dataview;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -146,6 +150,46 @@ public class DataElementStore  implements DataElementProcessor {
 		return availableViews.keySet() ;
 	}
 	
+	public DataElement get( String invariantKey ) {
+		return currentElements.get( invariantKey ) ;
+	}
+
+	public int size() {
+		return currentElements.size() ;
+	}
+
+	public Collection<DataElement> query( String elementKey, int limit ) {
+		List<DataElement> rc = new ArrayList<>(limit) ;
+		String elementKeys[] = elementKey.split( String.valueOf( DataElement.ROW_COL_SEPARATION_CHAR ) ) ;
+		Map<String,Set<String>>matchingTests = new HashMap<>() ;
+		for( int i=0 ; i<elementKeys.length ; i++ ) {
+			int ix = elementKeys[i].indexOf( '=' ) ;
+			if( ix>0 ) {
+				String key = elementKeys[i].substring(0,ix) ;
+				Set<String> values = new HashSet<>() ;
+				for( String v : DataElement.splitComponents( elementKeys[i].substring(ix+1) ) ) {
+					values.add(v) ; 
+				}
+				matchingTests.put( key, values ) ;
+			}
+		}  
+
+		for( DataElement value : currentElements.values() ) {
+			for( int i=0 ; i<value.size() ; i++ ) {
+				boolean matchedAllKeys = true ;
+				for( String attributeName : matchingTests.keySet() ) {
+					Set<String> attributeValues = matchingTests.get( attributeName ) ;
+					matchedAllKeys &= attributeValues.contains( value.getAttribute(i,attributeName ) ) ;
+				}
+				if( matchedAllKeys ) {
+					rc.add( value ) ;
+					break ;
+				}
+			}
+			if( rc.size() >= limit ) break ;
+		}
+		return rc ;
+	}
 	public String toString() {
 		return "Data Store containing " + currentElements.size() + " elements."  ; 
 	}
