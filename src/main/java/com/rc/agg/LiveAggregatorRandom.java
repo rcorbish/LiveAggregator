@@ -98,7 +98,7 @@ public class LiveAggregatorRandom  {
 														AXES[ random.nextInt(AXES.length) ],
 														CCYS[ random.nextInt(CCYS.length) ]
 										},
-												(random.nextInt( 101 ) - 50) / 100.f
+												(random.nextInt( 101 ) - 50) / 10.f
 												) ;
 									}
 									aggregator.process( de ) ;
@@ -139,7 +139,7 @@ public class LiveAggregatorRandom  {
 									AXES[ random.nextInt(AXES.length) ],
 									CCYS[ random.nextInt(CCYS.length) ]
 					},
-							(random.nextInt( 101 ) - 50) / 100.f
+							(random.nextInt( 101 ) - 50) / 10.f
 							) ;
 				}
 				aggregator.process( de ) ;
