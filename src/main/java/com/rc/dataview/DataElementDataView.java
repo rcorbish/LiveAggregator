@@ -183,22 +183,25 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 * @return
 	 */
 	private boolean matchesCoreElements(DataElement element) {
-		boolean rc = true ;
 		if( filters != null  ) {
 			for( String k : filters.keySet() ) {
 				String mustMatchOneOfThese[] = filters.get(k) ;
 				String att = element.getCoreAttribute( k ) ;
 				if( att != null ) {
-					boolean matchedOneOfThese = false;
+					boolean matchedOneOfThese = false ;
 					for( String couldMatchThis : mustMatchOneOfThese ) {
-						matchedOneOfThese |= att.equals( couldMatchThis ) ;
-						if( matchedOneOfThese ) break ;
+						if( att.equals( couldMatchThis ) ) {
+							matchedOneOfThese = true ;
+							break ;
+						}
 					}
-					rc |= matchedOneOfThese ;
+					if( !matchedOneOfThese ) { 
+						return false ;
+					}
 				}
 			}
 		}
-		return rc ;
+		return true ;
 	}
 
 
@@ -266,7 +269,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 * 
 	 */
 	public void run2() {
-		Thread.currentThread().setName( "MSG-RCV" + this.getViewName() ) ;
+		Thread.currentThread().setName( "Receiver " + this.getViewName() ) ;
 		try {
 			while( !Thread.currentThread().isInterrupted() ) {
 				DataElement dataElement = messagesToProcess.take() ;
@@ -376,7 +379,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 
 	@Override
 	public void run() {
-		Thread.currentThread().setName( getViewName() + " Update Sender" );
+		Thread.currentThread().setName( "Sender " + getViewName() );
 		while( messageSender!=null && !messageSender.isInterrupted() ) {
 			try {
 				Thread.sleep( CLIENT_UPDATE_INTERVAL );
