@@ -57,7 +57,7 @@ public class Monitor implements AutoCloseable {
 			DataElementStore des = DataElementStore.getInstance() ;
 			Collection<String[]> matching = des.query(elementKey, limit) ;
 			rc = matching ;
-			logger.info( "Found {} items", matching.size()>0?matching.size():0  ) ;
+			logger.info( "Found {} items", matching.size()>0?matching.size()-1:0  ) ;
 		} catch ( Throwable t ) {
 			logger.warn( "Error processing data request", t ) ;
 			rc = "Orig URL = " + req.url() + "<br>Should be ... /data/key?limit=nnn" ;
