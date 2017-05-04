@@ -1,730 +1,801 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="utf-8" />
-<title>Data grid viewer</title>
-<style type="text/css">
+	<meta charset="utf-8" />
+	<title>Data grid viewer</title>
+	<style type="text/css">
+		html {
+			font-family: sans-serif;
+			font-variant: small-caps;
+			margin: 0;
+			padding: 0;
+		}
 
-html {
-	font-family: sans-serif ;
-	font-variant: small-caps ;
-	margin: 0 ;
-	padding: 0 ;
-}
+		#header-area {
+			position: absolute;
+			right: 0;
+			top: 0;
+			left: 0;
+			height: 50px;
+		}
 
-#header-area {
-	position:absolute;
-	right: 0 ;
-	top: 0 ;
-	left: 0 ;
-	height: 50px ;
-}
-#message-count {
-	font-size: 6pt ;
-	position:absolute;
-	right: 0 ;
-	top: 15px ;
-}
-#status {
-	font-size: 10pt ;
-	font-weight:bold ;
-	position:absolute;
-	right: 0 ;
-	top: 0 ;
-}
-#view-menu {
-	font-size: 11pt ;
-	font-weight:bold ;
-	position:absolute;
-	left: 0 ;
-	top: 0 ;
-}
+		#message-count {
+			font-size: 6pt;
+			position: absolute;
+			right: 0;
+			top: 15px;
+		}
 
-#view-name {
-	font-size: 12pt ;
-	font-weight:bold ;
-	position:absolute;
-	left: 0 ;
-	top: 30px ;
-}
-#selection-total {
-	font-size: 10pt ;
-	position:absolute;
-	background: #b5d8d0 ;
-	color: #000 ;  
-	right: 0 ;
-	top: 30px ;
-	padding-left: 10px ;
-	padding-right: 10px ;
-}
-.good-status {
-	color: green ;
-}
-.bad-status {
-	color: red ;
-}
+		#status {
+			font-size: 10pt;
+			font-weight: bold;
+			position: absolute;
+			right: 0;
+			top: 0;
+		}
 
-#content {
-	position:absolute ;
-	left:0 ;
-	width:100% ;
-	bottom: 0 ;
-	top:55px ;
-}
-.grid {
-	border-collapse: collapse ;
-}
-.menuButton {
-	margin-left: 0.01cm ;
-	font-size: 9pt ;
-}
+		#view-menu {
+			font-size: 11pt;
+			font-weight: bold;
+			position: absolute;
+			left: 0;
+			top: 0;
+		}
 
-.expand-button {
-	width:9pt;
-	height:9pt;
-	font-size:6pt;
-	font-weight:bold;
-	margin: 0 ;
-	padding: 0 ;
-	border: 0 ;
-}
+		#view-name {
+			font-size: 12pt;
+			font-weight: bold;
+			position: absolute;
+			left: 0;
+			top: 30px;
+		}
 
-.hdr-cell {
-	font-size: 8pt ;
-	color: #1f0810 ;
-	width: 1.3cm ;
-	text-align: right;
-	font-weight: bold ;
-}
- 
-.label-hdr-cell {
-	font-size: 8pt ;
-	color: #1f0810 ;
-	width: 2.0cm ;
-	text-align: left;
-} 
+		#selection-total {
+			font-size: 10pt;
+			position: absolute;
+			background: #b5d8d0;
+			color: #000;
+			right: 0;
+			top: 30px;
+			padding-left: 10px;
+			padding-right: 10px;
+		}
 
-.data-cell {
-	font-size: 8pt ;
-	text-align: right;
-	padding-left: 0.02cm;
-	user-select: none;
-	 -moz-user-select: none; 
-	 -webkit-user-select: none ;
-}
+		.good-status {
+			color: green;
+		}
 
-.hdr-row-2 {
-	background: #c0c0d0 ;
-	line-height: 11pt ;
-} 
-.hdr-row-1 {
-	background: #d0d0e0 ;
-	line-height: 11pt ;
-} 
-.hdr-row-0 {
-	background: #e0e0f0 ;
-	line-height: 11pt ;
-} 
-.total-row-2 {
-	background: #c0c0d0 ;
-	border-bottom: solid 1px #204080 ;
-	line-height: 9pt ;
-} 
-.total-row-1 {
-	background: #d8d8e8 ;
-	border-bottom: solid 1px #305080 ;
-	line-height: 9pt ;
-} 
-.total-row-0 {
-	background: #f0f0ff ;
-	border-bottom: solid 1px #406080 ;
-	line-height: 9pt ;
-} 
-.dataRow:nth-child(odd) {
-	background: #e4deef ;
-	line-height: 9pt ;
-} 
+		.bad-status {
+			color: red;
+		}
 
-.dataRow:hover, .total-row-0:hover, .total-row-1:hover, .total-row-2:hover {
-	  background: #caf0e5 ; 
-}
+		#content {
+			position: absolute;
+			left: 0;
+			width: 100%;
+			bottom: 0;
+			top: 55px;
+		}
 
-td.selected {
-	  background: #aed2c9 ; 
-}
+		.grid {
+			border-collapse: collapse;
+		}
 
-</style>
+		.menuButton {
+			margin-left: 0.01cm;
+			font-size: 9pt;
+		}
 
-<script>
-	
-    var socket;
-    var timerFunction ;
-    var host = "ws://" + document.location.host + "/live" ;
-    var colLevels ; 
-    var rowLevels ;
-    var openViewName ;
-    var numMessages = 0 ;
- 	var messageCountAtPreviousHeartbeat = 0 ;	
-    var numHeartbeatsMissed = 0 ;
-	var connectionActive = false ;
+		.expand-button {
+			width: 9pt;
+			height: 9pt;
+			font-size: 6pt;
+			font-weight: bold;
+			margin: 0;
+			padding: 0;
+			border: 0;
+		}
 
-    openWebSocket() ;
-    
-    function openWebSocket() {
-    	if( socket != null ) {
-    		socket.close() ;
-    	}
-        socket = new WebSocket( host );
-        socket.onopen = socketOpen ;  
-        socket.onmessage = socketMessage ;
-        socket.onclose = socketClose ;  
-    }
- 
-    function heartbeatTimeout() {
-		numHeartbeatsMissed = 0 ;
-		if( numHeartbeatsMissed>2 ) {
-			if( numMessages === messageCountAtPreviousHeartbeat ) {
-				statusBad() ;
-				//openWebSocket() ;
+		.hdr-cell {
+			font-size: 8pt;
+			color: #1f0810;
+			width: 1.3cm;
+			text-align: right;
+			font-weight: bold;
+		}
+
+		.label-hdr-cell {
+			font-size: 8pt;
+			color: #1f0810;
+			width: 2.0cm;
+			text-align: left;
+		}
+
+		.data-cell {
+			font-size: 8pt;
+			text-align: right;
+			padding-left: 0.02cm;
+			user-select: none;
+			-moz-user-select: none;
+			-webkit-user-select: none;
+		}
+
+		.hdr-row-2 {
+			background: #c0c0d0;
+			line-height: 11pt;
+		}
+
+		.hdr-row-1 {
+			background: #d0d0e0;
+			line-height: 11pt;
+		}
+
+		.hdr-row-0 {
+			background: #e0e0f0;
+			line-height: 11pt;
+		}
+
+		.total-row-2 {
+			background: #c0c0d0;
+			border-bottom: solid 1px #204080;
+			line-height: 9pt;
+		}
+
+		.total-row-1 {
+			background: #d8d8e8;
+			border-bottom: solid 1px #305080;
+			line-height: 9pt;
+		}
+
+		.total-row-0 {
+			background: #f0f0ff;
+			border-bottom: solid 1px #406080;
+			line-height: 9pt;
+		}
+
+		.dataRow:nth-child(odd) {
+			background: #e4deef;
+			line-height: 9pt;
+		}
+
+		.dataRow:hover,
+		.total-row-0:hover,
+		.total-row-1:hover,
+		.total-row-2:hover {
+			background: #caf0e5;
+		}
+
+		td.selected {
+			background: #aed2c9;
+		}
+	</style>
+
+	<script>
+		var socket;
+		var timerFunction;
+		var host = "ws://" + document.location.host + "/live";
+		var colLevels;
+		var rowLevels;
+		var openViewName;
+		var numMessages = 0;
+		var messageCountAtPreviousHeartbeat = 0;
+		var numHeartbeatsMissed = 0;
+		var connectionActive = false;
+
+		openWebSocket();
+
+		function openWebSocket() {
+			if (socket != null) {
+				socket.close();
 			}
+			socket = new WebSocket(host);
+			socket.onopen = socketOpen;
+			socket.onmessage = socketMessage;
+			socket.onclose = socketClose;
 		}
-		messageCountAtPreviousHeartbeat = numMessages ;    
-	}
-    
-    function socketOpen() {  
-        timerFunction = setInterval(function(){heartbeatTimeout()},3000);
-    	statusOK() ;
-    	sendObj( { command:"VIEWS" } ) ;
-		connectionActive = true ;
-    }  
 
-    function socketClose() {
-    	socket = null ;
-    	clearTimeout( timerFunction ) ;
-    	statusBad() ;
-		connectionActive = false ;
-    }      
-    
-    function socketMessage( msgText ) {
-		if( !connectionActive ) {
-	    	statusOK() ;
-			connectionActive = true ;
+		function heartbeatTimeout() {
+			numHeartbeatsMissed = 0;
+			if (numHeartbeatsMissed > 2) {
+				if (numMessages === messageCountAtPreviousHeartbeat) {
+					statusBad();
+					//openWebSocket() ;
+				}
+			}
+			messageCountAtPreviousHeartbeat = numMessages;
 		}
-    	numMessages++ ; // used by heartbeat timer.
-    	var msgs = JSON.parse( msgText.data ) ;
-    	for( var msgIndex = 0 ; msgIndex<msgs.length ; msgIndex++ ) {
-    		var msg = msgs[ msgIndex ] ;
-    		if( openViewName !== msg.viewName ) {
-    			continue ;
-    		} 
-    		 
-		  	if( msg.command === "UPD" ) {
-		  		document.getElementById( "message-count" ).textContent = "Msg Count " + numberWithCommas(numMessages) ;
-	        	
-	       		var cell = findViewCell( 'grid', msg.colKeys, msg.rowKeys ) ;
-	           	if( cell != null ) {
-	        		cell.textContent= msg.value ;
-	        		updateSelectionTotal() ;
-	        	}
-		  	} else if( msg.command === "DEL" ) {
-	        	
-	       		var cell = findViewCell( 'grid', msg.colKeys, msg.rowKeys ) ;
-	           	if( cell != null ) {
-	        		cell.textContent= "" ;
-	        	}
-	           	removeRowIfEmpty( msg.rowKeys ) ;
-	           	removeColIfEmpty( msg.colKeys ) ;
-	
-		  	} else if( msg.command === "DELC" ) {
-	           	removeCol( msg.colKeys ) ;
-		  	} else if( msg.command === "DELR" ) {
-	           	removeRow( msg.rowKeys ) ;
-		  	} else if( msg.command === "VIEWS" ) {
-	   			processViewResponse( msg.responses ) ;
-		  	} else if( msg.command === "DIM" ) {
-		  		numMessages = 1 ; // reset message count for a new View
-	       		setViewDescription( msg.description ) ;
-	       		colLevels = msg.colKeys ;
-	       		rowLevels = msg.rowKeys ;
-	       		numColLevels = msg.colKeys.length ;
-	       		numRowLevels = msg.rowKeys.length ;
-	       		resetView() ;
-		  	} else if( msg.command === "RDY" ) {
-		  		document.getElementById('grid').style.display="block";
-		  		sendObj( msg ) ;  // echo the ready message to enable updates in server
-		  	} else if( msg.command === "CLOSE" ) {
-	       		statusBad() ;
-	       		resetView() ;
-		  	} else if( msg.command === "RESET" ) {
-	       		setViewDescription( "View definitions were changed on the server, updating is temporarily paused." ) ;
-		  		openView( openViewName ) ;  		
-		  	} else {
-		  		console.log( "Unknown server msg: " + msg.command ) ;
-		  	}
+
+		function socketOpen() {
+			timerFunction = setInterval(function () {
+				heartbeatTimeout()
+			}, 3000);
+			statusOK();
+			sendObj({
+				command: "VIEWS"
+			});
+			connectionActive = true;
 		}
-  	}
-       
-/*
-	If I asked what the views are - this is the response
-	views is an array of view names that can be opened
-*/
-    function processViewResponse( views ) {
-    	var viewMenu = document.getElementById("view-menu");    	
-		var lastOpenView = getKey( "openView" ) ;
-    	
-    	var menuHtml = "" ;
-    	
-    	for( var i=0 ; i<views.length ; i++ ) {
-    		menuHtml += "<input type='button' class='menuButton' onclick=\"openView('" + views[i] +"')\" value=\"" + views[i] + "\"/>" ;
-    		if( views[i] == lastOpenView ) {
-    			openView( lastOpenView  ) ;
-    		}
-    	}
-    	    	
-    	viewMenu.innerHTML = menuHtml ;
-    }
 
-/*
-	Hide the view - so that we can receive all the updates
-	and eventually redraw the  web-page. This is actually faster
-	than processing a lot of updates. If the view is small 
-	then the previous statement is inaccurate.
-	
-	rowLevels & colLevels must be initialized (i.e. in response to a DIM msg 
-	or a col/row expand/collapse)	
-*/    
-	function resetView() {
-		var grid = document.getElementById('grid');
-		grid.style.display="none";
+		function socketClose() {
+			socket = null;
+			clearTimeout(timerFunction);
+			statusBad();
+			connectionActive = false;
+		}
 
-		var gridHTML = "" ;
-		for( var i=0 ; i<numColLevels ; i++ ) {
-			gridHTML += "<tr class='hdr-row-" + (i%3) + "'>" ;
-			for( var j=0 ; j<numRowLevels ; j++ ) {				
-				if( i== (numColLevels-1) ) { 
-					gridHTML += "<th class='label-hdr-cell'>" + rowLevels[j] +"</th>" ;
+		function socketMessage(msgText) {
+			if (!connectionActive) {
+				statusOK();
+				connectionActive = true;
+			}
+			numMessages++; // used by heartbeat timer.
+			var msgs = JSON.parse(msgText.data);
+			for (var msgIndex = 0; msgIndex < msgs.length; msgIndex++) {
+				var msg = msgs[msgIndex];
+				if (openViewName !== msg.viewName) {
+					continue;
+				}
+
+				if (msg.command === "UPD") {
+					document.getElementById("message-count").textContent = "Msg Count " + numberWithCommas(numMessages);
+
+					var cell = findViewCell('grid', msg.colKeys, msg.rowKeys);
+					if (cell != null) {
+						cell.textContent = msg.value;
+						updateSelectionTotal();
+					}
+				} else if (msg.command === "DEL") {
+
+					var cell = findViewCell('grid', msg.colKeys, msg.rowKeys);
+					if (cell != null) {
+						cell.textContent = "";
+					}
+					removeRowIfEmpty(msg.rowKeys);
+					removeColIfEmpty(msg.colKeys);
+
+				} else if (msg.command === "DELC") {
+					removeCol(msg.colKeys);
+				} else if (msg.command === "DELR") {
+					removeRow(msg.rowKeys);
+				} else if (msg.command === "VIEWS") {
+					processViewResponse(msg.responses);
+				} else if (msg.command === "DIM") {
+					numMessages = 1; // reset message count for a new View
+					setViewDescription(msg.description);
+					colLevels = msg.colKeys;
+					rowLevels = msg.rowKeys;
+					numColLevels = msg.colKeys.length;
+					numRowLevels = msg.rowKeys.length;
+					resetView();
+				} else if (msg.command === "RDY") {
+					document.getElementById('grid').style.display = "block";
+					sendObj(msg); // echo the ready message to enable updates in server
+				} else if (msg.command === "CLOSE") {
+					statusBad();
+					resetView();
+				} else if (msg.command === "RESET") {
+					setViewDescription("View definitions were changed on the server, updating is temporarily paused.");
+					openView(openViewName);
 				} else {
-					gridHTML += "<th class='label-hdr-cell'>&nbsp;</th>" ;
-				}
-			}
-			gridHTML += "</tr>" ;		
-		}
-		
-		grid.innerHTML = gridHTML ;		
-	}
-
-//=======================
-// Global functions
-//
-	function makeCompoundKeyFromText( keys1, keys2 ) {
-		return keys1 + "@" + keys2  ;
-	}
-	function makeKey( keys ) {
-		return keys.join('\t' ) ;
-	}
-	function makeKeys( key ) {
-		return key.split('\t' ) ;
-	}
-	function makeCompoundKey( keys1, keys2 ) {
-		return makeCompoundKeyFromText( makeKey( keys1 ), makeKey( keys2 ) ) ;
-	}
-	function printKeys( keys ) {
-		return "[" + keys.map( function(e) { return "'" + e + "'" ; } ).join(',')  + "]";
-	}
-	function printKey( key ) {
-		return printKeys( makeKeys( key ) ) ;
-	}
-	
-	function views() {
-		sendObj( {"command":"VIEWS"} ) ;
- 	}
-
-	function sendObj( obj ) {
-		socket.send( JSON.stringify(obj) ) ;			
-	}
-
-	function openView( view ) {
-		if( openViewName !== view ) {
-			sendObj( { viewName:openViewName, 
-						command:"STOP" } ) ;
-		}
-		
-		openViewName = view ;
-		setKey( "openView", view ) ;
-		document.getElementById('grid').style.display="none";
-
-		setViewDescription( "Requesting " + view + " from server.") ;
-		var msg = { viewName:openViewName, 
-					command:"START",
-					rowKeys:[],
-					colKeys:[] } ;
-
-	//
-	// Pull the view open rows and cols from local storage
-	//
-						
- 		if(typeof(Storage)!=="undefined") {
- 			var openRowKey = openViewName+"\fEXR\f" ;
- 			var openColKey = openViewName+"\fEXC\f" ;
- 			for (i=0; i<localStorage.length; i++) {  
- 		        key = localStorage.key(i);
- 		        if( key.startsWith( openRowKey ) ) {
- 	 		 		msg.rowKeys.push( key.substring( openRowKey.length ) ) ; 	 		        
- 		        }
- 		        if( key.startsWith( openColKey )  ) {
- 	 		 		msg.colKeys.push( key.substring( openColKey.length ) ) ; 	 		        
- 		        }
- 		    }
- 		} 	
-		sendObj( msg ) ;
- 	}
-	
-	function closeAll() {
-		openViewName = null ;
-		sendObj( { command: "STOP" } ) ;
-		socket.close() ;
- 	}
- 	  
-	function removeRowIfEmpty( rowKey ) {
-		var row = document.getElementById(rowKey);
-		if( row == null ) {
-			return ;
-		}		
-		for( var i=numRowLevels ; i<row.cells.length ; i++ ) {
-			if( row.cells[i].textContent.length > 0 ) {
-				return ;
-			}
-		}
-		
-		row.parentNode.removeChild( row ) ;
-	}
-
-	function removeRow( rowKey ) {
-		var row = document.getElementById(rowKey);
-		if( row != null ) {
-			row.parentNode.removeChild( row ) ;
-		}
-	}
-
-	
-	function removeColIfEmpty( colKeys ) {
-		var rows = grid.rows ;
-		var headerRow = rows[0]
-		var numColumns = headerRow.cells.length  ;
-		var colIndexToDelete = -1 ; // append new col
-		
-		var colKey = makeKey( colKeys ) ;
-		for( colIndexToDelete=numRowLevels ; colIndexToDelete<numColumns ; colIndexToDelete++ ) {
-			var label = headerRow.cells[colIndexToDelete] ;
-			if( label.getAttribute("id") == colKey ) {
-				break ;
-			}
-			if( label.getAttribute("id") > colKey ) {
-				return ;
-			}
-		}				
-
-		for( var rowIndex = numColLevels ; rowIndex<rows.length  ; rowIndex++ ) {
-			var row = rows[rowIndex] ;
-			if( row.cells[colIndexToDelete].textContent.length > 0 ) {
-				return ;
-			}
-		} 
-		for( var rowIndex = 0 ; rowIndex<rows.length  ; rowIndex++ ) {
-			var row = rows[rowIndex] ;
-			row.deleteCell(colIndexToDelete) ;
-		} 
-	}
-
-	
-	function removeCol( colKeys ) {
-		var rows = grid.rows ;
-		var headerRow = rows[0]
-		var numColumns = headerRow.cells.length  ;
-		var colKey = makeKey( colKeys ) ;
-		var colIndexToDelete = -1 ; // append new col
-		for( var i=numRowLevels ; i<numColumns ; i++ ) {
-			var label = headerRow.cells[i] ;
-			if( label.getAttribute("id") === colKey ) {
-				colIndexToDelete = i ;
-				break ;
-			}
-		}				
-		if( colIndexToDelete > 0 ) {
-			for( var rowIndex = 0 ; rowIndex<rows.length  ; rowIndex++ ) {
-				var row = rows[rowIndex] ;
-				row.deleteCell(colIndexToDelete) ;
-			}
-		}
-	}
-
-
-	
- 	function findViewRow( name, rowKeys ) {
- 	
- 		var rowKey = makeKey( rowKeys ) ;
-		var row = document.getElementById(rowKey);
-		if( row != null ) {
-			return row ;
-		}
-
-		var grid = document.getElementById(name);
-		var rows = grid.rows ;
-		var sectionSize = rows.length - numColLevels ;
-		var insertionPoint = 0 ;
-		var sectionStart = 0 ;
-		while( sectionSize>0 ) {
-			sectionSize = Math.floor( sectionSize / 2 ) ;
-			insertionPoint = sectionStart + sectionSize + +numColLevels ;
-			
-			var row = rows[insertionPoint] ;
-			
-			var rowLabel = row.getAttribute( "id" ) ;
-			if( rowLabel < rowKey ) {
-				sectionStart += sectionSize ;
-			}
-		}
-		//insertionPoint -= sectionSize ;
-		for( insertionPoint=sectionStart+numColLevels ; insertionPoint<rows.length ; insertionPoint++ ) {
-			var row = rows[insertionPoint] ;
-			
-			var rowLabel = row.getAttribute( "id" ) ;
-			if( rowLabel > rowKey ) {
-				break ;
-			}
-		}			
-		// Insert a row in the table at row index 0
-  		var newRow   = grid.insertRow(insertionPoint);
-  		newRow.setAttribute("id", rowKey );
-		newRow.setAttribute("class", "dataRow");
-
-		var numButtonsAddedInThisRow = 0 ;
- 		// Insert enough new columns for each level in a row
-		for( var i=0 ; i<numRowLevels ; i++ ) {
-			var newCell  = newRow.insertCell(i);
-			newCell.setAttribute("class", "label-hdr-cell");
-			if( i<rowKeys.length ) {
-				newCell.textContent = rowKeys[i] ;
-			} else {
-				newRow.setAttribute("class", ("total-row-" + (numButtonsAddedInThisRow % 3) ) );
-				if( numButtonsAddedInThisRow == 0 ) {
-			        var key = openViewName+"\fEXR\f"+rowKey ;
-			 		var state = getKey( key ) ;
-					newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleRow( '" + openViewName + "', " + printKeys(rowKeys) + ", this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
-				}
-				numButtonsAddedInThisRow++ ;
-			}
-		}
-
-		for( var j=newRow.cells.length ; j<rows[0].cells.length ; j++ ) {
-			newCell  = newRow.insertCell(j);
-			newCell.setAttribute("class", "data-cell");
-			var colKey = rows[0].cells[j].getAttribute( "id" ) ;
-			newCell.setAttribute("id", makeCompoundKeyFromText( colKey, rowKey ) ) ; 
-		}
-
-		return newRow ;
-	}
-
- 	
- 	function findViewCell( name, colKeys, rowKeys ) {
-
-		var colKey = makeKey( colKeys ) ;
-		var rowKey = makeKey( rowKeys ) ;
- 	
- 		var fullKey = makeCompoundKeyFromText( colKey, rowKey ) ;
-		var cell = document.getElementById(fullKey);
-		if( cell !== null ) {
-			return cell ;
-		}
-	
-		var row = findViewRow( name, rowKeys ) ;
-		if( row === null ) {
-			return null ;
-		}
-			
-		var grid = document.getElementById(name);
-		var rows = grid.rows ;
-		var headerRow = rows[0]
-		var numColumns = headerRow.cells.length  ;
-		var insertionPoint ; // which column index will we insert at ?
-		for( insertionPoint=numRowLevels ; insertionPoint<numColumns ; insertionPoint++ ) {
-			var label = headerRow.cells[insertionPoint] ;
-			if( label.getAttribute("id") === colKey ) {
-				return document.getElementById(fullKey); // findRow may have created the cell we need...
-			}
-			if( label.getAttribute("id") > colKey ) {
-				break ;
-			}
-		}	
-		// OK we'll insert a new column here ...
-
-		numColumns++ ;
-		for( var i=0 ; i<numColLevels ; i++ ) {
-			var newCell = rows[i].insertCell(insertionPoint);
-			newCell.setAttribute("class", "hdr-cell");
-			if( i<colKeys.length ) {
-				if( i==0 ) {	// only set the ID of the first header row 
-					newCell.setAttribute("id", colKey );
-				}
-				newCell.textContent = colKeys[i] ;
-			} else {
-		        var key = openViewName+"\fEXC\f"+colKey ;
-		 		var state = getKey( key ) ;
-				newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleCol( '" + openViewName + "'," + printKeys(colKeys) + ",this);\" value='" + (state=='OPE' ? '-' : '+') + "' />";
-			}
-		}
-
-		// Oh oh - brand new column - need to update every data row in the table !
-		for( var i=numColLevels ; i<rows.length ; i++ ) {
-			var row = rows[i] ;
-			
-			// Add new cells if required to make sure all rows have the proper amount of cells
-			newCell = row.insertCell(insertionPoint);
-			newCell.setAttribute("id", makeCompoundKeyFromText( colKey, row.getAttribute("id") ) ); 
-			newCell.setAttribute("class", "data-cell"); 
-		}
-			
-		return  document.getElementById(fullKey);
- 	}
-
-	function numberWithCommas(x) {
-    	return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-	}
-	
- 	function getKey( key ) {
- 		if(typeof(Storage)!=="undefined") {
- 			return localStorage.getItem( key ) ;
- 		}
- 		return null ;
- 	}
- 	
- 	function setKey( key, val ) {
- 		if(typeof(Storage)!=="undefined") {
- 			if( val == null ) {
- 				localStorage.removeItem( key ) ;
- 			} else {
- 				localStorage.setItem( key, val ) ;
- 			}
- 		}
-    }
-
- 	function setViewDescription( desc ) {
- 		var viewDesc = document.getElementById("view-name");    	
- 		viewDesc.textContent = desc ;
- 	}
-
- 	function statusOK() {
- 		var status = document.getElementById("status");    	
- 		status.className = "good-status" ;
-		status.textContent = "Online" ;
- 	}
- 	
- 	function statusBad() {
- 		var status = document.getElementById("status");
-		status.className = "bad-status" ;    	
-		status.textContent = "Offline" ;
- 	}
-
- 	
- 	function toggleRow( view, rowKeys, button ) {
-
-        var key = view+"\fEXR\f"+makeKey(rowKeys) ;
- 		var state = getKey( key ) ;
- 		
- 		if( state == "OPE" ) {
- 			setKey(key, null ) ;
- 	 		button.value='+' ;
- 			sendObj( { "viewName": view, "command": "COR", "rowKeys": rowKeys } ) ;	 			
- 		} else {
- 			setKey(key, "OPE" ) ;
- 	 		button.value='-' ;
- 			sendObj( { "viewName": view, "command": "EXR", "rowKeys": rowKeys } ) ;	 			
- 		}
- 		resetView() ;
- 		sendObj( { "viewName": view, "command": "RST" } ) ;
- 	}
-
- 	function toggleCol( view, colKeys, button ) { 		
-        var key = view+"\fEXC\f"+makeKey(colKeys) ;
- 		var state = getKey( key ) ;
- 		
- 		if( state == "OPE" ) {
- 			setKey(key, null ) ;
- 	 		button.value='+' ;
- 			sendObj( { "viewName": view, "command": "COC", "colKeys": colKeys } ) ;	 			
- 		} else {
- 			setKey(key, "OPE" ) ;
- 	 		button.value='-' ;
- 			sendObj( { "viewName": view, "command": "EXC", "colKeys": colKeys } ) ;	 			
- 		}
- 		resetView() ;
- 		sendObj( { "viewName": view, "command": "RST" } ) ;
- 	}
-
-	function updateSelectionTotal() {
-		var selectedCells = document.querySelectorAll( "td.selected" ) ;
-		var total = 0 ;
-		for( var i=0 ; i<selectedCells.length ; i++ ) {
-			var tc = selectedCells[i].textContent ;
-			if( tc !== null && tc.length>0 ) {
-			tc = tc.replace( ',', '' ) ;  
-				if( tc[0] === '(' ) {
-					total -= Number( tc.substring(1,tc.length-1) ) ;
-				} else {
-					total += Number( tc ) ;
+					console.log("Unknown server msg: " + msg.command);
 				}
 			}
 		}
-		var selectionTotal = document.getElementById('selection-total') ;
-		selectionTotal.textContent = selectedCells.length == 0 ? "" : total ;
-	}
 
-	function clickedOnGrid( e ) {
-		var selectedCells = document.querySelectorAll( "td.selected" ) ;
-		for( var i=0 ; i<selectedCells.length ; i++ ) {
-			selectedCells[i].classList.remove( "selected" ) ;
-		}
-		var grid = document.getElementById('grid');
-		grid.addEventListener( 'mouseup', unclickedOnGrid, false ) ;
-		grid.addEventListener( 'mousemove', movedOnGrid, false ) ;
-		
-	}
-	
-	function movedOnGrid( e ) {
-		if( e.target.classList.contains( 'data-cell' ) ) {
-			e.target.classList.add( "selected" ) ;
-		}
-	}
+		/*
+			If I asked what the views are - this is the response
+			views is an array of view names that can be opened
+		*/
+		function processViewResponse(views) {
+			var viewMenu = document.getElementById("view-menu");
+			var lastOpenView = getKey("openView");
 
-	function unclickedOnGrid( e ) {
-		var grid = document.getElementById('grid');
-		grid.removeEventListener( 'mouseup', unclickedOnGrid, false ) ;		
-		grid.removeEventListener( 'mousemove', movedOnGrid, false ) ;
-		updateSelectionTotal() ;
-	}
-	
-	window.addEventListener( "load", function() {
+			var menuHtml = "";
+
+			for (var i = 0; i < views.length; i++) {
+				menuHtml += "<input type='button' class='menuButton' onclick=\"openView('" + views[i] + "')\" value=\"" + views[i] +
+					"\"/>";
+				if (views[i] == lastOpenView) {
+					openView(lastOpenView);
+				}
+			}
+
+			viewMenu.innerHTML = menuHtml;
+		}
+
+		/*
+			Hide the view - so that we can receive all the updates
+			and eventually redraw the  web-page. This is actually faster
+			than processing a lot of updates. If the view is small 
+			then the previous statement is inaccurate.
+			
+			rowLevels & colLevels must be initialized (i.e. in response to a DIM msg 
+			or a col/row expand/collapse)	
+		*/
+		function resetView() {
 			var grid = document.getElementById('grid');
-			grid.addEventListener( 'mousedown', clickedOnGrid, false )		
-			}, false ) ;
-</script>
+			grid.style.display = "none";
+
+			var gridHTML = "";
+			for (var i = 0; i < numColLevels; i++) {
+				gridHTML += "<tr class='hdr-row-" + (i % 3) + "'>";
+				for (var j = 0; j < numRowLevels; j++) {
+					if (i == (numColLevels - 1)) {
+						gridHTML += "<th class='label-hdr-cell'>" + rowLevels[j] + "</th>";
+					} else {
+						gridHTML += "<th class='label-hdr-cell'>&nbsp;</th>";
+					}
+				}
+				gridHTML += "</tr>";
+			}
+
+			grid.innerHTML = gridHTML;
+		}
+
+		//=======================
+		// Global functions
+		//
+		function makeCompoundKeyFromText(keys1, keys2) {
+			return keys1 + "@" + keys2;
+		}
+
+		function makeKey(keys) {
+			return keys.join('\t');
+		}
+
+		function makeKeys(key) {
+			return key.split('\t');
+		}
+
+		function makeCompoundKey(keys1, keys2) {
+			return makeCompoundKeyFromText(makeKey(keys1), makeKey(keys2));
+		}
+
+		function printKeys(keys) {
+			return "[" + keys.map(function (e) {
+				return "'" + e + "'";
+			}).join(',') + "]";
+		}
+
+		function printKey(key) {
+			return printKeys(makeKeys(key));
+		}
+
+		function views() {
+			sendObj({
+				"command": "VIEWS"
+			});
+		}
+
+		function sendObj(obj) {
+			socket.send(JSON.stringify(obj));
+		}
+
+		function openView(view) {
+			if (openViewName !== view) {
+				sendObj({
+					viewName: openViewName,
+					command: "STOP"
+				});
+			}
+
+			openViewName = view;
+			setKey("openView", view);
+			document.getElementById('grid').style.display = "none";
+
+			setViewDescription("Requesting " + view + " from server.");
+			var msg = {
+				viewName: openViewName,
+				command: "START",
+				rowKeys: [],
+				colKeys: []
+			};
+
+			//
+			// Pull the view open rows and cols from local storage
+			//
+
+			if (typeof (Storage) !== "undefined") {
+				var openRowKey = openViewName + "\fEXR\f";
+				var openColKey = openViewName + "\fEXC\f";
+				for (i = 0; i < localStorage.length; i++) {
+					key = localStorage.key(i);
+					if (key.startsWith(openRowKey)) {
+						msg.rowKeys.push(key.substring(openRowKey.length));
+					}
+					if (key.startsWith(openColKey)) {
+						msg.colKeys.push(key.substring(openColKey.length));
+					}
+				}
+			}
+			sendObj(msg);
+		}
+
+		function closeAll() {
+			openViewName = null;
+			sendObj({
+				command: "STOP"
+			});
+			socket.close();
+		}
+
+		function removeRowIfEmpty(rowKey) {
+			var row = document.getElementById(rowKey);
+			if (row == null) {
+				return;
+			}
+			for (var i = numRowLevels; i < row.cells.length; i++) {
+				if (row.cells[i].textContent.length > 0) {
+					return;
+				}
+			}
+
+			row.parentNode.removeChild(row);
+		}
+
+		function removeRow(rowKey) {
+			var row = document.getElementById(rowKey);
+			if (row != null) {
+				row.parentNode.removeChild(row);
+			}
+		}
+
+
+		function removeColIfEmpty(colKeys) {
+			var rows = grid.rows;
+			var headerRow = rows[0]
+			var numColumns = headerRow.cells.length;
+			var colIndexToDelete = -1; // append new col
+
+			var colKey = makeKey(colKeys);
+			for (colIndexToDelete = numRowLevels; colIndexToDelete < numColumns; colIndexToDelete++) {
+				var label = headerRow.cells[colIndexToDelete];
+				if (label.getAttribute("id") == colKey) {
+					break;
+				}
+				if (label.getAttribute("id") > colKey) {
+					return;
+				}
+			}
+
+			for (var rowIndex = numColLevels; rowIndex < rows.length; rowIndex++) {
+				var row = rows[rowIndex];
+				if (row.cells[colIndexToDelete].textContent.length > 0) {
+					return;
+				}
+			}
+			for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+				var row = rows[rowIndex];
+				row.deleteCell(colIndexToDelete);
+			}
+		}
+
+
+		function removeCol(colKeys) {
+			var rows = grid.rows;
+			var headerRow = rows[0]
+			var numColumns = headerRow.cells.length;
+			var colKey = makeKey(colKeys);
+			var colIndexToDelete = -1; // append new col
+			for (var i = numRowLevels; i < numColumns; i++) {
+				var label = headerRow.cells[i];
+				if (label.getAttribute("id") === colKey) {
+					colIndexToDelete = i;
+					break;
+				}
+			}
+			if (colIndexToDelete > 0) {
+				for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+					var row = rows[rowIndex];
+					row.deleteCell(colIndexToDelete);
+				}
+			}
+		}
+
+
+
+		function findViewRow(name, rowKeys) {
+
+			var rowKey = makeKey(rowKeys);
+			var row = document.getElementById(rowKey);
+			if (row != null) {
+				return row;
+			}
+
+			var grid = document.getElementById(name);
+			var rows = grid.rows;
+			var sectionSize = rows.length - numColLevels;
+			var insertionPoint = 0;
+			var sectionStart = 0;
+			while (sectionSize > 0) {
+				sectionSize = Math.floor(sectionSize / 2);
+				insertionPoint = sectionStart + sectionSize + +numColLevels;
+
+				var row = rows[insertionPoint];
+
+				var rowLabel = row.getAttribute("id");
+				if (rowLabel < rowKey) {
+					sectionStart += sectionSize;
+				}
+			}
+			//insertionPoint -= sectionSize ;
+			for (insertionPoint = sectionStart + numColLevels; insertionPoint < rows.length; insertionPoint++) {
+				var row = rows[insertionPoint];
+
+				var rowLabel = row.getAttribute("id");
+				if (rowLabel > rowKey) {
+					break;
+				}
+			}
+			// Insert a row in the table at row index 0
+			var newRow = grid.insertRow(insertionPoint);
+			newRow.setAttribute("id", rowKey);
+			newRow.setAttribute("class", "dataRow");
+
+			var numButtonsAddedInThisRow = 0;
+			// Insert enough new columns for each level in a row
+			for (var i = 0; i < numRowLevels; i++) {
+				var newCell = newRow.insertCell(i);
+				newCell.setAttribute("class", "label-hdr-cell");
+				if (i < rowKeys.length) {
+					newCell.textContent = rowKeys[i];
+				} else {
+					newRow.setAttribute("class", ("total-row-" + (numButtonsAddedInThisRow % 3)));
+					if (numButtonsAddedInThisRow == 0) {
+						var key = openViewName + "\fEXR\f" + rowKey;
+						var state = getKey(key);
+						newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleRow( '" + openViewName + "', " +
+							printKeys(rowKeys) + ", this);\" value='" + (state == 'OPE' ? '-' : '+') + "' />";
+					}
+					numButtonsAddedInThisRow++;
+				}
+			}
+
+			for (var j = newRow.cells.length; j < rows[0].cells.length; j++) {
+				newCell = newRow.insertCell(j);
+				newCell.setAttribute("class", "data-cell");
+				var colKey = rows[0].cells[j].getAttribute("id");
+				newCell.setAttribute("id", makeCompoundKeyFromText(colKey, rowKey));
+			}
+
+			return newRow;
+		}
+
+
+		function findViewCell(name, colKeys, rowKeys) {
+
+			var colKey = makeKey(colKeys);
+			var rowKey = makeKey(rowKeys);
+
+			var fullKey = makeCompoundKeyFromText(colKey, rowKey);
+			var cell = document.getElementById(fullKey);
+			if (cell !== null) {
+				return cell;
+			}
+
+			var row = findViewRow(name, rowKeys);
+			if (row === null) {
+				return null;
+			}
+
+			var grid = document.getElementById(name);
+			var rows = grid.rows;
+			var headerRow = rows[0]
+			var numColumns = headerRow.cells.length;
+			var insertionPoint; // which column index will we insert at ?
+			for (insertionPoint = numRowLevels; insertionPoint < numColumns; insertionPoint++) {
+				var label = headerRow.cells[insertionPoint];
+				if (label.getAttribute("id") === colKey) {
+					return document.getElementById(fullKey); // findRow may have created the cell we need...
+				}
+				if (label.getAttribute("id") > colKey) {
+					break;
+				}
+			}
+			// OK we'll insert a new column here ...
+
+			numColumns++;
+			for (var i = 0; i < numColLevels; i++) {
+				var newCell = rows[i].insertCell(insertionPoint);
+				newCell.setAttribute("class", "hdr-cell");
+				if (i < colKeys.length) {
+					if (i == 0) { // only set the ID of the first header row 
+						newCell.setAttribute("id", colKey);
+					}
+					newCell.textContent = colKeys[i];
+				} else {
+					var key = openViewName + "\fEXC\f" + colKey;
+					var state = getKey(key);
+					newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleCol( '" + openViewName + "'," +
+						printKeys(colKeys) + ",this);\" value='" + (state == 'OPE' ? '-' : '+') + "' />";
+				}
+			}
+
+			// Oh oh - brand new column - need to update every data row in the table !
+			for (var i = numColLevels; i < rows.length; i++) {
+				var row = rows[i];
+
+				// Add new cells if required to make sure all rows have the proper amount of cells
+				newCell = row.insertCell(insertionPoint);
+				newCell.setAttribute("id", makeCompoundKeyFromText(colKey, row.getAttribute("id")));
+				newCell.setAttribute("class", "data-cell");
+			}
+
+			return document.getElementById(fullKey);
+		}
+
+		function numberWithCommas(x) {
+			return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+		}
+
+		function getKey(key) {
+			if (typeof (Storage) !== "undefined") {
+				return localStorage.getItem(key);
+			}
+			return null;
+		}
+
+		function setKey(key, val) {
+			if (typeof (Storage) !== "undefined") {
+				if (val == null) {
+					localStorage.removeItem(key);
+				} else {
+					localStorage.setItem(key, val);
+				}
+			}
+		}
+
+		function setViewDescription(desc) {
+			var viewDesc = document.getElementById("view-name");
+			viewDesc.textContent = desc;
+		}
+
+		function statusOK() {
+			var status = document.getElementById("status");
+			status.className = "good-status";
+			status.textContent = "Online";
+		}
+
+		function statusBad() {
+			var status = document.getElementById("status");
+			status.className = "bad-status";
+			status.textContent = "Offline";
+		}
+
+
+		function toggleRow(view, rowKeys, button) {
+
+			var key = view + "\fEXR\f" + makeKey(rowKeys);
+			var state = getKey(key);
+
+			if (state == "OPE") {
+				setKey(key, null);
+				button.value = '+';
+				sendObj({
+					"viewName": view,
+					"command": "COR",
+					"rowKeys": rowKeys
+				});
+			} else {
+				setKey(key, "OPE");
+				button.value = '-';
+				sendObj({
+					"viewName": view,
+					"command": "EXR",
+					"rowKeys": rowKeys
+				});
+			}
+			resetView();
+			sendObj({
+				"viewName": view,
+				"command": "RST"
+			});
+		}
+
+		function toggleCol(view, colKeys, button) {
+			var key = view + "\fEXC\f" + makeKey(colKeys);
+			var state = getKey(key);
+
+			if (state == "OPE") {
+				setKey(key, null);
+				button.value = '+';
+				sendObj({
+					"viewName": view,
+					"command": "COC",
+					"colKeys": colKeys
+				});
+			} else {
+				setKey(key, "OPE");
+				button.value = '-';
+				sendObj({
+					"viewName": view,
+					"command": "EXC",
+					"colKeys": colKeys
+				});
+			}
+			resetView();
+			sendObj({
+				"viewName": view,
+				"command": "RST"
+			});
+		}
+
+		function updateSelectionTotal() {
+			var selectedCells = document.querySelectorAll("td.selected");
+			var total = 0;
+			for (var i = 0; i < selectedCells.length; i++) {
+				var tc = selectedCells[i].textContent;
+				if (tc !== null && tc.length > 0) {
+					tc = tc.replace(',', '');
+					if (tc[0] === '(') {
+						total -= Number(tc.substring(1, tc.length - 1));
+					} else {
+						total += Number(tc);
+					}
+				}
+			}
+			var selectionTotal = document.getElementById('selection-total');
+			selectionTotal.textContent = selectedCells.length == 0 ? "" : total;
+		}
+
+		function doubleclickedOnGrid(e) {
+			var grid = document.getElementById('grid');
+			if (e.target.classList.contains('data-cell')) {
+				var cell = e.target ;
+				cell.id ;
+			}
+		}
+
+		function clickedOnGrid(e) {
+			var selectedCells = document.querySelectorAll("td.selected");
+			for (var i = 0; i < selectedCells.length; i++) {
+				selectedCells[i].classList.remove("selected");
+			}
+			var grid = document.getElementById('grid');
+			grid.addEventListener('mouseup', unclickedOnGrid, false);
+			grid.addEventListener('mousemove', movedOnGrid, false);
+		}
+
+		function movedOnGrid(e) {
+			if (e.target.classList.contains('data-cell')) {
+				e.target.classList.add("selected");
+			}
+		}
+
+		function unclickedOnGrid(e) {
+			var grid = document.getElementById('grid');
+			grid.removeEventListener('mouseup', unclickedOnGrid, false);
+			grid.removeEventListener('mousemove', movedOnGrid, false);
+			updateSelectionTotal();
+		}
+
+		window.addEventListener("load",
+			function () {
+				var grid = document.getElementById('grid');
+				grid.addEventListener('mousedown', clickedOnGrid, false)
+				grid.addEventListener('dblclick', doubleclickedOnGrid, false)
+			},
+			false
+		);
+	</script>
 
 </head>
 
 <body>
 
-<div id='header-area'>
-	<div id="view-menu"></div>
-	<div id="status"></div>
-	<div id="message-count"></div>
-	<div id="view-name"></div>	
-	<div id="selection-total"></div>
-</div>
+	<div id='header-area'>
+		<div id="view-menu"></div>
+		<div id="status"></div>
+		<div id="message-count"></div>
+		<div id="view-name"></div>
+		<div id="selection-total"></div>
+	</div>
 
-<div id="content">
-	<table id="grid" class='grid'></table>
-</div>
+	<div id="content">
+		<table id="grid" class='grid'></table>
+	</div>
 
 </body>
+
 </html>
