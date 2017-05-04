@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
@@ -29,7 +28,7 @@ import com.rc.agg.client.ClientProxy;
  * It does delegate most work to the private class (below). There is one WebSocketServer
  * per server instance, each client instance has a WebSocketCommandProcessor to 
  * manage itself. We have 2 lists of clients: 1 in client manager and one in clientData. Ideally these
- * need to be merged. TODO & all that. The difference is that the client manager handles messages
+ * need to be merged. TODO all that. The difference is that the client manager handles messages
  * from the web page and the clientData handles messages to - pretty lame
  * 
  * @author richard

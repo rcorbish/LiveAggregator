@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rc.agg.client.ClientCommandProcessor;
-import com.rc.agg.client.ClientCommandProcessorImpl;
 import com.rc.agg.client.ClientDisconnectedException;
 import com.rc.datamodel.DataElement;
 

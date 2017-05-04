@@ -11,20 +11,13 @@ import com.rc.dataview.DataElementStore;
 import com.rc.dataview.ViewDefinitions;
 
 
-public class LiveAggregator implements DataElementProcessor {
+public class LiveAggregator implements DataElementProcessor, AutoCloseable {
 	
 	Logger logger = LoggerFactory.getLogger( LiveAggregator.class ) ;
 
 	private final DataElementStore dataElementStore ;
-	
-	public static void main(String[] args) {
-		try {
-			new LiveAggregator() ;
-		} catch( Throwable t ) {
-			t.printStackTrace();
-			System.exit( -1 ) ;
-		}
-	}
+	private final Monitor webServer ;
+	private final ViewDefinitions viewDefinitions ;
 
 	public LiveAggregator() throws IOException {
 		Runtime runtime = Runtime.getRuntime();
@@ -33,11 +26,10 @@ public class LiveAggregator implements DataElementProcessor {
 		this.dataElementStore = DataElementStore.getInstance() ;
 		URL viewsTxt = getClass().getClassLoader().getResource( "Views.txt" ) ;
 		
-		ViewDefinitions viewDefinitions = new ViewDefinitions( viewsTxt, this.dataElementStore ) ;
+		viewDefinitions = new ViewDefinitions( viewsTxt, this.dataElementStore ) ;
+		webServer = new Monitor() ;
 		viewDefinitions.start();
-						
-		Monitor m = new Monitor() ;
-		m.start();
+		webServer.start();
 	}
 	
 	@Override
@@ -54,5 +46,15 @@ public class LiveAggregator implements DataElementProcessor {
 
 	public int size() {
 		return this.dataElementStore.size() ;
+	}
+
+	public void close() {
+		try {
+			webServer.close();
+			viewDefinitions.close() ;
+		} catch( Throwable t ) {
+			logger.warn( "Error shutting down aggregator.", t ) ;
+		}
+		logger.info( "Aggregator finished. B Y E  B Y E") ;
 	}
 }

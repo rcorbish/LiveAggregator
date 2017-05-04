@@ -1,7 +1,6 @@
 package com.rc.agg;
 
 import java.text.DecimalFormat;
-import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -86,7 +85,7 @@ public class LiveAggregatorRandom  {
 								Thread.currentThread().setName( "Start: " + START );
 								for( int n=0 ; n<BATCH_SIZE ; n++ ) {
 									final String invariantKey = String.valueOf(n+START) ;
-									int ix = START + n ;
+									//int ix = START + n ;
 									DataElement de = new DataElement(												
 											DATA_POINTS_PER_ELEMENT,
 											dae,

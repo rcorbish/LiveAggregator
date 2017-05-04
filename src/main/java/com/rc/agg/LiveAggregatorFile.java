@@ -3,11 +3,9 @@ package com.rc.agg;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.nio.charset.Charset;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,10 +96,9 @@ public class LiveAggregatorFile  {
 					}
 				}
 			}
+			logger.info( "Finished processing {} lines of {}", lineNumber, dataFile ) ;  
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error( "Error processing input file.", e );
 		}
-
-		logger.info( "Finished processing {} lines of {}", lineNumber, dataFile ) ;  
 	}
 }

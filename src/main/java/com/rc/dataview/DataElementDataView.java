@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.BlockingQueue ;
 import java.util.concurrent.ArrayBlockingQueue ;
 
-import org.eclipse.jetty.util.BlockingArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -248,12 +247,16 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 
 
 	/**
-	 * Adds an element to the data view. 
+	 * Adds an element to the data view. The messages is pre-checked
+	 * tosee that it matches the view filters.
+	 * 
 	 */
 	public void process( DataElement dataElement ) {
 		try{ 
 			if( messageReceiver != null ) {
-				messagesToProcess.put( dataElement ) ; 
+				if( matchesCoreElements( dataElement ) ) {
+					messagesToProcess.put( dataElement ) ;
+				} 
 			}
 		} catch( InterruptedException iex ) {
 			logger.info( "Processing thread is interrupted - {} will no longer receive data", getViewName() ) ;
@@ -264,6 +267,8 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	/**
 	 * Adds an element to the data view. This needs to figure out all the
 	 * combinations of keys and add the value to the pre-calculated pieces.
+	 * All messages received should be pre-screened so that the core Elements
+	 * match any active filters.
 	 * 
 	 * This method probably consumes 90% of the CPU capacity - be careful editing
 	 * 
@@ -273,63 +278,62 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		try {
 			while( !Thread.currentThread().isInterrupted() ) {
 				DataElement dataElement = messagesToProcess.take() ;
-				if( matchesCoreElements( dataElement ) ) {
-					// remember the column keys, we need to have a cartesian
-					// of rpw key & column key combinations. 
-					StringBuilder colKeyPiece = new StringBuilder( 256 ) ;
-					// The cumulative cartesian key for this element
-					// need that to keep track of totals
-					StringBuilder elementKey = new StringBuilder( 256 ) ;
+				// remember the column keys, we need to have a cartesian
+				// of rpw key & column key combinations. 
+				StringBuilder colKeyPiece = new StringBuilder( 256 ) ;
+				// The cumulative cartesian key for this element
+				// need that to keep track of totals
+				StringBuilder elementKey = new StringBuilder( 256 ) ;
 
-					// for each sub element
-					for( int i=0 ; i<dataElement.size() ; i++ ) {
-						//check second part of filter
-						if( matchesPerimeterElements( i, dataElement ) ) {
-							colKeyPiece.setLength(0);
-							// for each column key piece
-							for( String colGroup : colGroups ) {
-								// add the next piece to the cumulative column key
-								colKeyPiece.append( dataElement.getAttribute(i, colGroup ) ) ;
-								// restart the cartesian key at empty
-								elementKey.setLength(0);
-								// Then add in the proper number of column components 
-								elementKey.append( colKeyPiece ).append( DataElement.ROW_COL_SEPARATION_CHAR ) ;
-								// Now with the base column done - add each row key, one at a time
-								// so get the cartesian of rows & columns into the 
-								// elementKey. This inner loop executes once per item in the 
-								// cartesian ... 2 row keys & 3 col keys == 6 loops
-								for( String rowGroup : rowGroups ) {
-									if( this.setValues != null ) {
-										Map<String,String> setValuesForThisRowGroup = this.setValues.get( rowGroup ) ;
-										String replacementValue = setValuesForThisRowGroup.get( dataElement.getAttribute( i, rowGroup ) ) ;
-										elementKey.append( replacementValue==null ? "Other" : replacementValue ) ;
-									} else {
-										elementKey.append( dataElement.getAttribute( i, rowGroup ) ) ;
-									}
+				// for each sub element
+				for( int i=0 ; i<dataElement.size() ; i++ ) {
+					//check second part of filter
+					if( matchesPerimeterElements( i, dataElement ) ) {
+						colKeyPiece.setLength(0);
+						// for each column key piece
+						for( String colGroup : colGroups ) {
+							// add the next piece to the cumulative column key
+							colKeyPiece.append( dataElement.getAttribute(i, colGroup ) ) ;
+							// restart the cartesian key at empty
+							elementKey.setLength(0);
+							// Then add in the proper number of column components 
+							elementKey.append( colKeyPiece ).append( DataElement.ROW_COL_SEPARATION_CHAR ) ;
+							// Now with the base column done - add each row key, one at a time
+							// so get the cartesian of rows & columns into the 
+							// elementKey. This inner loop executes once per item in the 
+							// cartesian ... 2 row keys & 3 col keys == 6 loops
+							for( String rowGroup : rowGroups ) {
+								if( this.setValues != null ) {
+									Map<String,String> setValuesForThisRowGroup = this.setValues.get( rowGroup ) ;
+									String replacementValue = setValuesForThisRowGroup.get( dataElement.getAttribute( i, rowGroup ) ) ;
+									elementKey.append( replacementValue==null ? "Other" : replacementValue ) ;
+								} else {
+									elementKey.append( dataElement.getAttribute( i, rowGroup ) ) ;
+								}
 
-									// now turn the key into a hashable thing
-									String key = elementKey.toString() ;
-									DataViewElement dve = dataViewElements.get( key ) ;
-									if( dve == null ) {   // if we don't have a key create it
-										// Allow concurrent elem creates
-										DataViewElement newDve = new DataViewElement() ;
-										dve = dataViewElements.putIfAbsent( key, newDve ) ;
-										if( dve==null ) {
-											dve = newDve ;
-										}
+								// now turn the key into a hashable thing
+								String key = elementKey.toString() ;
+								DataViewElement dve = dataViewElements.get( key ) ;
+								if( dve == null ) {   // if we don't have a key create it
+									// Allow concurrent elem creates
+									DataViewElement newDve = new DataViewElement() ;
+									dve = dataViewElements.putIfAbsent( key, newDve ) ;
+									if( dve==null ) {
+										dve = newDve ;
 									}
-									// add the value to the new key
-									// This is where the aggregation happens
-									dve.add( dataElement.getValue(i) )  ; 							
-									elementKey.append( DataElement.SEPARATION_CHAR ) ;
-								}					
-								colKeyPiece.append( DataElement.SEPARATION_CHAR ) ;
-							}
+								}
+								// add the value to the new key
+								// This is where the aggregation happens
+								dve.add( dataElement.getValue(i) )  ; 							
+								elementKey.append( DataElement.SEPARATION_CHAR ) ;
+							}					
+							colKeyPiece.append( DataElement.SEPARATION_CHAR ) ;
 						}
 					}
 				}
 			}
 		} catch( InterruptedException iex ) {
+			logger.warn( "Message receiver thread interrupted, do NOT send messages to this view.") ;
 			messageReceiver = null ;
 			messagesToProcess.clear();
 		}
