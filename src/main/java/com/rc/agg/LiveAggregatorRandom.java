@@ -14,7 +14,7 @@ import com.rc.datamodel.DataElement;
 import com.rc.datamodel.DataElementAttributes;
 
 public class LiveAggregatorRandom  {
-	Logger logger = LoggerFactory.getLogger( LiveAggregatorRandom.class ) ;
+	final Logger logger = LoggerFactory.getLogger( LiveAggregatorRandom.class ) ;
 
 	private DecimalFormat decimalFormat = new DecimalFormat( "#,##0" ) ;
 
@@ -31,23 +31,30 @@ public class LiveAggregatorRandom  {
 
 	public static void main(String[] args) {
 
+		final Logger logger = LoggerFactory.getLogger( LiveAggregatorRandom.class ) ;
+
 		LiveAggregatorRandom self = null ;
 		try {
-			int itemsPerBatch = 1_000 ;
+			int numBatches = 1_000 ;
 			int batchSize = 10 ;
 			int dataPointsPerItem = 100 ;
+			logger.info( "Reading {} args", args.length ) ;
+			if( args.length > 0 ) {
+				numBatches = Integer.parseInt( args[0] ) ;
+				logger.info( "{} batches", numBatches );
+				
+			}
 			if( args.length > 1 ) {
-				itemsPerBatch = Integer.parseInt( args[0] ) ;
+				batchSize = Integer.parseInt( args[1] ) ;
+				logger.info( "{} batch size", batchSize );
 			}
 			if( args.length > 2 ) {
-				batchSize = Integer.parseInt( args[1] ) ;
-			}
-			if( args.length > 3 ) {
 				dataPointsPerItem = Integer.parseInt( args[2] ) ;
+				logger.info( "{} data points per item", dataPointsPerItem );
 			}
 			self = new LiveAggregatorRandom() ;
 			self.aggregator = new LiveAggregator() ;
-			self.start( itemsPerBatch, batchSize, dataPointsPerItem ) ;
+			self.start( numBatches, batchSize, dataPointsPerItem ) ;
 		} catch( Throwable t ) {
 			t.printStackTrace();
 			System.exit( -1 ) ;
@@ -55,13 +62,13 @@ public class LiveAggregatorRandom  {
 	}
 
 
-	public void start( int itemsPerBatch, int batchSize, int dataPointsPerItem ) throws Exception {
+	public void start( int numBatches, int batchSize, int dataPointsPerItem ) throws Exception {
 
 		final DataElementAttributes dae = new DataElementAttributes(ATTRIBUTE_NAMES) ;
 
 		final Random random = new Random( 100 ) ;
 		final int DATA_POINTS_PER_ELEMENT = dataPointsPerItem ;
-		final int N = itemsPerBatch * batchSize ;
+		final int N = numBatches * batchSize ;
 		final int BATCH_SIZE = batchSize ;
 		logger.info( "Starting server. Connect to client @ server:8111/Client.html" ); 
 		for( ; ; ) {
