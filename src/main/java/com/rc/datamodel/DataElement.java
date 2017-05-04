@@ -181,6 +181,14 @@ public class DataElement {
 	}
 	
 	/**
+	 * Return the name of each attribute
+	 * 
+	 * @return an array of the attribute names
+	 */
+	public String []  getAttributeNames() {
+		return attributes. getAttributeNames() ;
+	}
+	/**
 	 * Return the value at the given index.
 	 * @param index
 	 * @return the value for this element

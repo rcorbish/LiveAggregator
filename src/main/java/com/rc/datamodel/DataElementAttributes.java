@@ -15,12 +15,15 @@ public class DataElementAttributes {
 	 * The map keyed on attribute name to find an index value
 	 */
 	private final Map<String,Integer> attributeIndices ;
-	
+
+	private final String attributeNames[] ;
+
 	/**
 	 * Create the internal map of name -> index
 	 * @param attributeNames
 	 */
 	public DataElementAttributes( final String attributeNames[] ) {
+		this.attributeNames = attributeNames ;
 		attributeIndices = new HashMap<>( attributeNames.length ) ;
 		for( int i=0 ; i<attributeNames.length ; i++ ) {
 			attributeIndices.put( attributeNames[i], i ) ;
@@ -38,4 +41,12 @@ public class DataElementAttributes {
 		return ix!=null ? ix.intValue() : -1 ;
 	}
 		
+	/**
+	 * This returns the set of attribute names, in  the same 
+	 * order as defined by the constructor.
+	 * @return the attribute names as String array
+	 */
+	public String[] getAttributeNames() {
+		return attributeNames ;
+	}
 }

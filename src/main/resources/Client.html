@@ -668,6 +668,7 @@ td.selected {
 		for( var i=0 ; i<selectedCells.length ; i++ ) {
 			var tc = selectedCells[i].textContent ;
 			if( tc !== null && tc.length>0 ) {
+			tc = tc.replace( ',', '' ) ;  
 				if( tc[0] === '(' ) {
 					total -= Number( tc.substring(1,tc.length-1) ) ;
 				} else {

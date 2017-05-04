@@ -7,11 +7,9 @@ import java.util.Collection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.rc.datamodel.DataElement;
+import com.google.gson.Gson;
 import com.rc.dataview.DataElementStore;
 
-
-//import com.rc.agg.client.ClientManager;
 
 import spark.Request;
 import spark.Response;
@@ -30,7 +28,8 @@ public class Monitor implements AutoCloseable {
 	final static Logger logger = LoggerFactory.getLogger( Monitor.class ) ;
 	final static String ELEMENT_KEY_PARAM = "element-key" ;
 	final static String LIMIT_PARAM = "limit" ;
-
+	Gson gson = new Gson();
+	
 	public void start() {
 		try {
 			spark.Spark.port( 8111 ) ;
@@ -39,7 +38,7 @@ public class Monitor implements AutoCloseable {
 			spark.Spark.staticFiles.externalLocation( path.getParent() ) ;
 			spark.Spark.webSocket("/live", WebSocketServer.class);
 			spark.Spark.get( "/", this::index ) ;
-			spark.Spark.get( "/data/:" + ELEMENT_KEY_PARAM, this::dataElements ) ;
+			spark.Spark.get( "/data/:" + ELEMENT_KEY_PARAM, this::dataElements, gson::toJson ) ;
 			spark.Spark.awaitInitialization() ;
 		} catch( Exception ohohChongo ) {
 
@@ -49,17 +48,19 @@ public class Monitor implements AutoCloseable {
 	public Object dataElements(Request req, Response rsp) {
 		Object rc = null ;
 		try {
+			rsp.type( "application/json" );
+
 			String elementKey = req.params( ELEMENT_KEY_PARAM ) ;
 			String tmp = req.queryParams(LIMIT_PARAM) ;
 			int limit = Integer.parseInt(tmp) ;
-			logger.info( "Querying for {}", elementKey ) ;
+			logger.info( "Querying for {} - max {} items", elementKey, limit ) ;
 			DataElementStore des = DataElementStore.getInstance() ;
-			Collection<DataElement> matching = des.query(elementKey, limit) ;
+			Collection<String[]> matching = des.query(elementKey, limit) ;
 			rc = matching ;
 			logger.info( "Found {} items", matching.size() ) ;
 		} catch ( Throwable t ) {
 			logger.warn( "Error processing data request", t ) ;
-			rc = "Orig URL = " + req.url() + "<br>/data/key?limit=xxx" ;
+			rc = "Orig URL = " + req.url() + "<br>Should be ... /data/key?limit=nnn" ;
 			rsp.status( 400 ) ;	
 		}
 		return rc ;
@@ -88,6 +89,8 @@ public class Monitor implements AutoCloseable {
 		rc.append( "<h2>Managed clients</h2>");
 		rc.append( WebSocketServer.toStringStatic().replaceAll( "\n", "<br>") );
 
+		rc.append( "<h2>Sample Data query</h2>");
+		rc.append( "<a href='http://" + req.host() + "/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100'>http://" + req.host() + "/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100</a>") ;
 		rc.append( "</html>");
 		return rc ;
 	}
