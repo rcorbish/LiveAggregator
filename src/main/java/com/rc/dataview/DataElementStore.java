@@ -25,7 +25,7 @@ import com.rc.datamodel.DataElement;
  */
 public class DataElementStore  implements DataElementProcessor {
 
-	Logger logger = LoggerFactory.getLogger( DataElementStore.class ) ;
+	final static Logger logger = LoggerFactory.getLogger( DataElementStore.class ) ;
 	private final static DataElementStore instance = new DataElementStore() ;
 
 	private final Map<String,DataElement> 	currentElements ;

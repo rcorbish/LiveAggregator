@@ -26,7 +26,7 @@ import com.rc.dataview.DataElementStore;
  */
 public class ClientProxy implements ClientEventProcessor {
 
-	Logger logger = LoggerFactory.getLogger( ClientProxy.class ) ;
+	final static Logger logger = LoggerFactory.getLogger( ClientProxy.class ) ;
 
 	private final Map<String,ClientDataView> openDataViews ;
 	private final ClientCommandProcessor clientCommandProcessor ;

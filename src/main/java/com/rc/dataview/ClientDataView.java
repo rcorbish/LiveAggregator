@@ -19,7 +19,7 @@ import com.rc.datamodel.DataElement;
  *
  */
 public class ClientDataView  {
-	Logger logger = LoggerFactory.getLogger( ClientDataView.class ) ;
+	final static Logger logger = LoggerFactory.getLogger( ClientDataView.class ) ;
 
 	private final DataElementDataView dataElementDataView ;	
 	private final ClientCommandProcessor clientCommandProcessor ;		// how to pass the new view to the client

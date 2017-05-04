@@ -1,5 +1,6 @@
 package com.rc.agg;
 
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -13,11 +14,11 @@ import com.rc.datamodel.DataElement;
 import com.rc.datamodel.DataElementAttributes;
 
 public class LiveAggregatorRandom  {
-	final Logger logger = LoggerFactory.getLogger( LiveAggregatorRandom.class ) ;
+	final static Logger logger = LoggerFactory.getLogger( LiveAggregatorRandom.class ) ;
 
-	private DecimalFormat decimalFormat = new DecimalFormat( "#,##0" ) ;
+	private final static DecimalFormat decimalFormat = new DecimalFormat( "#,##0" ) ;
 
-	private LiveAggregator aggregator ;
+	private final LiveAggregator aggregator ;
 
 	private String CCYS[] = new String[] { "USD", "CAD", "EUR", "GBP", "JPY", "SEK", "AUD", "HKD" } ;
 	private String TYPES[] = new String[] { "IR01", "NPV", "P&L" } ;
@@ -28,9 +29,11 @@ public class LiveAggregatorRandom  {
 
 	private final static String[] ATTRIBUTE_NAMES = new String[] { "TRADEID", "CPTY", "BOOK", "PRODUCT", "TYPE", "AXIS", "CCY" } ; 
 
-	public static void main(String[] args) {
+	public LiveAggregatorRandom() throws IOException {
+		this.aggregator = new LiveAggregator() ;
+	}
 
-		final Logger logger = LoggerFactory.getLogger( LiveAggregatorRandom.class ) ;
+	public static void main(String[] args) {
 
 		LiveAggregatorRandom self = null ;
 		try {
@@ -52,7 +55,6 @@ public class LiveAggregatorRandom  {
 				logger.info( "{} data points per item", dataPointsPerItem );
 			}
 			self = new LiveAggregatorRandom() ;
-			self.aggregator = new LiveAggregator() ;
 			self.start( numBatches, batchSize, dataPointsPerItem ) ;
 		} catch( Throwable t ) {
 			t.printStackTrace();

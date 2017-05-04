@@ -10,8 +10,10 @@ package com.rc.agg.client;
  *
  */
 public interface ClientCommandProcessor {
-	
+	//===========================
 	// Commands TO client
+	//===========================
+
 	/**
 	 * Define the row and column headings of a viewe. Sent as 1st
 	 * response when a view is opened.

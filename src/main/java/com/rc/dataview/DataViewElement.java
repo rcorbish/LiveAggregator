@@ -21,7 +21,7 @@ public class DataViewElement {
 	 * 
 	 * @param value
 	 */
-	public synchronized void add( float value ) {
+	public void add( float value ) {
 //		Be careful with this, the data is read and written by 2
 //		separate threads - the view (to updated new elelemnts ) 
 //		and the message sender (which may reset the updated & unused flags)

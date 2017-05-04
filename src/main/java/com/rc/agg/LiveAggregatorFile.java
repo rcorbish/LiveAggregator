@@ -24,17 +24,16 @@ import com.rc.datamodel.DataElementAttributes;
  */
 public class LiveAggregatorFile  {
 
-	Logger logger = LoggerFactory.getLogger( LiveAggregatorFile.class ) ;
+	final static Logger logger = LoggerFactory.getLogger( LiveAggregatorFile.class ) ;
 
 	private final static String VALUE_KEY = "#VALUE#" ;
 
-	private LiveAggregator aggregator ;
+	private final LiveAggregator aggregator ;
 
 	public static void main(String[] args) {
 		LiveAggregatorFile self = null ;
 		try {
 			self = new LiveAggregatorFile() ;
-			self.aggregator = new LiveAggregator() ;
 			String fileName = args.length>0 ? args[0] : "src/main/resources/Test1.txt" ;
 			self.start( fileName ) ;
 		} catch( Throwable t ) {
@@ -43,6 +42,9 @@ public class LiveAggregatorFile  {
 		}
 	}
 
+	public LiveAggregatorFile() throws IOException {
+		this.aggregator = new LiveAggregator() ;
+	}
 
 	public void start( String fileName ) throws InterruptedException {
 

@@ -36,7 +36,7 @@ import com.rc.agg.client.ClientProxy;
  */
 @WebSocket
 public class WebSocketServer  {
-	Logger logger = LoggerFactory.getLogger( WebSocketServer.class ) ;
+	final static Logger logger = LoggerFactory.getLogger( WebSocketServer.class ) ;
 	
     private static final Map<Session,ClientProxy> clientData = new ConcurrentHashMap<>() ;
     

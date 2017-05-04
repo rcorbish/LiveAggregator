@@ -13,7 +13,7 @@ import com.rc.dataview.ViewDefinitions;
 
 public class LiveAggregator implements DataElementProcessor, AutoCloseable {
 	
-	Logger logger = LoggerFactory.getLogger( LiveAggregator.class ) ;
+	final static Logger logger = LoggerFactory.getLogger( LiveAggregator.class ) ;
 
 	private final DataElementStore dataElementStore ;
 	private final Monitor webServer ;

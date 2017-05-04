@@ -24,11 +24,11 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class ViewDefinitions implements Runnable, AutoCloseable {
-	Logger logger = LoggerFactory.getLogger( ViewDefinitions.class ) ;
+	final static Logger logger = LoggerFactory.getLogger( ViewDefinitions.class ) ;
 
-	private static int PERIOD_FOR_CHECKING_VIEWS_FILE  = 15000 ;
+	private static final int PERIOD_FOR_CHECKING_VIEWS_FILE  = 15000 ;
 
-	private File viewDefinitionFile ;
+	private final File viewDefinitionFile ;
 	private volatile Thread fileWatcherThread  ;
 	private Map<String,ViewDefinition> viewDefinitions ;
 
@@ -57,7 +57,7 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 			logger.warn( "FileWatcher Thread was already running - requested kill." ) ;
 			fileWatcherThread.interrupt();
 		}
-		Map<String,ViewDefinition> potentialViewDefinitions = loadViewDefinitions();
+		final Map<String,ViewDefinition> potentialViewDefinitions = loadViewDefinitions();
 		commitViewDefinitions( potentialViewDefinitions ) ;
   		fileWatcherThread = new Thread( this ) ;
 		fileWatcherThread.start(); 

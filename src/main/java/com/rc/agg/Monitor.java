@@ -28,7 +28,11 @@ public class Monitor implements AutoCloseable {
 	final static Logger logger = LoggerFactory.getLogger( Monitor.class ) ;
 	final static String ELEMENT_KEY_PARAM = "element-key" ;
 	final static String LIMIT_PARAM = "limit" ;
-	Gson gson = new Gson();
+	final Gson gson ;
+
+	{
+		gson = new Gson();
+	}
 	
 	public void start() {
 		try {

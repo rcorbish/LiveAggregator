@@ -30,7 +30,7 @@ import com.rc.datamodel.DataElement;
  */
 public class DataElementDataView  implements DataElementProcessor, Runnable {
 
-	Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
+	final static Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
 
 	// How often to send an update to the client (millis)
 	public static final int CLIENT_UPDATE_INTERVAL = 200 ;	
