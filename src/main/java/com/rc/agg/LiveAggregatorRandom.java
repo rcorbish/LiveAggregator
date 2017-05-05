@@ -44,7 +44,7 @@ public class LiveAggregatorRandom  {
 			if( args.length > 0 ) {
 				numBatches = Integer.parseInt( args[0] ) ;
 				logger.info( "{} batches", numBatches );
-				
+
 			}
 			if( args.length > 1 ) {
 				batchSize = Integer.parseInt( args[1] ) ;
@@ -84,32 +84,36 @@ public class LiveAggregatorRandom  {
 				executor.execute(
 						new Runnable() {
 							public void run() {
-								Thread.currentThread().setName( "Start: " + START );
-								for( int n=0 ; n<BATCH_SIZE ; n++ ) {
-									final String invariantKey = String.valueOf(n+START) ;
-									//int ix = START + n ;
-									DataElement de = new DataElement(												
-											DATA_POINTS_PER_ELEMENT,
-											dae,
-											new String[] { 
-													invariantKey,
-													CPTYS[ random.nextInt(CPTYS.length) ],
-													BOOKS[ random.nextInt(BOOKS.length) ],
-													PRODUCTS[ random.nextInt(PRODUCTS.length) ]
-											},
-											invariantKey
-											) ;				
-									for( int j=0 ; j<de.size() ; j++ ) {
-										de.set(j,
+								try { 
+									Thread.currentThread().setName( "Start: " + START );
+									for( int n=0 ; n<BATCH_SIZE ; n++ ) {
+										final String invariantKey = String.valueOf(n+START) ;
+										int ix = random.nextInt(17) ;
+										DataElement de = new DataElement(												
+												DATA_POINTS_PER_ELEMENT,
+												dae,
 												new String[] { 
-														TYPES[ random.nextInt(TYPES.length) ],
-														AXES[ random.nextInt(AXES.length) ],
-														CCYS[ random.nextInt(CCYS.length) ]
-										},
-												(random.nextInt( 101 ) - 50) / 10.f
-												) ;
+														invariantKey,
+														CPTYS[ ix % CPTYS.length ],
+														BOOKS[ ix % BOOKS.length ],
+														PRODUCTS[ ix % PRODUCTS.length ]
+												},
+												invariantKey
+												) ;				
+										for( int j=0 ; j<de.size() ; j++, ix++ ) {
+											de.set(j,
+													new String[] { 
+															TYPES[ ix % TYPES.length ],
+															AXES[ ix % AXES.length ],
+															CCYS[ ix % CCYS.length ]
+											},
+													(random.nextInt( 1001 ) - 500) / 10.f
+													) ;
+										}
+										aggregator.process( de ) ;
 									}
-									aggregator.process( de ) ;
+								} catch( InterruptedException itsOK ) {
+									logger.info( "Sender thread interrupted - shutting down I hope?" ) ;
 								}
 							}
 						} ) ;
@@ -147,7 +151,7 @@ public class LiveAggregatorRandom  {
 									AXES[ random.nextInt(AXES.length) ],
 									CCYS[ random.nextInt(CCYS.length) ]
 					},
-							(random.nextInt( 101 ) - 50) / 10.f
+							(random.nextInt( 1001 ) - 500) / 10.f
 							) ;
 				}
 				aggregator.process( de ) ;

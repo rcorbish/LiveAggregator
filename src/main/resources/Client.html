@@ -62,6 +62,70 @@
 			padding-right: 10px;
 		}
 
+		#underlying-data {
+			display: none ;
+			position: absolute ;
+			font-size: 9pt ;
+			background: #a0c0d8 ;
+			width: 500px;
+      		height: 300px;
+			
+			color: #000 ;
+			  position: absolute;
+			  left: 50%;
+			  top: 50% ;
+			  margin-left: -250px;
+			  margin-top: -150px;
+			overflow: scroll; 
+			z-index: 100 ;
+		}
+		#underlying-data > table {
+			width: 100% 
+		}
+		
+	 div.spinner {
+	 display: none ;
+      width: 100px;
+      height: 100px;
+      width : 100px;
+	  position: absolute;
+	  left: 50%;
+	  top: 50% ;
+	  margin-left: -50px;
+	  margin-top: -50px;
+    }
+    div.spinner div {
+      width: 12%;
+      height: 26%;
+      background: #000;
+      position: absolute;
+      left: 44.5%;
+      top: 37%;
+      opacity: 0;
+      color: #00cc00;
+      animation: fade 1s linear infinite;
+      border-radius: 50px;
+      box-shadow: 0 0 3px rgba(0,0,0,0.2);
+    }
+
+    div.spinner div.bar1 {-webkit-transform:rotate(0deg) translate(0, -142%); -webkit-animation-delay: 0s;}
+    div.spinner div.bar2 {-webkit-transform:rotate(30deg) translate(0, -142%); -webkit-animation-delay: -0.9167s;}
+    div.spinner div.bar3 {-webkit-transform:rotate(60deg) translate(0, -142%); -webkit-animation-delay: -0.833s;}
+    div.spinner div.bar4 {-webkit-transform:rotate(90deg) translate(0, -142%); -webkit-animation-delay: -0.75s;}
+    div.spinner div.bar5 {-webkit-transform:rotate(120deg) translate(0, -142%); -webkit-animation-delay: -0.667s;}
+    div.spinner div.bar6 {-webkit-transform:rotate(150deg) translate(0, -142%); -webkit-animation-delay: -0.5833s;}
+    div.spinner div.bar7 {-webkit-transform:rotate(180deg) translate(0, -142%); -webkit-animation-delay: -0.5s;}
+    div.spinner div.bar8 {-webkit-transform:rotate(210deg) translate(0, -142%); -webkit-animation-delay: -0.41667s;}
+    div.spinner div.bar9 {-webkit-transform:rotate(240deg) translate(0, -142%); -webkit-animation-delay: -0.333s;}
+    div.spinner div.bar10 {-webkit-transform:rotate(270deg) translate(0, -142%); -webkit-animation-delay: -0.25s;}
+    div.spinner div.bar11 {-webkit-transform:rotate(300deg) translate(0, -142%); -webkit-animation-delay: -0.1667s;}
+    div.spinner div.bar12 {-webkit-transform:rotate(330deg) translate(0, -142%); -webkit-animation-delay: -0.0833s;}
+
+    @keyframes fade {
+      from {opacity: 1;}
+      to {opacity: 0.25;}
+    }
+	    
 		.good-status {
 			color: green;
 		}
@@ -261,7 +325,7 @@
 				} else if (msg.command === "VIEWS") {
 					processViewResponse(msg.responses);
 				} else if (msg.command === "DIM") {
-					numMessages = 1; // reset message count for a new View
+					numMessages = 0; // reset message count for a new View
 					setViewDescription(msg.description);
 					colLevels = msg.colKeys;
 					rowLevels = msg.rowKeys;
@@ -743,7 +807,36 @@
 			var grid = document.getElementById('grid');
 			if (e.target.classList.contains('data-cell')) {
 				var cell = e.target ;
-				cell.id ;
+				var keys = cell.id ;
+				var ix = keys.indexOf( '@' ) ;
+				var colKey = keys.substring( 0,ix ) ;
+				var rowKey = keys.substring( ix+1 ) ;
+				var colKeys = makeKeys( colKey ) ;
+				var rowKeys = makeKeys( rowKey ) ;
+				var queryParam = "" ;
+				for( var i=0 ; i<colKeys.length ; i++ ) {
+					queryParam += colLevels[i] + '=' + colKeys[i] + '%0c' ;
+				}
+				for( var i=0 ; i<rowKeys.length ; i++ ) {
+					queryParam += rowLevels[i] + '=' + rowKeys[i] + '%0c' ;
+				}
+				queryParam = queryParam.length > 3 ? queryParam.substring( 0,queryParam.length-3 ) : null ;
+				
+				var url = "http://" + document.location.host + "/data/" + queryParam + "?limit=30" ;
+				
+				var spinner = document.querySelector( "div.spinner" ) ;
+				spinner.style.display = 'inherit' ;
+				const xhr = new XMLHttpRequest();
+				xhr.open("GET", url );
+				xhr.setRequestHeader( "accept", "application/json" ) ;
+				xhr.onreadystatechange = function() {
+					if(xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+						drawData( JSON.parse( xhr.responseText ) ) ;
+						spinner.style.display = 'none' ;						
+				    }
+				} ;
+				grid.removeEventListener('dblclick', doubleclickedOnGrid, false)				
+				xhr.send() ;
 			}
 		}
 
@@ -778,6 +871,27 @@
 			},
 			false
 		);
+		
+		function doubleclickedOnUnderlyingData(e) {
+			var grid = document.getElementById('grid');
+			grid.addEventListener('dblclick', doubleclickedOnGrid, false)
+			this.style.display = "none" ;
+		}
+		
+		function drawData( data ) {
+			var underlyingData = document.getElementById('underlying-data');
+			var tbl = "<h3>Largest " + data.length + " elements</h3><h5>double click to close</h5><table>" ;
+			for( var i=0 ; i<data.length ; i++ ) {
+				tbl += "<tr>" ;
+				for( var j=0 ; j<data[i].length ; j++ ) {
+					tbl += "<td>" + data[i][j] + "</td>" ;
+				}
+				tbl += "</tr>" ;
+			}
+			underlyingData.innerHTML = tbl + "</table>" ;
+			underlyingData.style.display = "inherit" ;
+			underlyingData.addEventListener('dblclick', doubleclickedOnUnderlyingData.bind(underlyingData), false) ;			
+		}
 	</script>
 
 </head>
@@ -796,6 +910,24 @@
 		<table id="grid" class='grid'></table>
 	</div>
 
+	<div id="underlying-data">
+	</div>
+	
+	<div class="spinner">
+		<div class="bar1"></div>
+	    <div class="bar2"></div>
+	    <div class="bar3"></div>
+	    <div class="bar4"></div>
+	    <div class="bar5"></div>
+	    <div class="bar6"></div>
+	    <div class="bar7"></div>
+	    <div class="bar8"></div>
+	    <div class="bar9"></div>
+	    <div class="bar10"></div>
+	    <div class="bar11"></div>
+	    <div class="bar12"></div>
+	</div>
+	
 </body>
 
 </html>

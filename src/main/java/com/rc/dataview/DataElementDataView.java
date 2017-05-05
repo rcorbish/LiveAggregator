@@ -35,7 +35,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	// How often to send an update to the client (millis)
 	public static final int CLIENT_UPDATE_INTERVAL = 200 ;	
 	public static final int MAX_MESSAGES_TO_BUFFER = 100 ;
-	
+
 	private final Map<String,String[]> filters ; 	// what key = value is being filtered
 	private final Map<String,Map<String,String>> setValues ; 	// force change in value of an attribute on condition
 	private final String colGroups[] ; 				// what is getting grouped
@@ -44,7 +44,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	private final Map<String,DataViewElement>   dataViewElements ;	// raw dataViewElements that needs to be updated is stored here
 	private final String viewName ;
 	private final String description ;
-	
+
 	private volatile boolean serverBatchComplete ;
 	private final List<ClientDataView> clientViews ;	// which clients need to be told about updates?
 	private final BlockingQueue<DataElement> messagesToProcess ;
@@ -52,7 +52,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	private Thread messageReceiver ;
 
 	public DataElementDataView( ViewDefinition viewDefinition ) {
-		
+
 		this.serverBatchComplete = false ;
 		this.clientViews = new ArrayList<>() ;
 		this.dataViewElements = new ConcurrentHashMap<>() ;
@@ -71,7 +71,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 			tmp.put( k, DataElement.splitComponents(rawFilters.get(k)) )  ;
 		}
 		this.filters = tmp.isEmpty() ? null : tmp ;		
-		
+
 		//----------------------
 		// S E T   V A L U E S
 		//
@@ -89,8 +89,8 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 			this.rowGroups = viewDefinition.getRowGroups() ;
 		}
 	}
-	
-	
+
+
 	public void start() {
 		messageSender = new Thread( this ) ;
 		messageSender.start();
@@ -104,7 +104,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	}
 
 	public void stop() {
-		if( messageSender != null ) {
+		if( messageReceiver != null ) {
 			messageReceiver.interrupt();
 		}
 
@@ -124,7 +124,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 			clientViews.removeAll( tmp ) ;
 		}
 	}
-	
+
 	/**
 	 * Call this to reset - ie. clear the entire view
 	 */
@@ -134,7 +134,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		}
 		stop() ;
 	}
-	
+
 	public String getDescription() {
 		return description;
 	}
@@ -251,19 +251,12 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 * tosee that it matches the view filters.
 	 * 
 	 */
-	public void process( DataElement dataElement ) {
-		try{ 
-			if( messageReceiver != null ) {
-				if( matchesCoreElements( dataElement ) ) {
-					messagesToProcess.put( dataElement ) ;
-				} 
-			}
-		} catch( InterruptedException iex ) {
-			logger.info( "Processing thread is interrupted - {} will no longer receive data", getViewName() ) ;
-			stop() ;
+	public void process( DataElement dataElement ) throws InterruptedException {
+		if( matchesCoreElements( dataElement ) && messageReceiver != null ) {
+			messagesToProcess.put( dataElement ) ;
 		}
 	}
-		
+
 	/**
 	 * Adds an element to the data view. This needs to figure out all the
 	 * combinations of keys and add the value to the pre-calculated pieces.
@@ -390,13 +383,13 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 				if( serverBatchComplete ) {
 					sendUpdates();
 				}
-								
+
 				ListIterator<ClientDataView> iter = clientViews.listIterator();
 				while(iter.hasNext()){
-				    if(iter.next().isClosed() ){
-				        iter.remove();
-				        logger.info( "Removing closed ClientDataView." ) ;
-				    }
+					if(iter.next().isClosed() ){
+						iter.remove();
+						logger.info( "Removing closed ClientDataView." ) ;
+					}
 				}
 
 			} catch( InterruptedException ignore ) {
@@ -408,7 +401,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		logger.info( "Message sender for {} is shutdown.", getViewName() ) ;
 		messageSender = null ;
 	} 
-		
+
 }
 
 

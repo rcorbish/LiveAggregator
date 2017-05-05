@@ -2,6 +2,7 @@ package com.rc.dataview;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -65,7 +66,7 @@ public class DataElementStore  implements DataElementProcessor {
 		currentElements.clear(); 
 	}
 
-	public void process(DataElement dataElement) {
+	public void process(DataElement dataElement) throws InterruptedException {
 		DataElement previous = currentElements.put( dataElement.getInvariantKey(), dataElement) ;
 		if( previous != null ) {
 			DataElement negatedCopy = previous.negatedCopy() ;
@@ -84,7 +85,7 @@ public class DataElementStore  implements DataElementProcessor {
 	 * interrupt processing.
 	 * 
 	 */
-	protected synchronized void reprocess() {
+	protected synchronized void reprocess() throws InterruptedException {
 		// If we're in the middle of reprocessing a batch
 		// don't do anything, let the current batch finish on
 		// its own.
@@ -147,7 +148,11 @@ public class DataElementStore  implements DataElementProcessor {
 		availableViews = futureAvailableViews ;
 
 		start() ;
-		reprocess();
+		try {
+			reprocess();
+		} catch( InterruptedException itsOK ) {
+			logger.info( "Thread interrupted, better be shutting down" ) ;
+		}
 	}
 
 	/**
@@ -252,7 +257,7 @@ public class DataElementStore  implements DataElementProcessor {
 	 * @return A Collection of Strings, An empty collection perhaps. The 1st row may be empty if no elements match
 	 */
 	public Collection<String[]> query( String query, int limit ) {
-		List<String[]> rc = new ArrayList<>(limit) ;
+		List<String[]> rc = new ArrayList<>(limit+1) ;
 		String elementKeys[] = query.split( String.valueOf( DataElement.ROW_COL_SEPARATION_CHAR ) ) ;
 		Map<String,Set<String>>matchingTests = new HashMap<>() ;
 		for( int i=0 ; i<elementKeys.length ; i++ ) {
@@ -267,7 +272,16 @@ public class DataElementStore  implements DataElementProcessor {
 			}
 		}  
 		
+		String attributeNames[] = null ;
+		Comparator<String[]> comparator = new Comparator<String[]>() {
+			@Override
+			public int compare(String[] o1, String[] o2) {
+				float f = Math.abs( Float.parseFloat(o2[0]) ) - Math.abs( Float.parseFloat(o1[0]) ) ;
+				return f<0 ? -1 : 1 ;
+			}
+		};
 		for( DataElement value : currentElements.values() ) {
+			if( attributeNames == null ) attributeNames = value.getAttributeNames() ;
 			for( int i=0 ; i<value.size() ; i++ ) {
 				boolean matchedAllKeys = true ;
 				for( String attributeName : matchingTests.keySet() ) {
@@ -275,22 +289,31 @@ public class DataElementStore  implements DataElementProcessor {
 					matchedAllKeys &= attributeValues.contains( value.getAttribute(i,attributeName ) ) ;
 				}
 				if( matchedAllKeys ) {
-					String tmp[] = new String[ value.getAttributeNames().length + 1] ;
-					int ix = 0 ;
-					for( String valueAttributeName : value.getAttributeNames() ) {
+					String tmp[] = new String[ attributeNames.length + 1] ;
+					int ix = 1 ;
+					for( String valueAttributeName : attributeNames ) {
 						tmp[ix] = value.getAttribute( i, valueAttributeName ) ;
 						ix++ ;
 					}
-					if( rc.isEmpty() ) {
-						rc.add( value.getAttributeNames() ) ;
-					}
-					tmp[ix] = String.valueOf( value.getValue(i) ) ;
+					tmp[0] = String.valueOf( value.getValue(i) ) ;
 					rc.add( tmp ) ;
-					if( rc.size() >= limit ) break ;
+					rc.sort(comparator);
+					while( rc.size() >= limit ) {
+						rc.remove( limit - 1 ) ;
+					} ;
 				}
 			}
-			if( rc.size() >= limit ) break ;
 		}
+		
+		if( attributeNames != null ) {
+			String tmp[] = new String[ attributeNames.length + 1] ;
+			for( int i=1 ; i<tmp.length ; i++ ) {
+				tmp[i] = attributeNames[i-1] ;						
+			}
+			tmp[0] = "Value" ;
+			rc.add( 0, tmp ) ;
+		}
+		
 		return rc ;
 	}
 

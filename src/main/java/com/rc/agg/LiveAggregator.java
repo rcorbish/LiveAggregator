@@ -33,7 +33,7 @@ public class LiveAggregator implements DataElementProcessor, AutoCloseable {
 	}
 	
 	@Override
-	public void process( DataElement dataElement ) {
+	public void process( DataElement dataElement ) throws InterruptedException {
 		this.dataElementStore.process(dataElement);
 	}
 

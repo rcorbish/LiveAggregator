@@ -11,5 +11,5 @@ import com.rc.datamodel.DataElement;
  *
  */
 public interface DataElementProcessor {
-	public void process( DataElement dataElement ) ;
+	public void process( DataElement dataElement ) throws InterruptedException ;
 }
