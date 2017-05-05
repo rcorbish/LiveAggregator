@@ -53,6 +53,8 @@ public class Monitor implements AutoCloseable {
 		Object rc = null ;
 		try {
 			rsp.type( "application/json" );
+			rsp.header("expires", "0" ) ;
+			rsp.header("cache-control", "no-cache" ) ;
 
 			String elementKey = req.params( ELEMENT_KEY_PARAM ) ;
 			String tmp = req.queryParams(LIMIT_PARAM) ;

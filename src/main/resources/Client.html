@@ -62,6 +62,17 @@
 			padding-right: 10px;
 		}
 
+		#underlying-data-close {
+			margin: 8px ;
+			padding: 3px ;
+			font-size:12pt ;
+			background: #302875 ;
+			color:#90c6d8 ;
+			right: 0 ;
+			top: 0 ;
+			position: absolute ;
+			cursor:pointer ;
+		}
 		#underlying-data {
 			border: solid 3px #302875 ;
 			padding:8px ;
@@ -81,7 +92,7 @@
 			overflow: auto; 
 			z-index: 100 ;
 		}
-		#underlying-data > table {
+		#underlying-data table {
 			width: 100% 
 		}
 		
@@ -828,18 +839,23 @@
 				
 				var url = "http://" + document.location.host + "/data/" + queryParam + "?limit=30" ;
 				
+				openPopup() ;
+
 				var spinner = document.querySelector( "div.spinner" ) ;
 				spinner.style.display = 'inherit' ;
 				const xhr = new XMLHttpRequest();
 				xhr.open("GET", url );
 				xhr.setRequestHeader( "accept", "application/json" ) ;
 				xhr.onreadystatechange = function() {
-					if(xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
-						drawData( JSON.parse( xhr.responseText ) ) ;
-						spinner.style.display = 'none' ;						
+					if(xhr.readyState === XMLHttpRequest.DONE ) {
+						if( xhr.status === 200) {
+							drawData( JSON.parse( xhr.responseText ) ) ;
+							spinner.style.display = 'none' ;						
+						} else {
+							closePopup() ;  // non success close popup & spinner
+						}
 				    }
 				} ;
-				grid.removeEventListener('dblclick', doubleclickedOnGrid, false)				
 				xhr.send() ;
 			}
 		}
@@ -870,22 +886,42 @@
 		window.addEventListener("load",
 			function () {
 				var grid = document.getElementById('grid');
-				grid.addEventListener('mousedown', clickedOnGrid, false)
-				grid.addEventListener('dblclick', doubleclickedOnGrid, false)
+				grid.addEventListener('mousedown', clickedOnGrid, false) ;
+				grid.addEventListener('dblclick', doubleclickedOnGrid, false) ;			
+
+				var underlyingDataClose = document.getElementById('underlying-data-close');
+				underlyingDataClose.addEventListener('click', closePopup, false) ;			
+
+				document.addEventListener('keypress', function(e) { 
+						if(e.keyCode===27) closePopup() ;
+					}, false) ;			
 			},
 			false
 		);
 		
-		function doubleclickedOnUnderlyingData(e) {
-			var grid = document.getElementById('grid');
-			grid.addEventListener('dblclick', doubleclickedOnGrid, false)
-			this.style.display = "none" ;
-		}
-		
-		function drawData( data ) {
+
+		function openPopup() {
 			var underlyingData = document.getElementById('underlying-data');
+			underlyingData.style.display = "inherit" ;
+			var underlyingDataTable = document.getElementById('underlying-data-table');
+			underlyingDataTable.innerHTML = "" ;
+
+			var grid = document.getElementById('grid');
+			grid.removeEventListener('dblclick', doubleclickedOnGrid, false)
+		}	
+		function closePopup() {
+			var underlyingData = document.getElementById('underlying-data');
+			if( underlyingData.style.display !== "none" ) {
+				underlyingData.style.display = "none" ;
+				var grid = document.getElementById('grid');
+				grid.addEventListener('dblclick', doubleclickedOnGrid, false) ;
+			}
+		}	
+			
+		function drawData( data ) {
+			var underlyingData = document.getElementById('underlying-data-table');
 			if( data.length > 1 ) {
-				var tbl = "<h3>Largest " + (data.length-1) + " elements</h3><table tooltip='double click to close'>" ;
+				var tbl = "<h3>Largest " + (data.length-1) + "</h3><table>" ;
 				var tdh ="th" ; 
 				for( var i=0 ; i<data.length ; i++ ) {
 					tbl += "<tr>" ;
@@ -899,8 +935,6 @@
 				tbl = "<h2>No matching data</h2" ;
 			}
 		underlyingData.innerHTML = tbl + "</table>" ;
-		underlyingData.style.display = "inherit" ;
-		underlyingData.addEventListener('dblclick', doubleclickedOnUnderlyingData.bind(underlyingData), false) ;			
 		}
 	</script>
 
@@ -920,24 +954,25 @@
 		<table id="grid" class='grid'></table>
 	</div>
 
-	<div id="underlying-data">
+	<div id="underlying-data"  >
+		<div id='underlying-data-close'>&times;</div>
+		<div id="underlying-data-table"></div>	
+		<div class="spinner">
+			<div class="bar1"></div>
+			<div class="bar2"></div>
+			<div class="bar3"></div>
+			<div class="bar4"></div>
+			<div class="bar5"></div>
+			<div class="bar6"></div>
+			<div class="bar7"></div>
+			<div class="bar8"></div>
+			<div class="bar9"></div>
+			<div class="bar10"></div>
+			<div class="bar11"></div>
+			<div class="bar12"></div>
+		</div>
 	</div>
-	
-	<div class="spinner">
-		<div class="bar1"></div>
-	    <div class="bar2"></div>
-	    <div class="bar3"></div>
-	    <div class="bar4"></div>
-	    <div class="bar5"></div>
-	    <div class="bar6"></div>
-	    <div class="bar7"></div>
-	    <div class="bar8"></div>
-	    <div class="bar9"></div>
-	    <div class="bar10"></div>
-	    <div class="bar11"></div>
-	    <div class="bar12"></div>
-	</div>
-	
+
 </body>
 
 </html>
