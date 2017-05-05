@@ -280,6 +280,7 @@ public class DataElementStore  implements DataElementProcessor {
 				return f<0 ? -1 : 1 ;
 			}
 		};
+		float currentMax = 0.f ;
 		for( DataElement value : currentElements.values() ) {
 			if( attributeNames == null ) attributeNames = value.getAttributeNames() ;
 			for( int i=0 ; i<value.size() ; i++ ) {
@@ -295,12 +296,19 @@ public class DataElementStore  implements DataElementProcessor {
 						tmp[ix] = value.getAttribute( i, valueAttributeName ) ;
 						ix++ ;
 					}
-					tmp[0] = String.valueOf( value.getValue(i) ) ;
-					rc.add( tmp ) ;
-					rc.sort(comparator);
-					while( rc.size() >= limit ) {
-						rc.remove( limit - 1 ) ;
-					} ;
+					boolean decidedToAddToList = rc.size() < limit ;
+					if( Math.abs(value.getValue(i)) > currentMax ) {
+						currentMax = Math.abs(value.getValue(i)) ;
+						decidedToAddToList = true;
+					}
+					if(decidedToAddToList) {
+						tmp[0] = String.valueOf( value.getValue(i) ) ;
+						rc.add( tmp ) ;
+						rc.sort(comparator);
+						while( rc.size() >= limit ) {
+							rc.remove( limit - 1 ) ;
+						} ;
+					}
 				}
 			}
 		}

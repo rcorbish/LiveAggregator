@@ -57,7 +57,7 @@ public class Monitor implements AutoCloseable {
 			String elementKey = req.params( ELEMENT_KEY_PARAM ) ;
 			String tmp = req.queryParams(LIMIT_PARAM) ;
 			int limit = Integer.parseInt(tmp) ;
-			logger.info( "Querying for {} - max {} items", elementKey, limit ) ;
+			logger.info( "Querying for {} - max {} items", elementKey.replaceAll("\f", "|"), limit ) ;
 			DataElementStore des = DataElementStore.getInstance() ;
 			Collection<String[]> matching = des.query(elementKey, limit) ;
 			rc = matching ;
