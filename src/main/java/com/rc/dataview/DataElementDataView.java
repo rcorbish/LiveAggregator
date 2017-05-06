@@ -261,7 +261,8 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 
 	/**
 	 *  Look at all the saved elements and send any that have changed.
-	 *  @TODO Since data can change - in a diff thread - this needs to
+	 *  
+	 *  Since data can change - in a diff thread - this needs to
 	 *  be cleaned up to separate the row keys from the underlying data
 	 */
 	public void sendAll( ClientDataView cdv ) {

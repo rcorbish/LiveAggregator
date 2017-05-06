@@ -212,7 +212,7 @@ public class DataElementStore  implements DataElementProcessor {
 	 * How many data elements are being held, i.e. how many 
 	 * different invariant keys exist.
 	 * 
-	 * @return
+	 * @return The amount of stored data elements
 	 */
 	public int size() {
 		return currentElements.size() ;
@@ -318,6 +318,8 @@ public class DataElementStore  implements DataElementProcessor {
 				if( queryAttributeValues == null ) {
 					queryAttributeValues = new HashSet<>() ;
 					matchingTests.put( attributeName, queryAttributeValues ) ;
+				} else {
+					continue ;   // if the view allows many values for a key - but we know which one leave it alone
 				}
 				String viewAttributeValues[] = viewFilters.get( attributeName ) ;
 				for( String viewAttributeValue : viewAttributeValues ) {

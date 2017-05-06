@@ -215,7 +215,7 @@ public class DataElement {
 	 * and an array of strings. One of the strings in that array must
 	 * match the receiver's attribute to be deemed a match
 	 * 
-	 * @param index, which of the set of perimeter attributes to examine
+	 * @param index which of the set of perimeter attributes to examine
 	 * @param matchingTests - the set of tests to do for this element 
 	 * @return whether this matches the keys
 	 */
