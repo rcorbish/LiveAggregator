@@ -263,6 +263,7 @@ public class DataElement {
 	 * @return the flat label of merged components
 	 */
 	static public String mergeComponents( String in[] ) {		
+		if( in.length == 0 ) return "" ;
 		StringBuilder rc = new StringBuilder( in[0] ) ;
 		for( int i=1 ; i<in.length ; i++ ) {
 			rc.append( SEPARATION_CHAR ).append( in[i] ) ;

@@ -21,10 +21,10 @@ DG1.ROW=AXIS
 #-----------------------------
 # View definition for DG2
 #
-DG2.DESC=DG2: Book/CCY
+DG2.DESC=DG2: P&L 
 DG2.FILTER=TYPE=P&L
-DG2.ROW=BOOK
 DG2.ROW=CCY
+DG2.ROW=BOOK
 
 #-----------------------------
 # View definition for DG3

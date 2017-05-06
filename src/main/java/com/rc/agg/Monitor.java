@@ -27,6 +27,7 @@ public class Monitor implements AutoCloseable {
 	
 	final static Logger logger = LoggerFactory.getLogger( Monitor.class ) ;
 	final static String ELEMENT_KEY_PARAM = "element-key" ;
+	final static String VIEW_NAME_PARAM = "view-name" ;
 	final static String LIMIT_PARAM = "limit" ;
 	final Gson gson ;
 
@@ -57,16 +58,20 @@ public class Monitor implements AutoCloseable {
 			rsp.header("cache-control", "no-cache" ) ;
 
 			String elementKey = req.params( ELEMENT_KEY_PARAM ) ;
+			String viewName = req.queryParams( VIEW_NAME_PARAM ) ;			
+			if( viewName == null ) {
+				throw new Exception( "Missing parameter - " + VIEW_NAME_PARAM ) ;
+			}
 			String tmp = req.queryParams(LIMIT_PARAM) ;
 			int limit = Integer.parseInt(tmp) ;
-			logger.info( "Querying for {} - max {} items", elementKey.replaceAll("\f", "|"), limit ) ;
+			logger.info( "Querying for {} in view {} - max {} items", elementKey.replaceAll("\f", "|"), viewName, limit ) ;
 			DataElementStore des = DataElementStore.getInstance() ;
-			Collection<String[]> matching = des.query(elementKey, limit) ;
+			Collection<String[]> matching = des.query(elementKey, viewName, limit) ;
 			rc = matching ;
 			logger.info( "Found {} items", matching.size()>0?matching.size()-1:0  ) ;
 		} catch ( Throwable t ) {
 			logger.warn( "Error processing data request", t ) ;
-			rc = "Orig URL = " + req.url() + "<br>Should be ... /data/key?limit=nnn" ;
+			rc = "Orig URL = " + req.url() + "<br>Should be ... /data/key?limit=nnn&view-name=aaa" ;
 			rsp.status( 400 ) ;	
 		}
 		return rc ;
@@ -87,7 +92,7 @@ public class Monitor implements AutoCloseable {
 		for(  String viewName : DataElementStore.getInstance().getDataViewNames() ) {
 				rc
 				.append("<li>")
-				.append( viewName )
+				.append( DataElementStore.getInstance().getDataElementDataView(viewName) )
 				.append("</li>") ;			
 		}
 		rc.append( "</ul><hr/>") ;

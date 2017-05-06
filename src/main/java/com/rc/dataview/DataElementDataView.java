@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rc.agg.DataElementProcessor;
+import com.rc.agg.client.ClientCommandProcessorImpl;
 import com.rc.datamodel.DataElement;
 
 /**
@@ -51,6 +52,15 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	private Thread messageSender ;
 	private Thread messageReceiver ;
 
+	
+	/**
+	 * Constructor - parse the view definition into useable data formats
+	 * Initialize, but don't start, the threads.
+	 * Make sure start() is called at somepoint ...
+	 * 
+	 * @see #start()
+	 * @param viewDefinition
+	 */
 	public DataElementDataView( ViewDefinition viewDefinition ) {
 
 		this.serverBatchComplete = false ;
@@ -79,18 +89,23 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		this.setValues = viewDefinition.getSetValues().isEmpty() ? null : viewDefinition.getSetValues() ; 
 
 		if( viewDefinition.getColGroups().length == 0 ) {
-			colGroups = new String[] { "--" } ; 
+			colGroups = new String[] { "" } ; 
 		} else {
 			this.colGroups = viewDefinition.getColGroups() ;
 		}
-		if( viewDefinition.getRowGroups().length == 0 ) {
-			rowGroups = new String[] { "--" } ; 
+		if( viewDefinition.getRowGroups().length == 0 ) {  
+			rowGroups = new String[] { "" } ; 
 		} else {
 			this.rowGroups = viewDefinition.getRowGroups() ;
 		}
 	}
 
-
+/**
+ * Start the threads running.
+ * 
+ * We all know not to start during the constructor don't we ? :)
+ * 
+ */
 	public void start() {
 		messageSender = new Thread( this ) ;
 		messageSender.start();
@@ -103,9 +118,15 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		messageReceiver.start() ;
 	}
 
+	/**
+	 * Shut down the entire data view. It can't receive any more messages.
+	 * Also pass on the stop to active clients
+	 * 
+	 */
 	public void stop() {
 		if( messageReceiver != null ) {
-			messageReceiver.interrupt();
+			messageReceiver.interrupt() ;
+			messagesToProcess.clear() ;
 		}
 
 		if( messageSender != null ) {
@@ -135,6 +156,11 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		stop() ;
 	}
 
+	/**
+	 * Useful for printing sometimes 
+	 * 
+	 * @return the friendly view name
+	 */
 	public String getDescription() {
 		return description;
 	}
@@ -248,12 +274,16 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 
 	/**
 	 * Adds an element to the data view. The messages is pre-checked
-	 * tosee that it matches the view filters.
+	 * to see that it matches the view filters.
 	 * 
 	 */
-	public void process( DataElement dataElement ) throws InterruptedException {
+	public void process( DataElement dataElement )  {
 		if( matchesCoreElements( dataElement ) && messageReceiver != null ) {
-			messagesToProcess.put( dataElement ) ;
+			try {
+				messagesToProcess.put( dataElement ) ;
+			} catch( InterruptedException iex ) {
+				// ignore - interruption means we're shutting down
+			}
 		}
 	}
 
@@ -297,6 +327,11 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 							// cartesian ... 2 row keys & 3 col keys == 6 loops
 							for( String rowGroup : rowGroups ) {
 								if( this.setValues != null ) {
+									// If this is changed such that 'other' is not always
+									// generated, make sure that all matching code is updated
+									// to reflecxt the implied filtering' Because that's hard to do
+									// if you want to exclude 'other' from a report set an appropriate
+									// filter in the view definition.
 									Map<String,String> setValuesForThisRowGroup = this.setValues.get( rowGroup ) ;
 									String replacementValue = setValuesForThisRowGroup.get( dataElement.getAttribute( i, rowGroup ) ) ;
 									elementKey.append( replacementValue==null ? "Other" : replacementValue ) ;
@@ -335,7 +370,8 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 
 
 	public void startBatch() {		
-		serverBatchComplete = false ;		
+		serverBatchComplete = false ;
+		messagesToProcess.clear();
 		for( DataViewElement dve : dataViewElements.values() ) {
 			dve.markUnused();
 		}
@@ -368,10 +404,20 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		this.clientViews.add( client ) ;
 	}
 
+	
+	public Map<String,String[]> getFilters() {
+		return this.filters ;
+	}
+	
+	public Map<String,Map<String,String>> getSets() {
+		return this.setValues ;
+	}
+	
 	public String toString() {
 		return viewName + 
-				" Server Batch Complete:" + serverBatchComplete  + 
-				" View Size: " + dataViewElements.size() ; 
+				" View Size: " + dataViewElements.size() +
+				" Filtered on: " + ( getFilters()==null ? "Nothing!" : ClientCommandProcessorImpl.printArray( getFilters().keySet() ) ) 
+				;
 	}
 
 	@Override

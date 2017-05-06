@@ -66,7 +66,7 @@ public class DataElementStore  implements DataElementProcessor {
 		currentElements.clear(); 
 	}
 
-	public void process(DataElement dataElement) throws InterruptedException {
+	public void process(DataElement dataElement) {
 		DataElement previous = currentElements.put( dataElement.getInvariantKey(), dataElement) ;
 		if( previous != null ) {
 			DataElement negatedCopy = previous.negatedCopy() ;
@@ -246,6 +246,8 @@ public class DataElementStore  implements DataElementProcessor {
 	 * is the usual, but not mandatory, case. The first element in the result is
 	 * the attribute names (of the first matching element).
 	 * 
+	 * The view name is used to find additional filters for the view.
+	 * 
 	 * Because, this app is highly concurrent, be aware that if deriving the 
 	 * filter from a live report, this may return elements which are different
 	 * than what is exactly in the view. Basically we can't connect the end view and input
@@ -253,13 +255,27 @@ public class DataElementStore  implements DataElementProcessor {
 	 * used to drill-down into a report cell.
 	 * 
 	 * @param query the query string ( e.g. trade-1\tUSD\tBook6\tNPV\tN/A\t100 )
+	 * @param viewName the name of the view requesting data
 	 * @param limit maximum number of items to return
 	 * @return A Collection of Strings, An empty collection perhaps. The 1st row may be empty if no elements match
 	 */
-	public Collection<String[]> query( String query, int limit ) {
+	public Collection<String[]> query( String query, String viewName, int limit ) {
+
 		List<String[]> rc = new ArrayList<>(limit+1) ;
-		String elementKeys[] = query.split( String.valueOf( DataElement.ROW_COL_SEPARATION_CHAR ) ) ;
+
+		//
+		// The filters against which to test each data point
+		//
+		// 	key = attribute name
+		// 	value = strings - one of which must match the data element attribute value
+		//
 		Map<String,Set<String>>matchingTests = new HashMap<>() ;
+
+		//-----------------------------------------
+		//
+		// Parse the input query into a filter set
+		//
+		String elementKeys[] = query.split( String.valueOf( DataElement.ROW_COL_SEPARATION_CHAR ) ) ;
 		for( int i=0 ; i<elementKeys.length ; i++ ) {
 			int ix = elementKeys[i].indexOf( '=' ) ;
 			if( ix>0 ) {
@@ -272,7 +288,61 @@ public class DataElementStore  implements DataElementProcessor {
 			}
 		}  
 		
+		//
+		// Add any additional filters defined by the view itself into the 
+		// matchingTests. The filter MAY already be part of the query so 
+		// this is a merge of the two filters
+		//
+		DataElementDataView dedv = getDataElementDataView( viewName ) ;
+		if( dedv == null ) {
+			logger.warn( "Invalid view name '{}' passed to query data.", viewName ) ;
+			return rc ;
+		}
 		
+		Map<String,String[]>viewFilters = dedv.getFilters() ;
+		if( viewFilters != null ) { // possibly no filters set
+			for( String attributeName : viewFilters.keySet() ) {
+				Set<String> queryAttributeValues = matchingTests.get( attributeName ) ;
+				
+				if( queryAttributeValues == null ) {
+					queryAttributeValues = new HashSet<>() ;
+					matchingTests.put( attributeName, queryAttributeValues ) ;
+				}
+				String viewAttributeValues[] = viewFilters.get( attributeName ) ;
+				for( String viewAttributeValue : viewAttributeValues ) {
+					queryAttributeValues.add( viewAttributeValue ) ;				
+				}
+			}
+		}
+
+		//
+		// If we have a set defined we should unmap the set name to it's constituents
+		// Leave the original in the test, it's unlikely but possible to rename 
+		// a vkey to an existing key, which might be in the view. And a set test is crazy fast
+		//
+		Map<String,Map<String,String>>viewSets = dedv.getSets() ;
+		if( viewSets != null ) {
+			for( String attributeName : viewSets.keySet() ) {
+				Set<String> queryAttributeValues = matchingTests.get( attributeName ) ;
+				
+				if( queryAttributeValues == null ) {
+					queryAttributeValues = new HashSet<>() ;
+					matchingTests.put( attributeName, queryAttributeValues ) ;
+				}
+				
+				Map<String,String> viewAttributeSets = viewSets.get( attributeName ) ;
+				
+				for( String viewRemappedName : viewAttributeSets.keySet() ) {
+					queryAttributeValues.add( viewRemappedName ) ;				
+				}
+			}
+		}
+
+		//
+		// This is used to sort the data, we will only keep the limit
+		// largest values in the return. We don't want to draw too many
+		// things on screen, so we choose the biggest values to show
+		//
 		Comparator<String[]> comparator = new Comparator<String[]>() {
 			@Override
 			public int compare(String[] o1, String[] o2) {
@@ -281,10 +351,16 @@ public class DataElementStore  implements DataElementProcessor {
 			}
 		};
 		
+		//
+		// OK now for the large scan of the concurrent hash map
+		// scan for anything that matches our filter. Add matching
+		// elements and keep the ones with the largest values to return.
+		//
 		String attributeNames[] = null ;
 		float currentMax = 0.f ;
 		for( DataElement value : currentElements.values() ) {
 			if( value.matchesCoreKeys( matchingTests ) ) {
+				// TODO this could be improved. Also each data element has (possibly) a different shape
 				if( attributeNames == null ) attributeNames = value.getAttributeNames() ;
 				
 				for( int i=0 ; i<value.size() ; i++ ) {				
@@ -295,24 +371,40 @@ public class DataElementStore  implements DataElementProcessor {
 							tmp[ix] = value.getAttribute( i, valueAttributeName ) ;
 							ix++ ;
 						}
+						// 2 reasons to add - either we haven't filled up the list
+						// or the current value is bigger than the smallest in the 
+						// current list
 						boolean decidedToAddToList = rc.size() < limit ;
 						if( Math.abs(value.getValue(i)) > currentMax ) {
-							currentMax = Math.abs(value.getValue(i)) ;
 							decidedToAddToList = true;
 						}
 						if(decidedToAddToList) {
 							tmp[0] = String.valueOf( value.getValue(i) ) ;
 							rc.add( tmp ) ;
-							rc.sort(comparator);
-							while( rc.size() >= limit ) {
-								rc.remove( limit - 1 ) ;
-							} ;
+							// We won't chop the list every time. Keep a bigger list
+							// to reduce sorting. We can clean up at the end
+							if( rc.size() > (2*limit) ) {
+								rc.sort( comparator ) ;
+								while( rc.size() > limit ) {
+									rc.remove( limit - 1 ) ;
+								} ;
+								String s[] = rc.get( limit-1 ) ;
+								currentMax = Math.abs( Float.parseFloat(s[0]) ) ;
+							}
 						}
 					}
 				}
 			}
 		}
-		// if we found anything  ... add in the headers
+		
+		rc.sort( comparator ) ;
+		while( rc.size() > limit ) {
+			rc.remove( limit - 1 ) ;
+		} ;
+		
+		//
+		// Now add in a header row if we found anything.
+		//
 		if( attributeNames != null ) {
 			String tmp[] = new String[ attributeNames.length + 1] ;
 			for( int i=1 ; i<tmp.length ; i++ ) {

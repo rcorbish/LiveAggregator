@@ -552,10 +552,15 @@ td.selected {
 		}
 
 		function removeRowIfEmpty(rowKey) {
-			var row = document.getElementById(rowKey);
+		
+			var rowId = ( rowKey.length === 0 ) ? "synthetic-row" : rowKey ; 
+			var row = document.getElementById(rowId);
+			
 			if (row == null) {
 				return;
 			}
+			
+			// All cells empty ?  ( check the method name )
 			for (var i = numRowLevels; i < row.cells.length; i++) {
 				if (row.cells[i].textContent.length > 0) {
 					return;
@@ -566,7 +571,9 @@ td.selected {
 		}
 
 		function removeRow(rowKey) {
-			var row = document.getElementById(rowKey);
+			var rowId = ( rowKey.length === 0 ) ? "synthetic-row" : rowKey ; 
+			var row = document.getElementById(rowId);
+			
 			if (row != null) {
 				row.parentNode.removeChild(row);
 			}
@@ -580,12 +587,14 @@ td.selected {
 			var colIndexToDelete = -1; // append new col
 
 			var colKey = makeKey(colKeys);
+			var colId = ( colKey.length === 0 ) ? "synthetic-col" : colKey ; 
+			
 			for (colIndexToDelete = numRowLevels; colIndexToDelete < numColumns; colIndexToDelete++) {
 				var label = headerRow.cells[colIndexToDelete];
-				if (label.getAttribute("id") == colKey) {
+				if (label.getAttribute("id") == colId) {
 					break;
 				}
-				if (label.getAttribute("id") > colKey) {
+				if (label.getAttribute("id") > colId) {
 					return;
 				}
 			}
@@ -608,10 +617,15 @@ td.selected {
 			var headerRow = rows[0]
 			var numColumns = headerRow.cells.length;
 			var colKey = makeKey(colKeys);
-			var colIndexToDelete = -1; // append new col
+			var colIndexToDelete = -1; // no deletion assumed (not found key)
+			
+			var colKey = makeKey(colKeys);
+			var colId = ( colKey.length === 0 ) ? "synthetic-col" : colKey ; 
+			
+			
 			for (var i = numRowLevels; i < numColumns; i++) {
 				var label = headerRow.cells[i];
-				if (label.getAttribute("id") === colKey) {
+				if (label.getAttribute("id") === colId) {
 					colIndexToDelete = i;
 					break;
 				}
@@ -629,7 +643,9 @@ td.selected {
 		function findViewRow(name, rowKeys) {
 
 			var rowKey = makeKey(rowKeys);
-			var row = document.getElementById(rowKey);
+			// can only be 1 - case when no rows defined in view config
+			var rowId = ( rowKey.length === 0 ) ? "synthetic-row" : rowKey ; 
+			var row = document.getElementById(rowId);
 			if (row != null) {
 				return row;
 			}
@@ -645,23 +661,25 @@ td.selected {
 
 				var row = rows[insertionPoint];
 
-				var rowLabel = row.getAttribute("id");
+				var rowLabel = row.getAttribute("sort-order");
 				if (rowLabel < rowKey) {
 					sectionStart += sectionSize;
 				}
 			}
-			//insertionPoint -= sectionSize ;
+
 			for (insertionPoint = sectionStart + numColLevels; insertionPoint < rows.length; insertionPoint++) {
 				var row = rows[insertionPoint];
 
-				var rowLabel = row.getAttribute("id");
+				var rowLabel = row.getAttribute("sort-order");
 				if (rowLabel > rowKey) {
 					break;
 				}
 			}
+			
 			// Insert a row in the table at row index 0
 			var newRow = grid.insertRow(insertionPoint);
-			newRow.setAttribute("id", rowKey);
+			newRow.setAttribute("id", rowId);
+			newRow.setAttribute("sort-order", rowKey);
 			newRow.setAttribute("class", "dataRow");
 
 			var numButtonsAddedInThisRow = 0;
@@ -699,7 +717,10 @@ td.selected {
 			var colKey = makeKey(colKeys);
 			var rowKey = makeKey(rowKeys);
 
-			var fullKey = makeCompoundKeyFromText(colKey, rowKey);
+			var rowId = ( rowKey.length === 0 ) ? "synthetic-row" : rowKey ; 
+			var colId = ( colKey.length === 0 ) ? "synthetic-col" : colKey ; 
+
+			var fullKey = makeCompoundKeyFromText(colId, rowId);
 			var cell = document.getElementById(fullKey);
 			if (cell !== null) {
 				return cell;
@@ -717,10 +738,10 @@ td.selected {
 			var insertionPoint; // which column index will we insert at ?
 			for (insertionPoint = numRowLevels; insertionPoint < numColumns; insertionPoint++) {
 				var label = headerRow.cells[insertionPoint];
-				if (label.getAttribute("id") === colKey) {
+				if (label.getAttribute("id") === colId) {
 					return document.getElementById(fullKey); // findRow may have created the cell we need...
 				}
-				if (label.getAttribute("id") > colKey) {
+				if (label.getAttribute("id") > colId) {
 					break;
 				}
 			}
@@ -732,7 +753,8 @@ td.selected {
 				newCell.setAttribute("class", "hdr-cell");
 				if (i < colKeys.length) {
 					if (i == 0) { // only set the ID of the first header row 
-						newCell.setAttribute("id", colKey);
+						newCell.setAttribute("id", colId);
+						newCell.setAttribute("sort-order", colKey);
 					}
 					newCell.textContent = colKeys[i];
 				} else {
@@ -749,13 +771,14 @@ td.selected {
 
 				// Add new cells if required to make sure all rows have the proper amount of cells
 				newCell = row.insertCell(insertionPoint);
-				newCell.setAttribute("id", makeCompoundKeyFromText(colKey, row.getAttribute("id")));
+				newCell.setAttribute("id", makeCompoundKeyFromText(colId, row.getAttribute("id")));
 				newCell.setAttribute("class", "data-cell");
 			}
 
 			return document.getElementById(fullKey);
 		}
-
+		
+		// Print a number with  comma separators e.g. 1,000
 		function numberWithCommas(x) {
 			return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 		}
@@ -859,11 +882,11 @@ td.selected {
 				for (var i = 0; i < selectedCells.length; i++) {
 					var tc = selectedCells[i].textContent;
 					if (tc !== null && tc.length > 0) {
-						tc = tc.replace( /,/g, '');
-						if (tc[0] === '(') {
-							total -= Number(tc.substring(1, tc.length - 1));
+						var ntc = tc.replace( /[(),]/g, '');
+						if( tc[0] === '(' ) {						
+							total -= Number(ntc);
 						} else {
-							total += Number(tc);
+							total += Number(ntc);
 						}
 					}
 				}				
@@ -884,14 +907,18 @@ td.selected {
 				var rowKeys = makeKeys( rowKey ) ;
 				var queryParam = "" ;
 				for( var i=0 ; i<colKeys.length ; i++ ) {
-					queryParam += colLevels[i] + '=' + colKeys[i] + '%0c' ;
+					if( colLevels[i].length > 0 ) {
+						queryParam += colLevels[i] + '=' + colKeys[i] + '%0c' ;
+					}
 				}
 				for( var i=0 ; i<rowKeys.length ; i++ ) {
-					queryParam += rowLevels[i] + '=' + rowKeys[i] + '%0c' ;
+					if( rowLevels[i].length > 0 ) {
+						queryParam += rowLevels[i] + '=' + rowKeys[i] + '%0c' ;
+					}
 				}
 				queryParam = queryParam.length > 3 ? queryParam.substring( 0,queryParam.length-3 ) : null ;
 				
-				var url = "http://" + document.location.host + "/data/" + queryParam + "?limit=30" ;
+				var url = "http://" + document.location.host + "/data/" + queryParam + "?limit=20&view-name=" + openViewName ;
 				
 				openPopup() ;
 

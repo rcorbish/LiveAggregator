@@ -72,7 +72,7 @@ public class LiveAggregatorRandom  {
 		final int DATA_POINTS_PER_ELEMENT = dataPointsPerItem ;
 		final int N = numBatches * batchSize ;
 		final int BATCH_SIZE = batchSize ;
-		logger.info( "Starting server. Connect to client @ server:8111/Client.html" ); 
+		logger.info( "Starting server. URL is [server-name]:8111/Client.html" ); 
 		for( ; ; ) {
 			long startTime = System.currentTimeMillis() ;
 			logger.info( "Restarting processing of data" ) ;
@@ -113,15 +113,15 @@ public class LiveAggregatorRandom  {
 										}
 										aggregator.process( de ) ;
 									}
-								} catch( InterruptedException itsOK ) {
-									logger.info( "Sender thread interrupted - shutting down I hope?" ) ;
+								} catch( Throwable t ) {
+									logger.error( "Test thread Failed!!!!", t ) ;
 								}
 							}
 						} ) ;
 			}
 			executor.shutdown() ;  // wait for initial view to finish generating
 			if( !executor.awaitTermination( 10, TimeUnit.MINUTES ) ) {
-				throw new Exception( "Horror of horrors - we timed out waiting for the initial population to finish.");
+				throw new Error( "Horror of horrors - we timed out (10 mins) waiting for the initial load.");
 			}
 			logger.info( "Finished processing {} cells in {} mS", decimalFormat.format(N), decimalFormat.format( (System.currentTimeMillis() - startTime) ) );
 			startTime = System.nanoTime() ;
