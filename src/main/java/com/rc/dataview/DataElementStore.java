@@ -272,7 +272,7 @@ public class DataElementStore  implements DataElementProcessor {
 			}
 		}  
 		
-		String attributeNames[] = null ;
+		
 		Comparator<String[]> comparator = new Comparator<String[]>() {
 			@Override
 			public int compare(String[] o1, String[] o2) {
@@ -280,39 +280,39 @@ public class DataElementStore  implements DataElementProcessor {
 				return f<0 ? -1 : 1 ;
 			}
 		};
+		
+		String attributeNames[] = null ;
 		float currentMax = 0.f ;
 		for( DataElement value : currentElements.values() ) {
-			if( attributeNames == null ) attributeNames = value.getAttributeNames() ;
-			for( int i=0 ; i<value.size() ; i++ ) {
-				boolean matchedAllKeys = true ;
-				for( String attributeName : matchingTests.keySet() ) {
-					Set<String> attributeValues = matchingTests.get( attributeName ) ;
-					matchedAllKeys &= attributeValues.contains( value.getAttribute(i,attributeName ) ) ;
-				}
-				if( matchedAllKeys ) {
-					String tmp[] = new String[ attributeNames.length + 1] ;
-					int ix = 1 ;
-					for( String valueAttributeName : attributeNames ) {
-						tmp[ix] = value.getAttribute( i, valueAttributeName ) ;
-						ix++ ;
-					}
-					boolean decidedToAddToList = rc.size() < limit ;
-					if( Math.abs(value.getValue(i)) > currentMax ) {
-						currentMax = Math.abs(value.getValue(i)) ;
-						decidedToAddToList = true;
-					}
-					if(decidedToAddToList) {
-						tmp[0] = String.valueOf( value.getValue(i) ) ;
-						rc.add( tmp ) ;
-						rc.sort(comparator);
-						while( rc.size() >= limit ) {
-							rc.remove( limit - 1 ) ;
-						} ;
+			if( value.matchesCoreKeys( matchingTests ) ) {
+				if( attributeNames == null ) attributeNames = value.getAttributeNames() ;
+				
+				for( int i=0 ; i<value.size() ; i++ ) {				
+					if( value.matchesPerimiterKeys(i, matchingTests)) {
+						String tmp[] = new String[attributeNames.length + 1] ;
+						int ix = 1 ;
+						for( String valueAttributeName : attributeNames ) {
+							tmp[ix] = value.getAttribute( i, valueAttributeName ) ;
+							ix++ ;
+						}
+						boolean decidedToAddToList = rc.size() < limit ;
+						if( Math.abs(value.getValue(i)) > currentMax ) {
+							currentMax = Math.abs(value.getValue(i)) ;
+							decidedToAddToList = true;
+						}
+						if(decidedToAddToList) {
+							tmp[0] = String.valueOf( value.getValue(i) ) ;
+							rc.add( tmp ) ;
+							rc.sort(comparator);
+							while( rc.size() >= limit ) {
+								rc.remove( limit - 1 ) ;
+							} ;
+						}
 					}
 				}
 			}
 		}
-		
+		// if we found anything  ... add in the headers
 		if( attributeNames != null ) {
 			String tmp[] = new String[ attributeNames.length + 1] ;
 			for( int i=1 ; i<tmp.length ; i++ ) {

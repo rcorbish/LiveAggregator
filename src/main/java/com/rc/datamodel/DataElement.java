@@ -1,5 +1,7 @@
 package com.rc.datamodel;
 
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -180,13 +182,59 @@ public class DataElement {
 		return values.length ;
 	}
 	
+		
+
 	/**
-	 * Return the name of each attribute
+	 * Identify whether the receiver's core element match any core
+	 * keys in the match test. If no core keys are present, a match 
+	 * is indicated.
+	 * The test is provided as a Map, keyed on the attribute name 
+	 * and an array of strings. One of the strings in that array must
+	 * match the receiver's attribute to be deemed a match
 	 * 
-	 * @return an array of the attribute names
+	 * @param matchingTests - the set of tests to do for this element 
+	 * @return whether this matches the keys
 	 */
-	public String []  getAttributeNames() {
-		return attributes. getAttributeNames() ;
+	public boolean matchesCoreKeys( Map<String,Set<String>> matchingTests ) {
+		boolean matches = true ;
+		for( String attributeName : matchingTests.keySet() ) {
+			if( attributes.isCoreAttributeName(attributeName)) {
+				matches &= matchingTests.get( attributeName ).contains( getAttribute(attributeName)) ;
+				if( !matches ) break ;
+			}
+ 		}
+		return matches ;
+	}
+	
+	/**
+	 * Identify whether the receiver's core element match any core
+	 * keys in the match test. If no core keys are present, a match 
+	 * is indicated.
+	 * The test is provided as a Map, keyed on the attribute name 
+	 * and an array of strings. One of the strings in that array must
+	 * match the receiver's attribute to be deemed a match
+	 * 
+	 * @param index, which of the set of perimeter attributes to examine
+	 * @param matchingTests - the set of tests to do for this element 
+	 * @return whether this matches the keys
+	 */
+	public boolean matchesPerimiterKeys( int index, Map<String,Set<String>> matchingTests ) {
+		boolean matches = true ;
+		for( String attributeName : matchingTests.keySet() ) {
+			if( !attributes.isCoreAttributeName(attributeName)) {
+				matches &= matchingTests.get( attributeName ).contains( getAttribute(index,attributeName)) ;
+				if( !matches ) break ;
+			}
+ 		}
+		return matches ;
+	}
+	
+	/**
+	 * Get a list of attribute names.
+	 * @return attributeNames - in the same order as originally defined.
+	 */
+	public String[] getAttributeNames() {
+		return attributes.getAttributeNames() ;
 	}
 	/**
 	 * Return the value at the given index.

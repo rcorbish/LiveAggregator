@@ -28,7 +28,8 @@ public class LiveAggregatorRandom  {
 	private String CPTYS[] = new String[] { "Big Co.", "A Bank", "Bank 2", "Fund 1", "H Fund", "A govt.", "Rand Co." } ;
 
 	private final static String[] ATTRIBUTE_NAMES = new String[] { "TRADEID", "CPTY", "BOOK", "PRODUCT", "TYPE", "AXIS", "CCY" } ; 
-
+	private final static int NUM_CORE_ATTRIBUTES = 4 ;
+	
 	public LiveAggregatorRandom() throws IOException {
 		this.aggregator = new LiveAggregator() ;
 	}
@@ -65,7 +66,7 @@ public class LiveAggregatorRandom  {
 
 	public void start( int numBatches, int batchSize, int dataPointsPerItem ) throws Exception {
 
-		final DataElementAttributes dae = new DataElementAttributes(ATTRIBUTE_NAMES) ;
+		final DataElementAttributes dae = new DataElementAttributes(ATTRIBUTE_NAMES, NUM_CORE_ATTRIBUTES) ;
 
 		final Random random = new Random( 100 ) ;
 		final int DATA_POINTS_PER_ELEMENT = dataPointsPerItem ;

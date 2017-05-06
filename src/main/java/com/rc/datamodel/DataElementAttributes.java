@@ -15,20 +15,22 @@ public class DataElementAttributes {
 	 * The map keyed on attribute name to find an index value
 	 */
 	private final Map<String,Integer> attributeIndices ;
-
+	private final int numCoreAttributes ;
 	private final String attributeNames[] ;
 
 	/**
 	 * Create the internal map of name -> index
 	 * @param attributeNames
 	 */
-	public DataElementAttributes( final String attributeNames[] ) {
+	public DataElementAttributes( final String attributeNames[], int numCoreAttributes ) {
 		this.attributeNames = attributeNames ;
+		this.numCoreAttributes = numCoreAttributes ;
 		attributeIndices = new HashMap<>( attributeNames.length ) ;
 		for( int i=0 ; i<attributeNames.length ; i++ ) {
 			attributeIndices.put( attributeNames[i], i ) ;
 		}
 	}
+	
 	/**
 	 * Given an attribute name - find its index in the label collection
 	 * This doesn't care about core or perimiter values
@@ -40,7 +42,17 @@ public class DataElementAttributes {
 		Integer ix = attributeIndices.get( attributeName ) ;
 		return ix!=null ? ix.intValue() : -1 ;
 	}
-		
+	
+	/**
+	 * Test for whether an attribute is a core attribute (once per element )
+	 * or a perimeter element (repeated per value within an element)
+	 * 
+	 * @param attributeName
+	 * @return whether this is a core attribute 
+	 */
+	public boolean isCoreAttributeName( String attributeName ) {
+		return getAttributeIndex( attributeName ) < numCoreAttributes ;
+	}
 	/**
 	 * This returns the set of attribute names, in  the same 
 	 * order as defined by the constructor.

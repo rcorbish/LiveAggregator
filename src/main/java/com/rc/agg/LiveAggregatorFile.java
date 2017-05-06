@@ -74,7 +74,7 @@ public class LiveAggregatorFile  {
 						break ;
 					}
 				}
-				final DataElementAttributes dae = new DataElementAttributes(attributeNames) ;
+				final DataElementAttributes dae = new DataElementAttributes(attributeNames, attributeNames.length) ;
 
 				if( valueIndex>=0 ) {
 					for( s=br.readLine() ; s!=null ; s=br.readLine() ) {
