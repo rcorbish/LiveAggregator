@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.rc.agg.DataElementProcessor;
 import com.rc.datamodel.DataElement;
+import com.rc.datamodel.DataElementAttributes;
 
 /**
  * This is the cache of all currently valaid data. It's big and stupid and fast!
@@ -66,16 +67,25 @@ public class DataElementStore  implements DataElementProcessor {
 		currentElements.clear(); 
 	}
 
+	/**
+	 * The start of it all - when a data store gets notification of new information
+	 * this is it. 
+	 * 
+	 * Call this and everything just works :)
+	 * 
+	 */
 	public void process(DataElement dataElement) {
 		DataElement previous = currentElements.put( dataElement.getInvariantKey(), dataElement) ;
 		if( previous != null ) {
 			DataElement negatedCopy = previous.negatedCopy() ;
 			for( DataElementDataView dedv : availableViews.values() ) {
 				dedv.process( negatedCopy ) ;
+				dedv.process( dataElement ) ;
 			}
-		}
-		for( DataElementDataView dedv : availableViews.values() ) {
-			dedv.process( dataElement ) ;
+		} else {
+			for( DataElementDataView dedv : availableViews.values() ) {
+				dedv.process( dataElement ) ;
+			}
 		}
 	}
 
@@ -262,6 +272,7 @@ public class DataElementStore  implements DataElementProcessor {
 	public Collection<String[]> query( String query, String viewName, int limit ) {
 
 		List<String[]> rc = new ArrayList<>(limit+1) ;
+		if( currentElements.size() == 0 ) return rc ;    // not exactly thread safe - but not much else we can do
 
 		//
 		// The filters against which to test each data point
@@ -338,6 +349,31 @@ public class DataElementStore  implements DataElementProcessor {
 			}
 		}
 
+		// 
+		// OK one last thing - if we added a 'dummy' row or column into the view
+		// to, for example, make a total row/col, we better remove it. We need to
+		// check each attribute for reality.
+		//
+		Set<String> allKeys = new HashSet<>() ;
+		String colGroups[] = dedv.getColGroups();
+		String rowGroups[] = dedv.getRowGroups();
+		for( String s : colGroups ) allKeys.add(s) ;
+		for( String s : rowGroups ) allKeys.add(s) ;
+		logger.info( "Scanning for these keys {}", allKeys ) ;
+		DataElement de = currentElements.values().iterator().next() ;
+		DataElementAttributes dae = de.getDataElementAttributes() ;
+		Set<String> notRealAttributes = new HashSet<>() ;
+		for( String requestedAttributeName : allKeys ) {
+			int ix = dae.getAttributeIndex(requestedAttributeName) ;
+			if( ix < 0 ) {
+				notRealAttributes.add( requestedAttributeName ) ;
+			}	
+		}
+		for( String notRealAttribute : notRealAttributes ) {
+			matchingTests.remove( notRealAttribute ) ;
+		}
+		
+		
 		//
 		// This is used to sort the data, we will only keep the limit
 		// largest values in the return. We don't want to draw too many
@@ -356,13 +392,10 @@ public class DataElementStore  implements DataElementProcessor {
 		// scan for anything that matches our filter. Add matching
 		// elements and keep the ones with the largest values to return.
 		//
-		String attributeNames[] = null ;
+		String attributeNames[] = dae.getAttributeNames() ;
 		float currentMax = 0.f ;
 		for( DataElement value : currentElements.values() ) {
-			if( value.matchesCoreKeys( matchingTests ) ) {
-				// TODO this could be improved. Also each data element has (possibly) a different shape
-				if( attributeNames == null ) attributeNames = value.getAttributeNames() ;
-				
+			if( value.matchesCoreKeys( matchingTests ) ) {				
 				for( int i=0 ; i<value.size() ; i++ ) {				
 					if( value.matchesPerimiterKeys(i, matchingTests)) {
 						String tmp[] = new String[attributeNames.length + 1] ;

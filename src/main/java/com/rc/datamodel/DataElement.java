@@ -160,6 +160,7 @@ public class DataElement {
 		return ix<0 ? attributeName : ix<coreValues.length ? coreValues[ix] : perimeterValues[index][ix-coreValues.length] ;
 	}
 
+	
 	/**
 	 * Get the core attribute label from the core attributes. For example
 	 * ask for 'Currency' and get 'USD'
@@ -245,6 +246,9 @@ public class DataElement {
 		return values[index] ;
 	}
 	
+	public DataElementAttributes getDataElementAttributes() {
+		return attributes ;
+	}
 	/**
 	 * This helper method is used to split a key into separate components. 
 	 * This would be expected to be used for the  data element label

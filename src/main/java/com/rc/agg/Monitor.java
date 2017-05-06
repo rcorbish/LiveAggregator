@@ -17,7 +17,7 @@ import spark.Response;
 /**
  * This handles the web pages. 
  * 
- * We use spark to server up pages. It's simple and easy to configure. It's pretty basic
+ * We use spark to serve pages. It's simple and easy to configure. It's pretty basic
  * we need 1 websockt to handle messaging to the client and one static dir for the actual page
  * 
  * @author richard

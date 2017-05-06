@@ -10,9 +10,9 @@ import com.rc.datamodel.DataElement;
 
 /**
  * This builds messages to send to the remote client. It is importnat that all 
- * message to the client is send via this interface. 
+ * message to the client is send via this class. 
  * This class is exclusively for building the messages for the client. It 
- * is the transport of the protocol
+ * is the transport of the protocol. It turns intent into a signal to remote client
  *
  */
 public abstract class ClientCommandProcessorImpl implements ClientCommandProcessor {
@@ -20,9 +20,9 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	final static Logger logger = LoggerFactory.getLogger( ClientCommandProcessorImpl.class ) ;
 
 	/**
-	 * Prepare a message to be sent to the client. All messages require a command
-	 * the viewName is optional as ar the args. The arguments to the command are
-	 * pairs of keys and values to be printed into JSON format
+	 * Prepare a message to be sent to the client. All messages require a command,
+	 * the viewName is optional, as are the args. The arguments to the command are
+	 * pairs of keys and values to be printed in JSON format
 	 * 
 	 * @param viewName the name of the view to direct the messages to - may be null
 	 * @param command the command to send to the client
@@ -95,7 +95,11 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 		sb.deleteCharAt( sb.length() - 1 ) ;
 		return sb.toString() ;
 	}
-	
+	/**
+	 * @see #printArray(String[])
+	 * @param arr
+	 * @return one String representing the array
+	 */
 	public static String printArray( Iterable<String> arr ) {
 		StringBuilder sb = new StringBuilder( ' ' ) ;
 		for( String a : arr ) {
@@ -107,7 +111,7 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	
 	
 	/**
-	 * Shutdown one of the client views
+	 * Shutdown one the named client view
 	 * 
 	 * @param viewName the unique name for the view
 	 */

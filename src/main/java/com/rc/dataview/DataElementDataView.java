@@ -35,7 +35,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 
 	// How often to send an update to the client (millis)
 	public static final int CLIENT_UPDATE_INTERVAL = 200 ;	
-	public static final int MAX_MESSAGES_TO_BUFFER = 100 ;
+	public static final int MAX_MESSAGES_TO_BUFFER = 300 ;
 
 	private final Map<String,String[]> filters ; 	// what key = value is being filtered
 	private final Map<String,Map<String,String>> setValues ; 	// force change in value of an attribute on condition
@@ -276,6 +276,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 * Adds an element to the data view. The messages is pre-checked
 	 * to see that it matches the view filters.
 	 * 
+	 * @param dataElement the element to add to the view
 	 */
 	public void process( DataElement dataElement )  {
 		if( matchesCoreElements( dataElement ) && messageReceiver != null ) {
@@ -300,7 +301,12 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		Thread.currentThread().setName( "Receiver " + this.getViewName() ) ;
 		try {
 			while( !Thread.currentThread().isInterrupted() ) {
+				//-------------------------------
+				// B L O C K I N G  call to take
+				// 
 				DataElement dataElement = messagesToProcess.take() ;
+				
+				
 				// remember the column keys, we need to have a cartesian
 				// of rpw key & column key combinations. 
 				StringBuilder colKeyPiece = new StringBuilder( 256 ) ;
