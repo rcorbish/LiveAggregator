@@ -36,6 +36,7 @@ findbugs {
     ignoreFailures = true
     reportsDir = file("$project.buildDir/findbugsReports")
     reportLevel = "high"
+    effort = "max"
 }
 
 repositories {

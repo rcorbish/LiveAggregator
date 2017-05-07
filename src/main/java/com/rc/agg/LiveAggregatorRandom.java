@@ -156,7 +156,7 @@ public class LiveAggregatorRandom  {
 							) ;
 				}
 				aggregator.process( de ) ;
-				Thread.sleep( 1000 );  // distance between batch updates
+				Thread.sleep( 997 );  // distance between batch updates
 			}
 		}
 	}
