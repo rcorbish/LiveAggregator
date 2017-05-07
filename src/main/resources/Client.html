@@ -650,6 +650,10 @@ td.selected {
 				return row;
 			}
 
+			
+			var rowKeysSortOrder = rowKeys.map( function(e,i) { return getRowSortOrder( e, i ); } ) ;
+			var sortOrder = makeKey( rowKeysSortOrder ) ;
+			
 			var grid = document.getElementById(name);
 			var rows = grid.rows;
 			var sectionSize = rows.length - numColLevels;
@@ -657,21 +661,21 @@ td.selected {
 			var sectionStart = 0;
 			while (sectionSize > 0) {
 				sectionSize = Math.floor(sectionSize / 2);
-				insertionPoint = sectionStart + sectionSize + +numColLevels;
+				insertionPoint = sectionStart + sectionSize + numColLevels;
 
 				var row = rows[insertionPoint];
-
+				
 				var rowLabel = row.getAttribute("sort-order");
-				if (rowLabel < rowKey) {
+				if( rowLabel < sortOrder ) {
 					sectionStart += sectionSize;
 				}
 			}
 
 			for (insertionPoint = sectionStart + numColLevels; insertionPoint < rows.length; insertionPoint++) {
 				var row = rows[insertionPoint];
-
+				
 				var rowLabel = row.getAttribute("sort-order");
-				if (rowLabel > rowKey) {
+				if( rowLabel > sortOrder ) {
 					break;
 				}
 			}
@@ -679,7 +683,7 @@ td.selected {
 			// Insert a row in the table at row index 0
 			var newRow = grid.insertRow(insertionPoint);
 			newRow.setAttribute("id", rowId);
-			newRow.setAttribute("sort-order", rowKey);
+			newRow.setAttribute("sort-order", sortOrder);
 			newRow.setAttribute("class", "dataRow");
 
 			var numButtonsAddedInThisRow = 0;
@@ -735,13 +739,17 @@ td.selected {
 			var rows = grid.rows;
 			var headerRow = rows[0]
 			var numColumns = headerRow.cells.length;
+			
+			var colKeysSortOrder = colKeys.map( function(e,i) { return getColSortOrder( e, i ); } ) ;
+			var sortOrder = makeKey( colKeysSortOrder ) ;
+			
 			var insertionPoint; // which column index will we insert at ?
 			for (insertionPoint = numRowLevels; insertionPoint < numColumns; insertionPoint++) {
 				var label = headerRow.cells[insertionPoint];
 				if (label.getAttribute("id") === colId) {
 					return document.getElementById(fullKey); // findRow may have created the cell we need...
 				}
-				if (label.getAttribute("id") > colId) {
+				if (label.getAttribute("sort-order") > sortOrder ) {
 					break;
 				}
 			}
@@ -753,8 +761,8 @@ td.selected {
 				newCell.setAttribute("class", "hdr-cell");
 				if (i < colKeys.length) {
 					if (i == 0) { // only set the ID of the first header row 
-						newCell.setAttribute("id", colId);
-						newCell.setAttribute("sort-order", colKey);
+						newCell.setAttribute("id", colId);						
+						newCell.setAttribute("sort-order", sortOrder );
 					}
 					newCell.textContent = colKeys[i];
 				} else {
@@ -776,6 +784,55 @@ td.selected {
 			}
 
 			return document.getElementById(fullKey);
+		}
+		
+		
+		function getRowSortOrder( key, level ) {
+			return getSortOrder( key, rowLevels[level] ) ;
+		}
+		
+		function getColSortOrder( key, level ) {
+			return getSortOrder( key, colLevels[level] ) ;
+		}
+		
+		var months = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ] ;
+		function getSortOrder( key, attributeName ) {
+			if( attributeName === 'CCY' ) {
+				if( key === 'USD' ) return '00' ;
+				if( key === 'CAD' ) return '01' ;
+				if( key === 'EUR' ) return '02' ;
+				if( key === 'GBP' ) return '03' ;
+				if( key === 'JPY' ) return '03' ;
+			}
+			
+			if( attributeName === 'TENOR' ) {
+				var daysFromNow = 0 ;
+				var attLength = key.length ;
+				if( key.endsWith( 'Y' ) ) {
+					daysFromNow = 365 * Number( key.substring(0,attLength-1) ) ;
+				} else if( key.endsWith( 'W' ) ) {
+					daysFromNow = 7 * Number( key.substring(0,attLength-1) ) ;
+				} else if( key.endsWith( 'D' ) ) {
+					daysFromNow = Number( key.substring(0,attLength-1) ) ;
+				} else if( key.endsWith( 'M' ) ) {
+					daysFromNow = 31 * Number( key.substring(0,attLength-1) ) ;
+				} else if( key.endsWith( 'B' ) ) {
+					daysFromNow = Number( key.substring(0,attLength-1) ) ;
+				} else if( /^(\d\d\d\d)-?(\d\d)-?(\d\d)/.test( key ) ) {
+					var m = key.match( /^(\d\d\d\d)-?(\d\d)-?(\d\d)/ ) ;
+					var now = new Date() ;
+					var then = new Date( m[1], m[2]-1, m[3] ) ;
+					daysFromNow = Math.floor( ( then - now ) / 86400000 ) ; 
+				} else if( /^([a-z][a-z][a-z])-(\d\d)/i.test( key ) ) {
+					var m = key.match( /^([a-z][a-z][a-z])-(\d\d)/i ) ;
+					var now = new Date() ;
+					var then = new Date( (20 + m[2]).substring(-4), months.indexOf( m[1].toLowerCase()), 15 ) ;
+					daysFromNow = Math.floor( ( then - now ) / 86400000 ) ; 
+				}
+				return ( "000000" + String( daysFromNow ) ).slice( -7 ) ;
+			}
+			
+			return key ;
 		}
 		
 		// Print a number with  comma separators e.g. 1,000
