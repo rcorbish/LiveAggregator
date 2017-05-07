@@ -975,7 +975,7 @@ td.selected {
 				}
 				queryParam = queryParam.length > 3 ? queryParam.substring( 0,queryParam.length-3 ) : null ;
 				
-				var url = "http://" + document.location.host + "/data/" + queryParam + "?limit=20&view-name=" + openViewName ;
+				var url = "http://" + document.location.host + "/data/" + encodeURIComponent(queryParam) + "?limit=20&view-name=" + openViewName ;
 				
 				openPopup() ;
 

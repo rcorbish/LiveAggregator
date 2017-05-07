@@ -57,7 +57,7 @@ public class Monitor implements AutoCloseable {
 			rsp.header("expires", "0" ) ;
 			rsp.header("cache-control", "no-cache" ) ;
 
-			String elementKey = req.params( ELEMENT_KEY_PARAM ) ;
+			String elementKey = java.net.URLDecoder.decode( req.params( ELEMENT_KEY_PARAM ), "UTF-8" ) ;
 			String viewName = req.queryParams( VIEW_NAME_PARAM ) ;			
 			if( viewName == null ) {
 				throw new Exception( "Missing parameter - " + VIEW_NAME_PARAM ) ;
