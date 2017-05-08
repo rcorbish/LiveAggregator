@@ -101,7 +101,7 @@ public class Monitor implements AutoCloseable {
 		rc.append( WebSocketServer.toStringStatic().replaceAll( "\n", "<br>") );
 
 		rc.append( "<h2>Sample Data query</h2>");
-		rc.append( "<a href='http://" + req.host() + "/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100'>http://" + req.host() + "/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100</a>") ;
+		rc.append( "<a href='http://" + req.host() + "/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100&view-name=DG0'>Sample query</a>") ;
 		rc.append( "</html>");
 		return rc ;
 	}

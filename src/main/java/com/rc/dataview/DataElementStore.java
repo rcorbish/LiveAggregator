@@ -1,5 +1,6 @@
 package com.rc.dataview;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -397,7 +398,7 @@ public class DataElementStore  implements DataElementProcessor {
 		String attributeNames[] = dae.getAttributeNames() ;
 		float currentMax = 0.f ;
 		for( DataElement value : currentElements.values() ) {
-			if( value.matchesCoreKeys( matchingTests ) ) {				
+			if( value.matchesCoreKeys( matchingTests ) ) {		
 				for( int i=0 ; i<value.size() ; i++ ) {				
 					if( value.matchesPerimiterKeys(i, matchingTests)) {
 						String tmp[] = new String[attributeNames.length + 1] ;
@@ -436,9 +437,14 @@ public class DataElementStore  implements DataElementProcessor {
 		while( rc.size() > limit ) {
 			rc.remove( limit - 1 ) ;
 		} ;
-		
 		//
-		// Now add in a header row if we found anything.
+		// Make the numbers pretty - to print in a report
+		DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
+		for( int i=0 ; i<rc.size() ; i++ ) {
+			rc.get(i)[0] = numberFormatter.format( Float.parseFloat( rc.get(i)[0] ) ) ;
+		}		
+		//
+		// Add in a header row if we found anything.
 		//
 		if( attributeNames != null ) {
 			String tmp[] = new String[ attributeNames.length + 1] ;
@@ -457,6 +463,7 @@ public class DataElementStore  implements DataElementProcessor {
 	 * 
 	 */
 	public String toString() {
-		return "Data Store containing " + currentElements.size() + " elements."  ; 
+		return "Data Store containing " + currentElements.size() + 
+		" elements. Batch is " + (serverBatchComplete? "complete." : "processing.")  ; 
 	}
 }

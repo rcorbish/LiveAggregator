@@ -84,7 +84,7 @@ html {
 	width: 500px;
 	height: 300px;
 	opacity: 0.81;
-	color: #302875;
+	color: #200855;
 	position: absolute;
 	left: 50%;
 	top: 50%;
@@ -1064,13 +1064,14 @@ td.selected {
 			var underlyingData = document.getElementById('underlying-data-table');
 			if( data.length > 1 ) {
 				var tbl = "<h3>Largest " + (data.length-1) + "</h3><table>" ;
-				var tdh ="th" ; 
-				for( var i=0 ; i<data.length ; i++ ) {
-					tbl += "<tr>" ;
-					for( var j=0 ; j<data[i].length ; j++ ) {
-						tbl += "<" + tdh+ ">" + data[i][j] + "</"+tdh + ">" ;
+				for( var j=0 ; j<data[0].length ; j++ ) {
+					tbl += "<th>" + data[0][j] + "</th>" ;
+				}
+				for( var i=1 ; i<data.length ; i++ ) {
+					tbl += "<tr><td>" + data[i][0] + "</td>" ;
+					for( var j=1 ; j<data[i].length ; j++ ) {
+						tbl += "<td>" + data[i][j] + "</td>" ;
 					}
-					tdh="td";
 					tbl += "</tr>" ;
 				}
 			} else {
