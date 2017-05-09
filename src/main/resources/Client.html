@@ -1087,7 +1087,18 @@ td.selected {
 
 		function showItem( item ) {
 			var underlyingData = document.getElementById('underlying-data-table');
-			var tbl = "<h3>" + item.invariantKey + " [" + item.values.length + " values]</h3>" ;
+			var tbl = "" ;
+			for( var i=0 ; i<item.coreValues.length ; i++ ) {
+				tbl += "<h4>" + item.attributes.attributeNames[i] + ": " + item.coreValues[i] +"</h4>" ;
+			}
+			tbl += "<table>" ;
+			for( var i=0 ; i<item.values.length ; i++ ) {
+				tbl += "<tr><td>"+item.values[i] ;
+				for( var j=0 ; j<item.perimeterValues[j].length ; j++ ) {
+					tbl += "</td><td>"+item.perimeterValues[i][j]+"</td>" ;
+				}
+				tbl+="</tr>" ;
+			}
 			underlyingData.innerHTML = tbl + "</table>" ;
 		}
 

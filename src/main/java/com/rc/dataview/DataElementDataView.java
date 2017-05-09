@@ -323,7 +323,17 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 						// for each column key piece
 						for( String colGroup : colGroups ) {
 							// add the next piece to the cumulative column key
-							colKeyPiece.append( dataElement.getAttribute(i, colGroup ) ) ;
+							if( this.setValues != null ) {
+								Map<String,String> setValuesForThisColGroup = this.setValues.get( colGroup ) ;
+								if( setValuesForThisColGroup == null ) {
+									colKeyPiece.append( dataElement.getAttribute(i, colGroup ) ) ;
+								} else {
+									String replacementValue = setValuesForThisColGroup.get( dataElement.getAttribute( i, colGroup ) ) ;
+									colKeyPiece.append( replacementValue==null ? "Other" : replacementValue ) ;
+								}
+							} else {
+								colKeyPiece.append( dataElement.getAttribute(i, colGroup ) ) ;
+							}
 							// restart the cartesian key at empty
 							elementKey.setLength(0);
 							// Then add in the proper number of column components 
@@ -340,8 +350,12 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 									// if you want to exclude 'other' from a report set an appropriate
 									// filter in the view definition.
 									Map<String,String> setValuesForThisRowGroup = this.setValues.get( rowGroup ) ;
-									String replacementValue = setValuesForThisRowGroup.get( dataElement.getAttribute( i, rowGroup ) ) ;
-									elementKey.append( replacementValue==null ? "Other" : replacementValue ) ;
+									if( setValuesForThisRowGroup == null ) {
+										elementKey.append( dataElement.getAttribute( i, rowGroup ) ) ;
+									} else {
+										String replacementValue = setValuesForThisRowGroup.get( dataElement.getAttribute( i, rowGroup ) ) ;
+										elementKey.append( replacementValue==null ? "Other" : replacementValue ) ;
+									}
 								} else {
 									elementKey.append( dataElement.getAttribute( i, rowGroup ) ) ;
 								}
