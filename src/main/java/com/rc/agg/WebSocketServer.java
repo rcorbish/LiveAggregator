@@ -68,6 +68,7 @@ public class WebSocketServer  {
 		logger.info( "Remote session {} detected error.", session.getRemoteAddress(), error ) ; 
 		ClientProxy cp = clientData.get( session ) ;
 		if( cp != null ) {
+			logger.warn( "Remote session {} error, reason: {}", session.getRemoteAddress(), error.getMessage() ) ; 
 			cp.close();
 		} else {
 			logger.warn( "Requested to close a client that does not exist - wss error event" ) ;
@@ -86,11 +87,13 @@ public class WebSocketServer  {
 	 */
 	@OnWebSocketMessage
 	public void message(Session session, String message) throws IOException {
-		logger.info( "Received {} from {}.", message, session.getRemoteAddress() ) ;
+		logger.debug( "Received {} from {}.", message, session.getRemoteAddress() ) ;
 		
 		ClientProxy clientProxy = clientData.get( session ) ;
 		if( clientProxy == null ) {
-			logger.warn( "Oh oh chongo - client proxy is not yet mapped to this session.");
+			// Did we receive a message on an uninitialized session?
+			// ignore it
+			logger.warn( "Oh oh chongo - uninitialized client {} ignored message {}.", session.getRemoteAddress(), message );
 			return ;
 		}
 		

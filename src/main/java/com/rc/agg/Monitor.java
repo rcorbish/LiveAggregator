@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.rc.datamodel.DataElement;
 import com.rc.dataview.DataElementStore;
 
 
@@ -29,6 +30,8 @@ public class Monitor implements AutoCloseable {
 	final static String ELEMENT_KEY_PARAM = "element-key" ;
 	final static String VIEW_NAME_PARAM = "view-name" ;
 	final static String LIMIT_PARAM = "limit" ;
+	final static String INVARIANT_KEY_PARAM = "invariant-key" ;
+	
 	final Gson gson ;
 
 	{
@@ -44,10 +47,34 @@ public class Monitor implements AutoCloseable {
 			spark.Spark.webSocket("/live", WebSocketServer.class);
 			spark.Spark.get( "/", this::index ) ;
 			spark.Spark.get( "/data/:" + ELEMENT_KEY_PARAM, this::dataElements, gson::toJson ) ;
+			spark.Spark.get( "/item/:" + INVARIANT_KEY_PARAM, this::getItem, gson::toJson ) ;
 			spark.Spark.awaitInitialization() ;
 		} catch( Exception ohohChongo ) {
 
 		}
+	}
+
+	public Object getItem(Request req, Response rsp) {
+		Object rc = null ;
+		try {
+			rsp.type( "application/json" );
+			rsp.header("expires", "0" ) ;
+			rsp.header("cache-control", "no-cache" ) ;
+
+			String invariantKey = java.net.URLDecoder.decode( req.params( INVARIANT_KEY_PARAM ), "UTF-8" ) ;
+			logger.info( "Querying for invariant-key {}", invariantKey ) ;
+			DataElementStore des = DataElementStore.getInstance() ;
+			DataElement matching = des.get(invariantKey) ;
+			rc = matching ;
+			if( rc==null ) {
+				logger.info( "No items matching key {}", invariantKey ) ;
+			}
+		} catch ( Throwable t ) {
+			logger.warn( "Error processing getItem request", t ) ;
+			rc = "Orig URL = " + req.url() + "<br>Should be ... /item/inv-key" ;
+			rsp.status( 400 ) ;	
+		}
+		return rc ;
 	}
 
 	public Object dataElements(Request req, Response rsp) {
@@ -77,6 +104,7 @@ public class Monitor implements AutoCloseable {
 		return rc ;
 	}
 
+
 	// by default print active clients
 	public Object index(Request req, Response rsp) {
 		StringBuilder rc = new StringBuilder( "<html>" ) ;
@@ -100,8 +128,9 @@ public class Monitor implements AutoCloseable {
 		rc.append( "<h2>Managed clients</h2>");
 		rc.append( WebSocketServer.toStringStatic().replaceAll( "\n", "<br>") );
 
-		rc.append( "<h2>Sample Data query</h2>");
-		rc.append( "<a href='http://" + req.host() + "/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100&view-name=DG0'>Sample query</a>") ;
+		rc.append( "<h2>Sample Data query</h2>") ; 
+		rc.append( "This is a sample - adjust the URL to your own case<br>" ) ;
+		rc.append( "<a target='data-window' href='http://" + req.host() + "/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100&view-name=DG0'>Sample query</a>") ;
 		rc.append( "</html>");
 		return rc ;
 	}

@@ -80,7 +80,7 @@ html {
 	display: none;
 	position: absolute;
 	font-size: 9pt;
-	background: #cfe6e8;
+	background: #dfe6b8;
 	width: 80%;
 	height: 80%;
 	color: #200855;
@@ -90,14 +90,14 @@ html {
 	z-index: 100;
 	overflow: auto;
 }
-
 #underlying-data table {
 	width: 100%;
 	border-collapse: collapse;
 }
 #underlying-data table tr:hover{
-	background: #90c6d8;
-}
+	background: #c0d6af;
+	xborder-top: solid 1px #302875 ;
+	xborder-bottom: solid 1px #302875 ;}
 
 #underlying-data-table th {
 	text-align: left;
@@ -975,7 +975,7 @@ td.selected {
 				}
 				queryParam = queryParam.length > 3 ? queryParam.substring( 0,queryParam.length-3 ) : null ;
 				
-				var url = "http://" + document.location.host + "/data/" + encodeURIComponent(queryParam) + "?limit=20&view-name=" + openViewName ;
+				var url = "http://" + document.location.host + "/data/" + encodeURIComponent(queryParam) + "?limit=100&view-name=" + openViewName ;
 				
 				openPopup() ;
 
@@ -997,6 +997,31 @@ td.selected {
 				xhr.send() ;
 			}
 		}
+
+
+		function inspectItem( invariantKey ) {
+			var url = "http://" + document.location.host + "/item/" + encodeURIComponent(invariantKey) ;
+			
+			openPopup() ;
+
+			var spinner = document.querySelector( "div.spinner" ) ;
+			spinner.style.display = 'inherit' ;
+			const xhr = new XMLHttpRequest();
+			xhr.open("GET", url );
+			xhr.setRequestHeader( "accept", "application/json" ) ;
+			xhr.onreadystatechange = function() {
+				if(xhr.readyState === XMLHttpRequest.DONE ) {
+					if( xhr.status === 200) {
+						showItem( JSON.parse( xhr.responseText ) ) ;
+						spinner.style.display = 'none' ;						
+					} else {
+						closePopup() ;  // non success close popup & spinner
+					}
+				}
+			} ;
+			xhr.send() ;
+		}
+
 
 		function clickedOnGrid(e) {
 			var selectedCells = document.querySelectorAll("td.selected");
@@ -1059,17 +1084,26 @@ td.selected {
 				grid.addEventListener('dblclick', doubleclickedOnGrid, false) ;
 			}
 		}	
-			
+
+		function showItem( item ) {
+			var underlyingData = document.getElementById('underlying-data-table');
+			var tbl = "<h3>" + item.invariantKey + " [" + item.values.length + " values]</h3>" ;
+			underlyingData.innerHTML = tbl + "</table>" ;
+		}
+
+
 		function drawData( data ) {
 			var underlyingData = document.getElementById('underlying-data-table');
 			if( data.length > 1 ) {
 				var tbl = "<h3>Largest " + (data.length-1) + "</h3><table>" ;
+
 				for( var j=0 ; j<data[0].length ; j++ ) {
 					tbl += "<th>" + data[0][j] + "</th>" ;
 				}
 				for( var i=1 ; i<data.length ; i++ ) {
 					tbl += "<tr><td>" + data[i][0] + "</td>" ;
-					for( var j=1 ; j<data[i].length ; j++ ) {
+					tbl += "<td onclick=\"inspectItem('" + data[i][1] + "')\">" + data[i][1] + "</td>" ;
+					for( var j=2 ; j<data[i].length ; j++ ) {
 						tbl += "<td>" + data[i][j] + "</td>" ;
 					}
 					tbl += "</tr>" ;
