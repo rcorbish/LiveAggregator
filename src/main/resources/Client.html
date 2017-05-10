@@ -11,7 +11,9 @@ html {
 	margin: 0;
 	padding: 0;
 }
-
+h4 {
+	margin: 0 ;
+}
 #header-area {
 	position: absolute;
 	right: 0;
@@ -102,6 +104,23 @@ html {
 #underlying-data-table th {
 	text-align: left;
 	border-bottom: 1px solid #302875;
+}
+.underlying-data-value {
+	cursor: pointer ;
+}
+
+.underlying-data-attributes {
+	width: auto !important ;
+	margin-bottom: 25px ;
+}
+.underlying-data-attributes th {
+	border-bottom: none !important ;
+	text-align: right !important ;
+	padding-left: 25px !important ;
+	padding-right: 15px !important ;
+}
+.underlying-data-attributes tr:hover {
+	background: inherit !important ;
 }
 
 div.spinner {
@@ -252,6 +271,7 @@ div.spinner div.bar12 {
 	user-select: none;
 	-moz-user-select: none;
 	-webkit-user-select: none;
+	cursor: cell ;
 }
 
 .hdr-row-2 {
@@ -531,7 +551,7 @@ td.selected {
 				var openRowKey = openViewName + "\fEXR\f";
 				var openColKey = openViewName + "\fEXC\f";
 				for (i = 0; i < localStorage.length; i++) {
-					key = localStorage.key(i);
+					var key = localStorage.key(i);
 					if (key.startsWith(openRowKey)) {
 						msg.rowKeys.push(key.substring(openRowKey.length));
 					}
@@ -1087,11 +1107,16 @@ td.selected {
 
 		function showItem( item ) {
 			var underlyingData = document.getElementById('underlying-data-table');
-			var tbl = "" ;
+			var tbl = "<table class='underlying-data-attributes'>" ;
 			for( var i=0 ; i<item.coreValues.length ; i++ ) {
-				tbl += "<h4>" + item.attributes.attributeNames[i] + ": " + item.coreValues[i] +"</h4>" ;
+				tbl += "<tr><th>" + item.attributes.attributeNames[i] + "</th><td>" + item.coreValues[i] +"</td></tr>" ;
 			}
-			tbl += "<table>" ;
+			tbl += "</table><table><tr><th>Value</th>" ;
+			for( var i=item.coreValues.length ; i<item.attributes.attributeNames.length ; i++ ) {
+				tbl += "<th>"+item.attributes.attributeNames[i]+"</th>" ;
+			}
+			tbl+="</tr>" ;
+			
 			for( var i=0 ; i<item.values.length ; i++ ) {
 				tbl += "<tr><td>"+item.values[i] ;
 				for( var j=0 ; j<item.perimeterValues[j].length ; j++ ) {
@@ -1113,7 +1138,7 @@ td.selected {
 				}
 				for( var i=1 ; i<data.length ; i++ ) {
 					tbl += "<tr><td>" + data[i][0] + "</td>" ;
-					tbl += "<td onclick=\"inspectItem('" + data[i][1] + "')\">" + data[i][1] + "</td>" ;
+					tbl += "<td class='underlying-data-value' onclick=\"inspectItem('" + data[i][1] + "')\">" + data[i][1] + "</td>" ;
 					for( var j=2 ; j<data[i].length ; j++ ) {
 						tbl += "<td>" + data[i][j] + "</td>" ;
 					}

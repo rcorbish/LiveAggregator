@@ -345,9 +345,17 @@ public class DataElementStore  implements DataElementProcessor {
 				}
 				
 				Map<String,String> viewAttributeSets = viewSets.get( attributeName ) ;
-				
-				for( String viewRemappedName : viewAttributeSets.keySet() ) {
-					queryAttributeValues.add( viewRemappedName ) ;				
+
+				boolean matchedASetValue = false ;
+				for( String viewRemappedFrom : viewAttributeSets.keySet() ) {
+					String viewRemappedTo = viewAttributeSets.get( viewRemappedFrom ) ;
+					if( queryAttributeValues.contains( viewRemappedTo ) ) {
+						queryAttributeValues.add( viewRemappedFrom ) ;
+						matchedASetValue = true ;
+					}
+				}
+				if( !matchedASetValue && queryAttributeValues.contains( "Other" ) ) {
+					logger.info( "Will not match Other set values. Work to do here for negative tests" ) ;
 				}
 			}
 		}
@@ -386,7 +394,7 @@ public class DataElementStore  implements DataElementProcessor {
 			@Override
 			public int compare(String[] o1, String[] o2) {
 				float f = Math.abs( Float.parseFloat(o2[0]) ) - Math.abs( Float.parseFloat(o1[0]) ) ;
-				return f<0 ? -1 : 1 ;
+				return f<0 ? -1 : ( f>0 ) ? 1 : 0  ;
 			}
 		};
 		
