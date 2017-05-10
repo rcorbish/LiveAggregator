@@ -4,6 +4,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.management.RuntimeErrorException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.rc.datamodel.DataElement;
 
 /**
@@ -16,8 +21,13 @@ import com.rc.datamodel.DataElement;
  */
 public class ViewDefinition {
 	
+	final static Logger logger = LoggerFactory.getLogger( ViewDefinition.class ) ;
+
 	private String name ;
 	private String description ;
+	private Class<? extends DataElementDataView> implementingClass ;
+	private String constructorArg ;
+
 	public String getDescription() {
 		return description==null ? name : description ;
 	}
@@ -64,6 +74,26 @@ public class ViewDefinition {
 		setValues = new HashMap<>() ;
 	}
 	
+	public void setImplementingClassName( String implementingClassName ){
+		try {
+			Class<?> clazz =  Class.forName(implementingClassName) ;
+			this.implementingClass = clazz.asSubclass(DataElementDataView.class) ;
+		} catch( Exception e ) {
+			logger.error( "Failed to load class in view definition", e );
+			throw new RuntimeException(e) ;
+		}
+	}
+	public void setConstructorArg( String constructorArg ){
+		this.constructorArg = constructorArg ;
+	}
+
+	public Class<? extends DataElementDataView> getImplementingClass() {
+		return implementingClass==null ? DataElementDataView.class : implementingClass ;
+	}
+	public String  getConstructorArg(){
+		return constructorArg ;
+	}
+
 	public void addColGroup( String colGroup ) {
 		colGroups = Arrays.copyOf( colGroups, colGroups.length+1 ) ;
 		colGroups[colGroups.length-1] = colGroup ;

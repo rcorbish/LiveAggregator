@@ -16,6 +16,8 @@ DG1.DESC=DG1: IR01 x CCY/TENOR
 DG1.FILTER=TYPE=IR01
 DG1.COL=CCY
 DG1.ROW=TENOR
+DG1.CLASS=com.rc.dataview.TestDataElementDataView
+DG1.CLASS_ARG=Boo Ya
 
 
 #-----------------------------

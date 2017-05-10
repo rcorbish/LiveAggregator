@@ -1,5 +1,6 @@
 package com.rc.dataview;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,12 +53,36 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	private Thread messageSender ;
 	private Thread messageReceiver ;
 
-	
+	/** Use this to create an inmstance. If the view definition indicates
+	 * a special class that will be used instead of this parent instance.
+	 * @param viewDefinition the definition of the View - from config
+	 */
+	static public DataElementDataView create( ViewDefinition viewDefinition ) {
+		Class<? extends DataElementDataView> clazz = viewDefinition.getImplementingClass() ;
+		logger.info( "Creating instance of {} for view {}", clazz.getCanonicalName(), viewDefinition.getName() ) ;
+		String constructorArg = viewDefinition.getConstructorArg() ;
+		DataElementDataView rc = null ;
+		try {
+			if( constructorArg != null ) {
+				logger.debug( "Passing {} as constructor arg for view {}", constructorArg, viewDefinition.getName()) ;
+				Constructor<? extends DataElementDataView> ctor = clazz.getConstructor( ViewDefinition.class, String.class ) ;
+				rc = ctor.newInstance(viewDefinition, constructorArg) ;
+			} else {
+				Constructor<? extends DataElementDataView> ctor = clazz.getConstructor(ViewDefinition.class) ;
+				rc = ctor.newInstance( viewDefinition) ;
+			}
+		} catch( Exception e ) {
+			logger.error( "Failed to create instance of DataElementDataView", e ) ;
+		}
+		return rc ;
+	}
 	/**
 	 * Constructor - parse the view definition into useable data formats
 	 * Initialize, but don't start, the threads.
 	 * Make sure start() is called at somepoint ...
+	 * Don't call this directly - use the static create method
 	 * 
+	 * @see #create(ViewDefinition)
 	 * @see #start()
 	 * @param viewDefinition
 	 */

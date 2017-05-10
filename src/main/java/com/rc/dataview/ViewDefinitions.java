@@ -146,6 +146,10 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 						viewDefinition.addRowGroup(value); 
 					} else if( item.equalsIgnoreCase("DESC") ) {
 						viewDefinition.setDescription(value); 
+					} else if( item.equalsIgnoreCase("CLASS") ) {
+						viewDefinition.setImplementingClassName(value); 
+					} else if( item.equalsIgnoreCase("CLASS_ARG") ) {
+						viewDefinition.setConstructorArg(value); 
 					} else if( item.equalsIgnoreCase("FILTER") ) {
 						String kv[] = value.split( "=" ) ;
 						if( kv.length<2) {

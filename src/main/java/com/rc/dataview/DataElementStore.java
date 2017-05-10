@@ -145,7 +145,7 @@ public class DataElementStore  implements DataElementProcessor {
 		Map<String,DataElementDataView>	futureAvailableViews = new HashMap<>() ; 
 
 		for( ViewDefinition vd : viewDefinitions.getViewDefinitions() ) {
-			DataElementDataView dedv = new DataElementDataView( vd ) ;			
+			DataElementDataView dedv = DataElementDataView.create( vd ) ;			
 			futureAvailableViews.put( dedv.getViewName(), dedv ) ;
 		}
 
