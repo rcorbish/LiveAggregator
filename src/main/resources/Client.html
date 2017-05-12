@@ -221,6 +221,11 @@ div.spinner div.bar12 {
 .bad-status {
 	color: red;
 }
+.export {
+	position: absolute;
+	right: 75px;
+	top: 3px;
+}
 
 #content {
 	position: absolute;
@@ -321,6 +326,8 @@ td.selected {
 	background: #aed2c9;
 }
 </style>
+
+<script src='excellentexport.min.js'></script>
 
 <script>
 		var socket;
@@ -1131,7 +1138,7 @@ td.selected {
 		function drawData( data ) {
 			var underlyingData = document.getElementById('underlying-data-table');
 			if( data.length > 1 ) {
-				var tbl = "<h3>Largest " + (data.length-1) + "</h3><table>" ;
+				var tbl = "<h3>Largest " + (data.length-1) + "</h3><table id='raw-data'>" ;
 
 				for( var j=0 ; j<data[0].length ; j++ ) {
 					tbl += "<th>" + data[0][j] + "</th>" ;
@@ -1162,12 +1169,22 @@ td.selected {
 		<div id="view-name"></div>
 		<div id="selection-total"></div>
 	</div>
-
+	<div class="export">
+		<a download="report.xls" href="#" onclick="return ExcellentExport.excel(this,'grid','Report');">
+		<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC+ElEQVRYhe2XPWhUQRDHV0NQohBUxEbkxKgx93b2yMLd25n3bmeO60XIiR9FLCy0sLLVwg+wMEUEU0RBbAKCFtr4AaIoqIWN36DYaaOgkkAgGOJZvBye8XIxl3eNuDDNPN7sb2f+O2+eUotclUqlI1uI+3TI+wF5yJC/l4tKVUN8f7GxFl49PSv6I7FAfDAIZQRIngD5yVxUqgLKNDj/XBNfzkWlKjj/fEl7rc9mV2fDmAz6IwblkiZ5BijTuahUBfKTmvzjBIIP9kdiM5nMytq7gHLNEF9paWPjZNSgf2tIfiSp9F/AyV0gPqtdcV8QFndUKpWOZjGWBJCLSlXt/GuN8U5ry5uUUssWGwNI3ueiUrUVU0k9eaAl+hqA41sa5REgD/y1kb+ZHgDKbSD/GJD31GxHobhVKaV0xOV6fxAWd1truwB5T2oABvnj3NQa8jNKJSX+4xny0ZQB5MPcTTTJ2HwAgfO7UgVopIHt+eJmpZTSLvb1/sD5XZlMZmVTgN58tC3b73rqfRsAVmkX+4YAaWsAkC8akpdKqeU1n3b+BKB8bgSQugaCQgz1fh1FazT5cY18rDFAGzSQdLckC5rkpEH5asvl7oYlSFsD9VnQyAeanX4Wtj19AFCumUg+NTt9UoI29YG+vI9nX2j6oWlbHzDIp4DkOyC/UXU34o9MtUMDG7NurSGZMMTnF2pWbdEAIJ82KN9sudwNyFfn9oU5mUpXA729+XWGZMI4f1wppXpdUTcvVcoamL333+qVD8hXDfKLhiVIWwM65P3g/N7fspKPtgHyUEOA//PAPzcPLBqggQYWMo1y/ReA43eAPBBY3KJaGctxCWN5EMqIIXllyM8ktfPjgPIAkIch5MGgEIO1tnMBgNZ/TGrLWtvVF0YFE/Ih42RUkzw1yFOzqp3SJE8B5QKgPwwFCq21XakCzAPVGRRigJAHAXnYkH9oSCZq10wjv9EkY7moVAWSG6kDzLOWZ/tdTxAWd2viM4bkTiJkOddKsJ+HHLzIDsdCuAAAAABJRU5ErkJggg=="></img>
+		</a>
+	</div>
 	<div id="content">
 		<table id="grid" class='grid'></table>
 	</div>
 
 	<div id="underlying-data">
+		<div class="export">
+			<a download="rawData.xls" href="#" onclick="return ExcellentExport.excel(this,'raw-data','RawData');">
+			<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC+ElEQVRYhe2XPWhUQRDHV0NQohBUxEbkxKgx93b2yMLd25n3bmeO60XIiR9FLCy0sLLVwg+wMEUEU0RBbAKCFtr4AaIoqIWN36DYaaOgkkAgGOJZvBye8XIxl3eNuDDNPN7sb2f+O2+eUotclUqlI1uI+3TI+wF5yJC/l4tKVUN8f7GxFl49PSv6I7FAfDAIZQRIngD5yVxUqgLKNDj/XBNfzkWlKjj/fEl7rc9mV2fDmAz6IwblkiZ5BijTuahUBfKTmvzjBIIP9kdiM5nMytq7gHLNEF9paWPjZNSgf2tIfiSp9F/AyV0gPqtdcV8QFndUKpWOZjGWBJCLSlXt/GuN8U5ry5uUUssWGwNI3ueiUrUVU0k9eaAl+hqA41sa5REgD/y1kb+ZHgDKbSD/GJD31GxHobhVKaV0xOV6fxAWd1truwB5T2oABvnj3NQa8jNKJSX+4xny0ZQB5MPcTTTJ2HwAgfO7UgVopIHt+eJmpZTSLvb1/sD5XZlMZmVTgN58tC3b73rqfRsAVmkX+4YAaWsAkC8akpdKqeU1n3b+BKB8bgSQugaCQgz1fh1FazT5cY18rDFAGzSQdLckC5rkpEH5asvl7oYlSFsD9VnQyAeanX4Wtj19AFCumUg+NTt9UoI29YG+vI9nX2j6oWlbHzDIp4DkOyC/UXU34o9MtUMDG7NurSGZMMTnF2pWbdEAIJ82KN9sudwNyFfn9oU5mUpXA729+XWGZMI4f1wppXpdUTcvVcoamL333+qVD8hXDfKLhiVIWwM65P3g/N7fspKPtgHyUEOA//PAPzcPLBqggQYWMo1y/ReA43eAPBBY3KJaGctxCWN5EMqIIXllyM8ktfPjgPIAkIch5MGgEIO1tnMBgNZ/TGrLWtvVF0YFE/Ih42RUkzw1yFOzqp3SJE8B5QKgPwwFCq21XakCzAPVGRRigJAHAXnYkH9oSCZq10wjv9EkY7moVAWSG6kDzLOWZ/tdTxAWd2viM4bkTiJkOddKsJ+HHLzIDsdCuAAAAABJRU5ErkJggg=="></img>
+			</a>
+		</div>
+	
 		<div id='underlying-data-close'>&times;</div>
 		<div id="underlying-data-table"></div>
 		<div class="spinner">
