@@ -348,16 +348,17 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 						// for each column key piece
 						for( String colGroup : colGroups ) {
 							// add the next piece to the cumulative column key
+							String rawColAttributeValue = dataElement.getAttribute(i, colGroup ) ;
 							if( this.setValues != null ) {
 								Map<String,String> setValuesForThisColGroup = this.setValues.get( colGroup ) ;
 								if( setValuesForThisColGroup == null ) {
-									colKeyPiece.append( dataElement.getAttribute(i, colGroup ) ) ;
+									colKeyPiece.append( rawColAttributeValue ) ;
 								} else {
-									String replacementValue = setValuesForThisColGroup.get( dataElement.getAttribute( i, colGroup ) ) ;
-									colKeyPiece.append( replacementValue==null ? "Other" : replacementValue ) ;
+									String replacementValue = setValuesForThisColGroup.get( rawColAttributeValue ) ;
+									colKeyPiece.append( replacementValue==null ? rawColAttributeValue : replacementValue ) ;
 								}
 							} else {
-								colKeyPiece.append( dataElement.getAttribute(i, colGroup ) ) ;
+								colKeyPiece.append( rawColAttributeValue ) ;
 							}
 							// restart the cartesian key at empty
 							elementKey.setLength(0);
@@ -368,21 +369,17 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 							// elementKey. This inner loop executes once per item in the 
 							// cartesian ... 2 row keys & 3 col keys == 6 loops
 							for( String rowGroup : rowGroups ) {
+								String rawRowAttributeValue = dataElement.getAttribute(i, rowGroup ) ;
 								if( this.setValues != null ) {
-									// If this is changed such that 'other' is not always
-									// generated, make sure that all matching code is updated
-									// to reflecxt the implied filtering' Because that's hard to do
-									// if you want to exclude 'other' from a report set an appropriate
-									// filter in the view definition.
 									Map<String,String> setValuesForThisRowGroup = this.setValues.get( rowGroup ) ;
 									if( setValuesForThisRowGroup == null ) {
-										elementKey.append( dataElement.getAttribute( i, rowGroup ) ) ;
+										elementKey.append( rawRowAttributeValue ) ;
 									} else {
-										String replacementValue = setValuesForThisRowGroup.get( dataElement.getAttribute( i, rowGroup ) ) ;
-										elementKey.append( replacementValue==null ? "Other" : replacementValue ) ;
+										String replacementValue = setValuesForThisRowGroup.get( rawRowAttributeValue ) ;
+										elementKey.append( replacementValue==null ? rawRowAttributeValue : replacementValue ) ;
 									}
 								} else {
-									elementKey.append( dataElement.getAttribute( i, rowGroup ) ) ;
+									elementKey.append( rawRowAttributeValue ) ;
 								}
 
 								// now turn the key into a hashable thing

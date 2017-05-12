@@ -354,9 +354,6 @@ public class DataElementStore  implements DataElementProcessor {
 						matchedASetValue = true ;
 					}
 				}
-				if( !matchedASetValue && queryAttributeValues.contains( "Other" ) ) {
-					logger.info( "Will not match Other set values. Work to do here for negative tests" ) ;
-				}
 			}
 		}
 
