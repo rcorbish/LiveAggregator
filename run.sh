@@ -2,7 +2,7 @@
 
 CP=${CP:-build/resources/main}
 
-for l in build/libs/* 
+for l in build/libs/*.jar 
 do 
 	CP=$CP:$l 
 done 
@@ -11,6 +11,8 @@ for l in libs/*
 do 
 	CP=$CP:$l 
 done 
+
+CP=$CP:build/libs
 
 RAM_SIZE=$( free -g | awk 'NR==2 {print $4}' )
 BATCH_SIZE=$( free -g | awk 'NR==2 {print $4*1500}' )
