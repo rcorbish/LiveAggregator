@@ -12,7 +12,7 @@ do
 	CP=$CP:$l 
 done 
 
-CP=$CP:build/libs
+CP=$CP:build/libs:build/classes/test
 
 RAM_SIZE=$( free -g | awk 'NR==2 {print $4}' )
 BATCH_SIZE=$( free -g | awk 'NR==2 {print $4*1500}' )
