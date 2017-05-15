@@ -40,12 +40,17 @@ public class DataElementDataView  implements DataElementProcessor {
 	private static final int CLIENT_UPDATE_INTERVAL = 200 ;	
 	private static final int MAX_MESSAGES_TO_BUFFER = 300 ;
 
+	final long bloomFilter ;
+
 	private final Map<String,String[]> filters ; 	// what key = value is being filtered
 	private final Map<String,Map<String,String>> setValues ; 	// force change in value of an attribute on condition
 	private final String colGroups[] ; 				// what is getting grouped
 	private final String rowGroups[] ; 				// what is getting grouped
 
-	private final Map<String,DataViewElement>   dataViewElements ;	// raw dataViewElements that needs to be updated is stored here
+	// Map keyed on elementKey ( rows & column attribute values )
+	// The current (expanded) view is stored in here
+	private final Map<String,DataViewElement>   dataViewElements ;	
+
 	private final String viewName ;
 	private final String description ;
 
@@ -113,10 +118,25 @@ public class DataElementDataView  implements DataElementProcessor {
 		Map<String,String[]> tmp = new HashMap<>() ;
 		Map<String,String> rawFilters = viewDefinition.getFilters();
 		for( String k : rawFilters.keySet() ) {
-			tmp.put( k, DataElement.splitComponents(rawFilters.get(k)) )  ;
+			tmp.put( k, DataElement.splitComponents(rawFilters.get(k)) ) ;
 		}
 		this.filters = tmp.isEmpty() ? null : tmp ;		
-
+		//-----------------------------
+		// Now create the bloom filter for quick 
+		// kick out of non-matching elements
+		long bf = 0L ;
+		if( this.filters != null ) {
+			String[] ATTRIBUTE_NAMES = new String[] { "TRADEID", "CPTY", "BOOK", "PRODUCT", "EVENT" } ;
+			for( int i=0 ; i<ATTRIBUTE_NAMES.length ; i++ ) {  // @TODO fix this !!!!
+				bf <<= 10 ;
+				String atts[] = this.filters.get( ATTRIBUTE_NAMES[i] ) ;
+				if( atts == null ) continue ;
+				for( String att : atts ) {
+					bf |= att.hashCode() & 0x3ff ;
+				}
+			} 
+		}
+		this.bloomFilter = bf == 0L ? -1 : bf ;
 		//----------------------
 		// S E T   V A L U E S
 		//
@@ -246,6 +266,7 @@ public class DataElementDataView  implements DataElementProcessor {
 	 */
 	private boolean matchesCoreElements(DataElement element) {
 		if( filters != null  ) {
+			if( !element.quickMatchesCoreKeys( bloomFilter ) ) return false ;
 			for( String k : filters.keySet() ) {
 				String mustMatchOneOfThese[] = filters.get(k) ;
 				String att = element.getCoreAttribute( k ) ;
