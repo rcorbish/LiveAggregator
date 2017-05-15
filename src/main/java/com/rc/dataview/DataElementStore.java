@@ -40,7 +40,7 @@ public class DataElementStore  implements DataElementProcessor {
 	 * The singleton constructor. Sets up a huge hash map to store data
 	 */
 	private DataElementStore() {
-		currentElements =  new ConcurrentHashMap<>( 7_000_000 ) ;
+		currentElements =  new ConcurrentHashMap<>( 5_000_000 ) ;
 		availableViews = new HashMap<>() ;
 	}
 
@@ -114,7 +114,7 @@ public class DataElementStore  implements DataElementProcessor {
 	/**
 	 * Start a new batch - clear out existing data.
 	 * Note this is synchronized (with reprocess). We can't
-	 * reprocess & resend a batch at the same time.
+	 * reprocess and resend a batch at the same time.
 	 * 
 	 * @param deleteContents remove all current data elements ?
 	 */

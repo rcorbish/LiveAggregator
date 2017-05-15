@@ -30,7 +30,7 @@ public class ClientDataView  {
 	/**
 	 * Create one of these, called when a client connects.
 	 * It keeps a reference to the dataElementDataView and
-	 * the Ccommand processor (used to send messages to the client)
+	 * the Command processor (used to send messages to the client)
 	 * 
 	 * @param dataElementDataView
 	 * @param clientCommandProcessor

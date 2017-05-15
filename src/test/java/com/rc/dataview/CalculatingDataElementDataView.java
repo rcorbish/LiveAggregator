@@ -17,12 +17,27 @@ public class CalculatingDataElementDataView  extends  DataElementDataView {
 		factor = Float.parseFloat( arg ) ;
 	}
 
-	
+	/**
+	 * This is the usual process, method. In this case we calculate new
+	 * elements from the given one and add both to the data view.
+	 */
+	@Override
+	public void process( DataElement dataElement )  {
+		super.process( dataElement );
+		DataElement dataElementNew = calculate(dataElement) ;
+		if( dataElementNew != null ) {
+			super.process( dataElementNew );
+		}
+	}
+
+	/**
+	 * This is a simple Taylor series type calculation, as an example.
+	 */
 	public DataElement calculate( DataElement dataElement ) {
 		DataElement rc = null ;
 		DataElement sodDataElement = dataElementStore.get( dataElement.getInvariantKey()+"-SOD" ) ;
 		if( sodDataElement != null ) {
-			rc = sodDataElement.clone( dataElement.getInvariantKey()+"-P&L", "TYPE", "IR01", "P&L" ) ;
+			rc = sodDataElement.filteredClone( dataElement.getInvariantKey()+"-P&L", "TYPE", "IR01", "P&L" ) ;
 			if( rc != null ) {
 				for( int i=0 ; i<rc.size() ; i++ ) {
 					rc.set( i, factor * rc.getValue(i) ) ;
@@ -31,16 +46,6 @@ public class CalculatingDataElementDataView  extends  DataElementDataView {
 			return rc ;
 		}
 		return rc ;
-	}
-
-	
-	@Override
-	public void process( DataElement dataElement )  {
-		super.process( dataElement );
-		DataElement dataElementNew = calculate(dataElement) ;
-		if( dataElementNew != null ) {
-			super.process( dataElementNew );
-		}
 	}
 }
 

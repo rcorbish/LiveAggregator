@@ -15,9 +15,7 @@ public class DataViewElement {
 
 	/**
 	 * Adds a value to the cell in a view. If the value 
-	 * is non-zero the cell is marked as updated. If the cell
-	 * value is (very close to) zero it is marked as unused
-	 * and will be removed from the view
+	 * is non-zero the cell is marked as updated. 
 	 * 
 	 * @param value
 	 */

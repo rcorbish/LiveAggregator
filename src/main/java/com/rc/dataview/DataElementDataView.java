@@ -21,7 +21,7 @@ import com.rc.datamodel.DataElement;
  * This class represents the view. It maintains a view of
  * all possible (maximally expanded) data elements. Each connected
  * client view will be used to 'filter' down to the subset of
- * expanded cells for a partoicular client.
+ * expanded cells for a particular client.
  * 
  * It accepts dataViewElements element updates and processes them in 
  * real-time to keep a live view of the model subset. This is the 
@@ -30,15 +30,15 @@ import com.rc.datamodel.DataElement;
  * @author richard
  *
  */
-public class DataElementDataView  implements DataElementProcessor, Runnable {
+public class DataElementDataView  implements DataElementProcessor {
 
 	final static Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
 
 	final DataElementStore dataElementStore ;
 
 	// How often to send an update to the client (millis)
-	public static final int CLIENT_UPDATE_INTERVAL = 200 ;	
-	public static final int MAX_MESSAGES_TO_BUFFER = 300 ;
+	private static final int CLIENT_UPDATE_INTERVAL = 200 ;	
+	private static final int MAX_MESSAGES_TO_BUFFER = 300 ;
 
 	private final Map<String,String[]> filters ; 	// what key = value is being filtered
 	private final Map<String,Map<String,String>> setValues ; 	// force change in value of an attribute on condition
@@ -87,7 +87,8 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 * Constructor - parse the view definition into useable data formats
 	 * Initialize, but don't start, the threads.
 	 * Make sure start() is called at somepoint ...
-	 * Don't call this directly - use the static create method
+	 * Don't call this directly - use the static create method. This needs to be public
+	 * because of the reflection in the create.
 	 * 
 	 * @see #create(ViewDefinition)
 	 * @see #start()
@@ -141,12 +142,16 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
  * 
  */
 	public void start() {
-		messageSender = new Thread( this ) ;
+		messageSender = new Thread( new Runnable() {
+			public void run() {
+				senderThread() ;
+			}
+		} ) ;
 		messageSender.start();
 
 		messageReceiver = new Thread( new Runnable() {
 			public void run() {
-				run2() ;
+				receiverThread() ;
 			}
 		} ) ;
 		messageReceiver.start() ;
@@ -217,13 +222,11 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		if( filters != null  ) {
 			for( String k : filters.keySet() ) {
 				String mustMatchOneOfThese[] = filters.get(k) ;
+				String att = element.getAttribute( index, k ) ;
 				boolean matchedOneOfthese = false ;
 				for( String couldMatchThis : mustMatchOneOfThese ) {
-					String att = element.getAttribute( index, k ) ;
-					if( att != null ) {
-						matchedOneOfthese |= att.equals( couldMatchThis ) ;
-						if( matchedOneOfthese ) break ;
-					}
+					matchedOneOfthese |= att.equals( couldMatchThis ) ;
+					if( matchedOneOfthese ) break ;
 				}
 				rc &= matchedOneOfthese ;
 				if( !rc ) break ;
@@ -332,7 +335,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 * This method probably consumes 90% of the CPU capacity - be careful editing
 	 * 
 	 */
-	public void run2() {
+	public void receiverThread() {
 		Thread.currentThread().setName( "Receiver " + this.getViewName() ) ;
 		try {
 			while( !Thread.currentThread().isInterrupted() ) {
@@ -358,15 +361,16 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 						for( String colGroup : colGroups ) {
 							// add the next piece to the cumulative column key
 							String rawColAttributeValue = dataElement.getAttribute(i, colGroup ) ;
+							// will we rename any values ( i.e. part of a group ) ?
 							if( this.setValues != null ) {
 								Map<String,String> setValuesForThisColGroup = this.setValues.get( colGroup ) ;
-								if( setValuesForThisColGroup == null ) {
+								if( setValuesForThisColGroup == null ) {  // no renaming defined
 									colKeyPiece.append( rawColAttributeValue ) ;
-								} else {
+								} else { // rename defined - use the group (or original name)
 									String replacementValue = setValuesForThisColGroup.get( rawColAttributeValue ) ;
 									colKeyPiece.append( replacementValue==null ? rawColAttributeValue : replacementValue ) ;
 								}
-							} else {
+							} else { // no grouping defined at all
 								colKeyPiece.append( rawColAttributeValue ) ;
 							}
 							// restart the cartesian key at empty
@@ -379,16 +383,16 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 							// cartesian ... 2 row keys & 3 col keys == 6 loops
 							for( String rowGroup : rowGroups ) {
 								String rawRowAttributeValue = dataElement.getAttribute(i, rowGroup ) ;
-								if( this.setValues != null ) {
+								if( this.setValues != null ) {  // any grouping defined?
 									Map<String,String> setValuesForThisRowGroup = this.setValues.get( rowGroup ) ;
-									if( setValuesForThisRowGroup == null ) {
+									if( setValuesForThisRowGroup == null ) { // no groups defined for this section
 										elementKey.append( rawRowAttributeValue ) ;
-									} else {
+									} else { // group is defined so rename if attribte matches or keep the original
 										String replacementValue = setValuesForThisRowGroup.get( rawRowAttributeValue ) ;
 										elementKey.append( replacementValue==null ? rawRowAttributeValue : replacementValue ) ;
 									}
-								} else {
-									elementKey.append( rawRowAttributeValue ) ;
+								} else { 
+									elementKey.append( rawRowAttributeValue ) ;  // no groups defined
 								}
 
 								// now turn the key into a hashable thing
@@ -492,8 +496,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 * The start() method must be called after construction.
 	 * 
 	 */
-	@Override
-	public void run() {
+	public void senderThread() {
 		Thread.currentThread().setName( "Sender " + getViewName() );
 		while( messageSender!=null && !messageSender.isInterrupted() ) {
 			try {
@@ -521,7 +524,7 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		messageSender = null ;
 	} 
 
-	public DataElementStore getDataElementStore() {
+	protected DataElementStore getDataElementStore() {
 		return dataElementStore;
 	}
 

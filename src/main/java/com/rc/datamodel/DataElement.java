@@ -200,6 +200,19 @@ public class DataElement  {
 	}
 
 	/**
+	 * Return the value of the perimiter attribute given the name of the attribute. 
+	 * The attributeName is used to find the index of the attribute.  
+	 * 
+	 * @param index the DataElement value in the DataElement
+	 * @param attributeName 
+	 * @return the value of the given attribute key or null if NOT a perimiter attribute
+	 */
+	public String getPerimiterAttribute( int index, String attributeName ) {
+		int ix = attributes.getAttributeIndex(attributeName) ;		
+		return ix>coreValues.length ? perimeterValues[index][ix-coreValues.length] : null ;
+	}
+
+	/**
 	 * How many values exist in this DataElement. 
 	 * 
 	 * @return the number of values in this instance
@@ -314,14 +327,14 @@ public class DataElement  {
 	 * example:
 	 * <pre>
 	 * 
-	 * 	input = [ inv-key=6743, CCY=USD, DOB='12/25/2000', GENDER='M']
-	 *  clone( '6743-age', DOB, null, null )
-	 *  output = [ inv-key=6743-age, DOB='12/25/2000']
+	 * 	input = { inv-key=6743, CCY=USD, DOB='12/25/2000', [ WEIGHT='170', value=100.0f ], [ WEIGHT='150', value=100.0f ] }
+	 * 	clone( '6743-age', WEIGHT, '170', 'XL' )
+	 * 	output = { inv-key=6743-age, DOB='12/25/2000', [ WEIGHT='XL', value=100.0f ] }
 	 *  
 	 * </pre>
 	 * 
-	 * The above output can be used to calculate an age from the DOB as part of
-	 * a calculating view
+	 * The above output can be used to calculate an size from the weight as part of
+	 * a calculating view. <need a better example>
 	 *   
 	 * @param invariantKey the unique ID of the key to find in the data store
 	 * @param attributeName the name of the attribute category to match
@@ -330,7 +343,7 @@ public class DataElement  {
 	 * @return a new DataElement - if not matches are found this may be null 
 	 * 
 	 */
-	public DataElement clone( String invariantKey, String attributeName, String from, String to ) {
+	public DataElement filteredClone( String invariantKey, String attributeName, String from, String to ) {
 
 		String newPerimeterValues[][] = new String[size()][] ;
 		int valueIndices[] = new int[ size() ] ;
