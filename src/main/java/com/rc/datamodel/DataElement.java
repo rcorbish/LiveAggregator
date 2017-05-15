@@ -1,5 +1,6 @@
 package com.rc.datamodel;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -8,7 +9,9 @@ import java.util.regex.Pattern;
  * A DataElement represents an input to the aggregator. It may be the result of
  * a calculation for example that will be presented to the viewer.
  * 
- * One DataElement contains several DataElement values
+ * One DataElement contains several DataElement values.
+ * 
+ * <b>The class is immutable</b>
  * 
  * A DataElement value consists of a single value. Each value is labelled by
  * text labels. Text labels come in two varieties: core values and perimeter values.
@@ -28,7 +31,7 @@ import java.util.regex.Pattern;
  * @author richard
  *
  */
-public class DataElement {
+public class DataElement  {
 
 	public static final char ROW_COL_SEPARATION_CHAR = '\f' ;
 	public static final char SEPARATION_CHAR = '\t' ;
@@ -109,6 +112,18 @@ public class DataElement {
 		this.values[index] = value ;		
 	}
 	
+	
+	/**
+	 * Sets the nth value in the DataElement 
+	 * 
+	 * @param index the DataElement value in the DataElement
+	 * @param value
+	 */
+	public void set( int index, float value ) {
+		this.values[index] = value ;		
+	}
+	
+	
 	/**
 	 * Negate each value in the DataElement. This can be used to remove a previous
 	 * copy from totals by adding the negative value of the values to the previous total.  
@@ -160,6 +175,16 @@ public class DataElement {
 		return ix<0 ? attributeName : ix<coreValues.length ? coreValues[ix] : perimeterValues[index][ix-coreValues.length] ;
 	}
 
+	/**
+	 * Find the index of the named attribute
+	 * 
+	 * @param attributeName
+	 * @return the zero based index of the attribute
+	 */
+	public int getAttributeIndex( String attributeName ) {
+		return attributes.getAttributeIndex(attributeName) ;
+	}
+	
 	
 	/**
 	 * Get the core attribute label from the core attributes. For example
@@ -182,7 +207,8 @@ public class DataElement {
 	public int size() {
 		return values.length ;
 	}
-	
+
+
 		
 
 	/**
@@ -277,5 +303,54 @@ public class DataElement {
 
 	public String toString() {
 		return invariantKey + "=>" + values[0] ;
+	}
+	
+	/**
+	 * Creates a copy of an element, the copy containes only elements matching a certain 
+	 * attribute-value rule. . In addition the value of the attribute is changed to a given
+	 * value. This is used as part of the calculation code, which calculates new values
+	 * from existing values. 
+	 * 
+	 * example:
+	 * <pre>
+	 * 
+	 * 	input = [ inv-key=6743, CCY=USD, DOB='12/25/2000', GENDER='M']
+	 *  clone( '6743-age', DOB, null, null )
+	 *  output = [ inv-key=6743-age, DOB='12/25/2000']
+	 *  
+	 * </pre>
+	 * 
+	 * The above output can be used to calculate an age from the DOB as part of
+	 * a calculating view
+	 *   
+	 * @param invariantKey the unique ID of the key to find in the data store
+	 * @param attributeName the name of the attribute category to match
+	 * @param from the value of the attribute to match
+	 * @param to the new value of the attribute in the returned element
+	 * @return a new DataElement - if not matches are found this may be null 
+	 * 
+	 */
+	public DataElement clone( String invariantKey, String attributeName, String from, String to ) {
+
+		String newPerimeterValues[][] = new String[size()][] ;
+		int valueIndices[] = new int[ size() ] ;
+		
+		DataElement rc = null ;
+		int ix = 0 ;
+		for( int i=0 ; i<size() ; i++ ) {
+			if( getAttribute(i, attributeName ).equals( from ) ) {
+				newPerimeterValues[ix] = Arrays.copyOf( perimeterValues[i],perimeterValues[i].length ) ;
+				newPerimeterValues[ix][0] = to ;
+				valueIndices[ix] = i ;
+				ix++ ;
+			}
+		}
+		if( ix > 0 ) {
+			rc = new DataElement(ix, this.attributes, this.coreValues, invariantKey ) ;
+			for( int i=0 ; i<ix ; i++ ) {
+				rc.set(i, newPerimeterValues[i], values[valueIndices[i]] );				
+			}
+		}
+		return rc ;		
 	}
 }

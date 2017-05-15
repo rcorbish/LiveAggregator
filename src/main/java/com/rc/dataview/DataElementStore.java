@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,15 +116,18 @@ public class DataElementStore  implements DataElementProcessor {
 	 * Note this is synchronized (with reprocess). We can't
 	 * reprocess & resend a batch at the same time.
 	 * 
+	 * @param deleteContents remove all current data elements ?
 	 */
-	public synchronized void startBatch() {
+	public synchronized void startBatch( boolean deleteContents ) {
 		// prevent updates during initial population
 		serverBatchComplete = false ;
-		// remove any existing (old) data
-		clear() ;
+		// remove any existing (old) data?
+		if( deleteContents ) {
+			clear() ;
+		}
 
 		for( DataElementDataView dedv : availableViews.values() ) {
-			dedv.startBatch() ;
+			dedv.startBatch( deleteContents ) ;
 		}
 	}
 
@@ -145,7 +149,7 @@ public class DataElementStore  implements DataElementProcessor {
 		Map<String,DataElementDataView>	futureAvailableViews = new HashMap<>() ; 
 
 		for( ViewDefinition vd : viewDefinitions.getViewDefinitions() ) {
-			DataElementDataView dedv = DataElementDataView.create( vd ) ;			
+			DataElementDataView dedv = DataElementDataView.create( this, vd ) ;			
 			futureAvailableViews.put( dedv.getViewName(), dedv ) ;
 		}
 
@@ -346,12 +350,10 @@ public class DataElementStore  implements DataElementProcessor {
 				
 				Map<String,String> viewAttributeSets = viewSets.get( attributeName ) ;
 
-				boolean matchedASetValue = false ;
 				for( String viewRemappedFrom : viewAttributeSets.keySet() ) {
 					String viewRemappedTo = viewAttributeSets.get( viewRemappedFrom ) ;
 					if( queryAttributeValues.contains( viewRemappedTo ) ) {
 						queryAttributeValues.add( viewRemappedFrom ) ;
-						matchedASetValue = true ;
 					}
 				}
 			}
@@ -390,7 +392,7 @@ public class DataElementStore  implements DataElementProcessor {
 		Comparator<String[]> comparator = new Comparator<String[]>() {
 			@Override
 			public int compare(String[] o1, String[] o2) {
-				float f = Math.abs( Float.parseFloat(o2[0]) ) - Math.abs( Float.parseFloat(o1[0]) ) ;
+				float f = Math.abs( Float.parseFloat(o2[1]) ) - Math.abs( Float.parseFloat(o1[1]) ) ;
 				return f<0 ? -1 : ( f>0 ) ? 1 : 0  ;
 			}
 		};
@@ -406,8 +408,8 @@ public class DataElementStore  implements DataElementProcessor {
 			if( value.matchesCoreKeys( matchingTests ) ) {		
 				for( int i=0 ; i<value.size() ; i++ ) {				
 					if( value.matchesPerimiterKeys(i, matchingTests)) {
-						String tmp[] = new String[attributeNames.length + 1] ;
-						int ix = 1 ;
+						String tmp[] = new String[attributeNames.length + 2] ;
+						int ix = 2 ;
 						for( String valueAttributeName : attributeNames ) {
 							tmp[ix] = value.getAttribute( i, valueAttributeName ) ;
 							ix++ ;
@@ -420,7 +422,8 @@ public class DataElementStore  implements DataElementProcessor {
 							decidedToAddToList = true;
 						}
 						if(decidedToAddToList) {
-							tmp[0] = String.valueOf( value.getValue(i) ) ;
+							tmp[0] = value.getInvariantKey() ;
+							tmp[1] = String.valueOf( value.getValue(i) ) ;
 							rc.add( tmp ) ;
 							// We won't chop the list every time. Keep a bigger list
 							// to reduce sorting. We can clean up at the end
@@ -430,7 +433,7 @@ public class DataElementStore  implements DataElementProcessor {
 									rc.remove( limit - 1 ) ;
 								} ;
 								String s[] = rc.get( limit-1 ) ;
-								currentMax = Math.abs( Float.parseFloat(s[0]) ) ;
+								currentMax = Math.abs( Float.parseFloat(s[1]) ) ;
 							}
 						}
 					}
@@ -446,17 +449,18 @@ public class DataElementStore  implements DataElementProcessor {
 		// Make the numbers pretty - to print in a report
 		DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
 		for( int i=0 ; i<rc.size() ; i++ ) {
-			rc.get(i)[0] = numberFormatter.format( Float.parseFloat( rc.get(i)[0] ) ) ;
+			rc.get(i)[1] = numberFormatter.format( Float.parseFloat( rc.get(i)[1] ) ) ;
 		}		
 		//
 		// Add in a header row if we found anything.
 		//
 		if( attributeNames != null ) {
-			String tmp[] = new String[ attributeNames.length + 1] ;
-			for( int i=1 ; i<tmp.length ; i++ ) {
-				tmp[i] = attributeNames[i-1] ;						
+			String tmp[] = new String[ attributeNames.length + 2] ;
+			for( int i=2 ; i<tmp.length ; i++ ) {
+				tmp[i] = attributeNames[i-2] ;						
 			}
-			tmp[0] = "Value" ;
+			tmp[0] = "Key" ;
+			tmp[1] = "Value" ;
 			rc.add( 0, tmp ) ;
 		}
 		
@@ -469,6 +473,6 @@ public class DataElementStore  implements DataElementProcessor {
 	 */
 	public String toString() {
 		return "Data Store containing " + currentElements.size() + 
-		" elements. Batch is " + (serverBatchComplete? "complete." : "processing.")  ; 
+		" elements. Batch is " + (serverBatchComplete? "complete." : "processing.") ; 
 	}
 }

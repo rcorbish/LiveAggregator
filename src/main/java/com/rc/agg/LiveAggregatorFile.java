@@ -51,7 +51,7 @@ public class LiveAggregatorFile  {
 		File dataFile = new File( fileName ) ;
 		logger.info( "Starting to process {}", dataFile ); 
 		
-		aggregator.startBatch();
+		aggregator.startBatch( true );
 		int lineNumber = 0 ;
 		
  		try ( FileInputStream fis = new FileInputStream(dataFile) ;

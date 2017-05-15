@@ -831,6 +831,13 @@ td.selected {
 				if( key === 'GBP' ) return '03' ;
 				if( key === 'JPY' ) return '03' ;
 			}
+			if( attributeName === 'EVENT' ) {
+				if( key === 'SOD' ) return '00' ;
+				if( key === 'NEW' ) return '01' ;
+				if( key === 'AMD' ) return '02' ;
+				if( key === 'CXL' ) return '03' ;
+				if( key === 'NOW' ) return '04' ;
+			}
 			
 			if( attributeName === 'TENOR' ) {
 				var daysFromNow = 0 ;
@@ -1140,12 +1147,13 @@ td.selected {
 			if( data.length > 1 ) {
 				var tbl = "<h3>Largest " + (data.length-1) + "</h3><table id='raw-data'>" ;
 
-				for( var j=0 ; j<data[0].length ; j++ ) {
+				// element 0 = the invariantKey				
+				for( var j=1 ; j<data[0].length ; j++ ) {
 					tbl += "<th>" + data[0][j] + "</th>" ;
 				}
 				for( var i=1 ; i<data.length ; i++ ) {
-					tbl += "<tr><td>" + data[i][0] + "</td>" ;
-					tbl += "<td class='underlying-data-value' onclick=\"inspectItem('" + data[i][1] + "')\">" + data[i][1] + "</td>" ;
+					tbl += "<tr onclick=\"inspectItem('" + data[i][0] + "')\"><td>" + data[i][1] + "</td>" ;
+//					tbl += "<td class='underlying-data-value'>" + data[i][1] + "</td>" ;
 					for( var j=2 ; j<data[i].length ; j++ ) {
 						tbl += "<td>" + data[i][j] + "</td>" ;
 					}

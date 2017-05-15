@@ -34,6 +34,8 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 
 	final static Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
 
+	final DataElementStore dataElementStore ;
+
 	// How often to send an update to the client (millis)
 	public static final int CLIENT_UPDATE_INTERVAL = 200 ;	
 	public static final int MAX_MESSAGES_TO_BUFFER = 300 ;
@@ -57,7 +59,8 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 * a special class that will be used instead of this parent instance.
 	 * @param viewDefinition the definition of the View - from config
 	 */
-	static public DataElementDataView create( ViewDefinition viewDefinition ) {
+	static public DataElementDataView create( DataElementStore dataElementStore, ViewDefinition viewDefinition ) {
+		
 		Class<? extends DataElementDataView> clazz = viewDefinition.getImplementingClass() ;
 		logger.info( "Creating instance of {} for view {}", clazz.getCanonicalName(), viewDefinition.getName() ) ;
 		String constructorArg = viewDefinition.getConstructorArg() ;
@@ -65,17 +68,21 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 		try {
 			if( constructorArg != null ) {
 				logger.debug( "Passing {} as constructor arg for view {}", constructorArg, viewDefinition.getName()) ;
-				Constructor<? extends DataElementDataView> ctor = clazz.getConstructor( ViewDefinition.class, String.class ) ;
-				rc = ctor.newInstance(viewDefinition, constructorArg) ;
+				Constructor<? extends DataElementDataView> ctor = clazz.getConstructor( DataElementStore.class, ViewDefinition.class, String.class ) ;
+				rc = ctor.newInstance( dataElementStore, viewDefinition, constructorArg ) ;
 			} else {
-				Constructor<? extends DataElementDataView> ctor = clazz.getConstructor(ViewDefinition.class) ;
-				rc = ctor.newInstance( viewDefinition) ;
+				Constructor<? extends DataElementDataView> ctor = clazz.getConstructor( DataElementStore.class, ViewDefinition.class) ;
+				rc = ctor.newInstance( dataElementStore, viewDefinition ) ;
 			}
 		} catch( Exception e ) {
-			logger.error( "Failed to create instance of DataElementDataView", e ) ;
+			logger.error( "Failed to create instance of DataElementDataView using new {}( DataElementStore,  {} )", 
+							clazz.getCanonicalName(), (constructorArg == null ? "" : constructorArg) ) ;
+			throw new RuntimeException( e ) ;
 		}
 		return rc ;
 	}
+	
+	
 	/**
 	 * Constructor - parse the view definition into useable data formats
 	 * Initialize, but don't start, the threads.
@@ -86,7 +93,9 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	 * @see #start()
 	 * @param viewDefinition
 	 */
-	public DataElementDataView( ViewDefinition viewDefinition ) {
+	public DataElementDataView( DataElementStore dataElementStore, ViewDefinition viewDefinition ) {
+
+		this.dataElementStore = dataElementStore ;
 
 		this.serverBatchComplete = false ;
 		this.clientViews = new ArrayList<>() ;
@@ -411,15 +420,27 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 	}
 
 
-
-	public void startBatch() {		
+	/**
+	 * When the server starts a new bntch of data, this is called
+	 * it sets a flag - which indicates to suspends messaging to
+	 * the clients.
+	 * 
+	 * @param deleteContents - clear all current data content?
+	 */
+	public void startBatch( boolean deleteContents ) {		
 		serverBatchComplete = false ;
-		messagesToProcess.clear();
-		for( DataViewElement dve : dataViewElements.values() ) {
-			dve.markUnused();
+		if( deleteContents ) {
+			messagesToProcess.clear();			
+			for( DataViewElement dve : dataViewElements.values() ) {
+				dve.markUnused() ;
+			}
 		}
 	}
 
+	/**
+	 * Restart sending updates to the clients
+	 * 
+	 */
 	public void endBatch() {
 		serverBatchComplete = true ;
 	}
@@ -463,6 +484,14 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 				;
 	}
 
+	/**
+	 * This monitors each element in the cache, sending any changed or
+	 * deleted elements to the client. If any client is closed it will 
+	 * be deleted from the active client list.
+	 * 
+	 * The start() method must be called after construction.
+	 * 
+	 */
 	@Override
 	public void run() {
 		Thread.currentThread().setName( "Sender " + getViewName() );
@@ -474,22 +503,27 @@ public class DataElementDataView  implements DataElementProcessor, Runnable {
 				}
 
 				ListIterator<ClientDataView> iter = clientViews.listIterator();
-				while(iter.hasNext()){
-					if(iter.next().isClosed() ){
-						iter.remove();
-						logger.info( "Removing closed ClientDataView." ) ;
+				while( iter.hasNext() ) {
+					ClientDataView cdv = iter.next() ; 
+					if(cdv.isClosed() ) {
+						iter.remove() ;
+						logger.info( "Removing closed ClientDataView {}", cdv ) ;
 					}
 				}
 
 			} catch( InterruptedException ignore ) {
 				break ;
 			} catch( Throwable t ) {
-				logger.error( "Error sending updates: ", t ) ;
+				logger.error( "Error sending updates.", t ) ;
 			}
 		}
-		logger.info( "Message sender for {} is shutdown.", getViewName() ) ;
+		logger.warn( "Message sender for {} is shutdown.", getViewName() ) ;
 		messageSender = null ;
 	} 
+
+	public DataElementStore getDataElementStore() {
+		return dataElementStore;
+	}
 
 }
 

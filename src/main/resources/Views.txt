@@ -49,11 +49,17 @@ DG4.SET=BOOK=Book-2=BookX
 # View definition for DG5
 #
 DG5.DESC=DG5: aka DG4
-DG5.FILTER=TYPE=NPV
+DG5.FILTER=TYPE=IR01
+DG5.FILTER=TYPE=P&L
+DG5.FILTER=CCY=USD
 DG5.FILTER=BOOK=Book-1
 DG5.FILTER=BOOK=Book-2
-#DG5.ROW=TYPE
-DG5.COL=CCY
+DG5.ROW=Total
+DG5.ROW=TENOR
+DG5.COL=TYPE
+DG5.COL=EVENT
+DG5.CLASS=com.rc.dataview.CalculatingDataElementDataView
+DG5.CLASS_ARG=-2.0
 
 #-----------------------------
 # View definition for DG6

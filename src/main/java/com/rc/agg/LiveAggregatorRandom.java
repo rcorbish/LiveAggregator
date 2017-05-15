@@ -21,14 +21,15 @@ public class LiveAggregatorRandom  {
 	private final LiveAggregator aggregator ;
 
 	private String CCYS[] = new String[] { "USD", "CAD", "EUR", "GBP", "JPY", "SEK", "AUD", "HKD" } ;
-	private String TYPES[] = new String[] { "IR01", "NPV", "P&L" } ;
+	private String EVENTS[] = new String[] { "SOD", "NOW"  } ;
+	private String TYPES[] = new String[] { "IR01", "NPV", "PV" } ;
 	private String TENORS[] = new String[] { "JAN-18", "DEC-19", "2018-12-15", "2017-10-01","2018-02-15","O/N", "1B", "1D", "3D", "1M", "3M", "6M", "9M", "1Y", "2Y", "3Y", "4Y", "5Y", "6Y", "7Y", "8Y", "9Y", "10Y", "15Y", "20Y", "25Y", "30Y", "50Y" } ;
 	private String PRODUCTS[] = new String[] { "SWAP", "FRA", "XCCY", "MMKT", "FEE", "CAP" } ;
 	private String BOOKS[] = new String[] { "Book-1", "Book-2", "Book-3", "Book-4", "Book-5", "Book-6" } ;
 	private String CPTYS[] = new String[] { "Big Co.", "A Bank", "Bank 2", "Fund 1", "H Fund", "A govt.", "Rand Co." } ;
 
-	private final static String[] ATTRIBUTE_NAMES = new String[] { "TRADEID", "CPTY", "BOOK", "PRODUCT", "TYPE", "TENOR", "CCY" } ; 
-	private final static int NUM_CORE_ATTRIBUTES = 4 ;
+	private final static String[] ATTRIBUTE_NAMES = new String[] { "TRADEID", "CPTY", "BOOK", "PRODUCT", "EVENT", "TYPE", "TENOR", "CCY" } ; 
+	private final static int NUM_CORE_ATTRIBUTES = 5 ;
 	
 	public LiveAggregatorRandom() throws IOException {
 		this.aggregator = new LiveAggregator() ;
@@ -72,13 +73,17 @@ public class LiveAggregatorRandom  {
 		final int DATA_POINTS_PER_ELEMENT = dataPointsPerItem ;
 		final int N = numBatches * batchSize ;
 		final int BATCH_SIZE = batchSize ;
-		logger.info( "Starting server. URL is [server-name]:8111/Client.html" ); 
+		logger.info( "Starting server. URL is [server-name]:8111/Client.html" );
+		
+		boolean sod = true ;
 		for( ; ; ) {
 			long startTime = System.currentTimeMillis() ;
-			logger.info( "Restarting processing of data" ) ;
+			logger.info( "Restarting processing of data ..." ) ;
 			ExecutorService executor = Executors.newFixedThreadPool( 3 ) ;
-			aggregator.startBatch() ;
-
+			aggregator.startBatch( sod ) ;
+			
+			final String invariantKeySuffix = sod ? "-SOD" : "";
+			
 			// FIRST create an initial view - send updates & stuff
 			for( int i=0 ; i<N ; i+=BATCH_SIZE ) {
 				final int START = i ;
@@ -86,7 +91,7 @@ public class LiveAggregatorRandom  {
 						new Runnable() {
 							public void run() {
 								try { 
-									Thread.currentThread().setName( "Start: " + START );
+									Thread.currentThread().setName( "Test Sender: " + START + "-" + (START+BATCH_SIZE) );
 									for( int n=0 ; n<BATCH_SIZE ; n++ ) {
 										final String invariantKey = String.valueOf(n+START) ;
 										int ix = random.nextInt(17) ;
@@ -95,18 +100,19 @@ public class LiveAggregatorRandom  {
 												dae,
 												new String[] { 
 														invariantKey,
-														CPTYS[ ix % CPTYS.length ],
-														BOOKS[ ix % BOOKS.length ],
-														PRODUCTS[ ix % PRODUCTS.length ]
+														CPTYS[ random.nextInt( CPTYS.length ) ],
+														BOOKS[ random.nextInt( BOOKS.length ) ],
+														PRODUCTS[ random.nextInt( PRODUCTS.length ) ],
+														EVENTS[ invariantKeySuffix.length() > 0 ? 0 : 1 ]
 												},
-												invariantKey
+												(invariantKey + invariantKeySuffix)
 												) ;				
 										for( int j=0 ; j<de.size() ; j++, ix++ ) {
 											de.set(j,
 													new String[] { 
-															TYPES[ ix % TYPES.length ],
-															TENORS[ ix % TENORS.length ],
-															CCYS[ ix % CCYS.length ]
+															TYPES[ random.nextInt( TYPES.length ) ],
+															TENORS[ random.nextInt( TENORS.length ) ],
+															CCYS[ random.nextInt( CCYS.length ) ]
 											},
 													(random.nextInt( 1001 ) - 500) / 10.f
 													) ;
@@ -114,11 +120,12 @@ public class LiveAggregatorRandom  {
 										aggregator.process( de ) ;
 									}
 								} catch( Throwable t ) {
-									logger.error( "Test thread Failed!!!!", t ) ;
+									logger.error( ">>>>> Sender test thread error!", t ) ;
 								}
 							}
 						} ) ;
 			}
+			
 			executor.shutdown() ;  // wait for initial view to finish generating
 			if( !executor.awaitTermination( 10, TimeUnit.MINUTES ) ) {
 				throw new Error( "Horror of horrors - we timed out (10 mins) waiting for the initial load.");
@@ -126,10 +133,9 @@ public class LiveAggregatorRandom  {
 			logger.info( "Finished processing {} cells in {} mS", decimalFormat.format(N), decimalFormat.format( (System.currentTimeMillis() - startTime) ) );
 			startTime = System.nanoTime() ;
 			aggregator.endBatch();
+			sod = false ;
 
 			long tPlus5Mins = System.currentTimeMillis() + (5 * 60 * 1000) ;
-
-			//int invariantKey = 0 ;
 
 			// Now send random crap for 5 mins
 			while( System.currentTimeMillis()<tPlus5Mins ) {
@@ -141,7 +147,8 @@ public class LiveAggregatorRandom  {
 								invariantKey,
 								CPTYS[ random.nextInt(CPTYS.length) ],
 								BOOKS[ random.nextInt(BOOKS.length) ],
-								PRODUCTS[ random.nextInt(PRODUCTS.length) ]
+								PRODUCTS[ random.nextInt(PRODUCTS.length) ],
+								EVENTS[1]
 						},
 						invariantKey
 						) ;				

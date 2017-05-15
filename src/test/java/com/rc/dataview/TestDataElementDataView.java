@@ -9,8 +9,8 @@ import com.rc.datamodel.DataElement;
 public class TestDataElementDataView extends DataElementDataView {
 	final static Logger logger = LoggerFactory.getLogger( TestDataElementDataView.class ) ;
 
-    public TestDataElementDataView(ViewDefinition viewDefinition, String arg ) {
-        super( viewDefinition ) ;
+    public TestDataElementDataView(DataElementStore des, ViewDefinition viewDefinition, String arg ) {
+        super( des, viewDefinition ) ;
         logger.info( "Creating new class {} with arg {}", getClass().getCanonicalName(), arg ) ;
     }
 
