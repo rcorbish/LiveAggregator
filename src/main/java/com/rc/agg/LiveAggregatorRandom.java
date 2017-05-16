@@ -20,13 +20,13 @@ public class LiveAggregatorRandom  {
 
 	private final LiveAggregator aggregator ;
 
-	private String CCYS[] = new String[] { "USD", "CAD", "EUR", "GBP", "JPY", "SEK", "AUD", "HKD" } ;
-	private String EVENTS[] = new String[] { "SOD", "NOW"  } ;
-	private String TYPES[] = new String[] { "IR01", "NPV", "PV" } ;
-	private String TENORS[] = new String[] { "JAN-18", "DEC-19", "2018-12-15", "2017-10-01","2018-02-15","O/N", "1B", "1D", "3D", "1M", "3M", "6M", "9M", "1Y", "2Y", "3Y", "4Y", "5Y", "6Y", "7Y", "8Y", "9Y", "10Y", "15Y", "20Y", "25Y", "30Y", "50Y" } ;
-	private String PRODUCTS[] = new String[] { "SWAP", "FRA", "XCCY", "MMKT", "FEE", "CAP" } ;
-	private String BOOKS[] = new String[] { "Book-1", "Book-2", "Book-3", "Book-4", "Book-5", "Book-6" } ;
-	private String CPTYS[] = new String[] { "Big Co.", "A Bank", "Bank 2", "Fund 1", "H Fund", "A govt.", "Rand Co." } ;
+	private static String CCYS[] = new String[] { "USD", "CAD", "EUR", "GBP", "JPY", "SEK", "AUD", "HKD" } ;
+	private static String EVENTS[] = new String[] { "SOD", "NOW"  } ;
+	private static String TYPES[] = new String[] { "IR01", "NPV", "PV" } ;
+	private static String TENORS[] = new String[] { "JAN-18", "DEC-19", "2018-12-15", "2017-10-01","2018-02-15","O/N", "1B", "1D", "3D", "1M", "3M", "6M", "9M", "1Y", "2Y", "3Y", "4Y", "5Y", "6Y", "7Y", "8Y", "9Y", "10Y", "15Y", "20Y", "25Y", "30Y", "50Y" } ;
+	private static String PRODUCTS[] = new String[] { "SWAP", "FRA", "XCCY", "MMKT", "FEE", "CAP" } ;
+	private static String BOOKS[] = new String[] { "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Theta" } ;
+	private static String CPTYS[] = new String[] { "Big Co.", "A Bank", "Bank 2", "Fund 1", "H Fund", "A govt.", "Rand Co." } ;
 
 	private final static String[] ATTRIBUTE_NAMES = new String[] { "TRADEID", "CPTY", "BOOK", "PRODUCT", "EVENT", "TYPE", "TENOR", "CCY" } ; 
 	private final static int NUM_CORE_ATTRIBUTES = 5 ;
@@ -37,6 +37,12 @@ public class LiveAggregatorRandom  {
 
 	public static void main(String[] args) {
 
+		/*
+		for( int i=0 ; i<BOOKS.length ; i++ ) {
+			System.out.println( BOOKS[i] + " " + ( BOOKS[i].hashCode() & 0x3ff ) ) ;
+		}
+		System.exit( 1 ); 
+		*/
 		LiveAggregatorRandom self = null ;
 		try {
 			int numBatches = 1_000 ;

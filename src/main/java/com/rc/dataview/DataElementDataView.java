@@ -265,8 +265,8 @@ public class DataElementDataView  implements DataElementProcessor {
 	 * @return
 	 */
 	private boolean matchesCoreElements(DataElement element) {
-		if( filters != null  ) {
-			if( !element.quickMatchesCoreKeys( bloomFilter ) ) return false ;
+		if( filters != null && bloomFilter != -1 ) {
+			//if( !element.quickMatchesCoreKeys( bloomFilter ) ) return false ;
 			for( String k : filters.keySet() ) {
 				String mustMatchOneOfThese[] = filters.get(k) ;
 				String att = element.getCoreAttribute( k ) ;

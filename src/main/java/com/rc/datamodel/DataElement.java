@@ -47,7 +47,7 @@ public class DataElement  {
 	 */
 	private final DataElementAttributes attributes ;	
 	
-	private final long bloomFilter ;
+	//private final long bloomFilter ;
 
 	private final String coreValues[] ;			// the core labels
 	private final String perimeterValues[][] ;	// the perimiter labels
@@ -89,12 +89,14 @@ public class DataElement  {
 		this.coreValues 	= coreValues ;
 		values 				= new float[length] ;
 		perimeterValues 	= new String[length][] ;
+		/*
 		long bf = 0L ;
 		for( int i=0 ; i<coreValues.length ; i++ ) {
 			bf <<= 10 ;
 			bf |= (long)( coreValues[i].hashCode() & 0x3ff ) ;
 		}
 		bloomFilter = bf == 0L ? -1L : bf ;
+		*/
 	}
 
 	/**
@@ -254,9 +256,10 @@ public class DataElement  {
 		return matches ;
 	}
 
-	public boolean quickMatchesCoreKeys( long bloomTest ) {
-		return ( bloomTest & bloomFilter) == bloomFilter  ;
-	}	
+//	public boolean quickMatchesCoreKeys( long bloomTest ) {
+//		return ( bloomTest & bloomFilter) != 0  ;
+//	}
+	
 	/**
 	 * Identify whether the receiver's core element match any core
 	 * keys in the match test. If no core keys are present, a match 
