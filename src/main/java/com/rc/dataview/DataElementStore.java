@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +39,7 @@ public class DataElementStore  implements DataElementProcessor {
 	 * The singleton constructor. Sets up a huge hash map to store data
 	 */
 	private DataElementStore() {
-		currentElements =  new ConcurrentHashMap<>( 5_000_000 ) ;
+		currentElements =  new ConcurrentHashMap<>( 5_000_011 ) ;
 		availableViews = new HashMap<>() ;
 	}
 

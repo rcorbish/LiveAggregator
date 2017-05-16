@@ -3,9 +3,12 @@ package com.rc.agg;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.Random;
+import java.util.StringJoiner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import javax.management.monitor.StringMonitor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,12 +40,15 @@ public class LiveAggregatorRandom  {
 
 	public static void main(String[] args) {
 
-		/*
+/*
+		StringJoiner sj = new StringJoiner( "\t" ) ;
 		for( int i=0 ; i<BOOKS.length ; i++ ) {
-			System.out.println( BOOKS[i] + " " + ( BOOKS[i].hashCode() & 0x3ff ) ) ;
+			System.out.println( BOOKS[i] + " " + String.format( "%08x", BOOKS[i].hashCode() & 0x3ff ) ) ;
+			sj.setEmptyValue( BOOKS[i] ) ;
+			System.out.println( sj + " " + String.format( "%08x", sj.hashCode()  ) ) ;
 		}
 		System.exit( 1 ); 
-		*/
+*/		
 		LiveAggregatorRandom self = null ;
 		try {
 			int numBatches = 1_000 ;
@@ -100,7 +106,7 @@ public class LiveAggregatorRandom  {
 									Thread.currentThread().setName( "Test Sender: " + START + "-" + (START+BATCH_SIZE) );
 									for( int n=0 ; n<BATCH_SIZE ; n++ ) {
 										final String invariantKey = String.valueOf(n+START) ;
-										int ix = random.nextInt(17) ;
+										
 										DataElement de = new DataElement(												
 												DATA_POINTS_PER_ELEMENT,
 												dae,
@@ -113,7 +119,7 @@ public class LiveAggregatorRandom  {
 												},
 												(invariantKey + invariantKeySuffix)
 												) ;				
-										for( int j=0 ; j<de.size() ; j++, ix++ ) {
+										for( int j=0 ; j<de.size() ; j++ ) {
 											de.set(j,
 													new String[] { 
 															TYPES[ random.nextInt( TYPES.length ) ],

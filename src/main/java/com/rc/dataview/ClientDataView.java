@@ -59,7 +59,7 @@ public class ClientDataView  {
 	 * When the view is closed (client disconnects) this is set
 	 * so that no further messaging is done during shutdown processing
 	 * The instance is NOT expected to live beyond closure.
-	 * @return whether the view is set to close soon
+	 * @return whether the view is marked for closure
 	 */
 	public boolean isClosed() {
 		return closed;

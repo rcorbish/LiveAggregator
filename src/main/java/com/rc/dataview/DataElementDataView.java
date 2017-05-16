@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.BlockingQueue ;
 import java.util.concurrent.ArrayBlockingQueue ;
@@ -359,20 +360,18 @@ public class DataElementDataView  implements DataElementProcessor {
 	public void receiverThread() {
 		Thread.currentThread().setName( "Receiver " + this.getViewName() ) ;
 		try {
+			// remember the column keys, we need to have a cartesian
+			// of row key & column key combinations. 
+			StringBuilder colKeyPiece = new StringBuilder( 256 ) ;
+			// The cumulative cartesian key for this element
+			// need that to keep track of totals
+			StringBuilder elementKey = new StringBuilder( 256 ) ;
+
 			while( !Thread.currentThread().isInterrupted() ) {
 				//-------------------------------
 				// B L O C K I N G  call to take
 				// 
 				DataElement dataElement = messagesToProcess.take() ;
-				
-				
-				// remember the column keys, we need to have a cartesian
-				// of rpw key & column key combinations. 
-				StringBuilder colKeyPiece = new StringBuilder( 256 ) ;
-				// The cumulative cartesian key for this element
-				// need that to keep track of totals
-				StringBuilder elementKey = new StringBuilder( 256 ) ;
-
 				// for each sub element
 				for( int i=0 ; i<dataElement.size() ; i++ ) {
 					//check second part of filter
