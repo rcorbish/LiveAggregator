@@ -35,15 +35,29 @@ public class CalculatingDataElementDataView  extends  DataElementDataView {
 	 */
 	public DataElement calculate( DataElement dataElement ) {
 		DataElement rc = null ;
-		DataElement sodDataElement = dataElementStore.get( dataElement.getInvariantKey()+"-SOD" ) ;
-		if( sodDataElement != null ) {
-			rc = sodDataElement.filteredClone( dataElement.getInvariantKey()+"-P&L", "TYPE", "IR01", "P&L" ) ;
-			if( rc != null ) {
-				for( int i=0 ; i<rc.size() ; i++ ) {
-					rc.set( i, factor * rc.getValue(i) ) ;
+		if( dataElement.getInvariantKey().endsWith( "-MKT" ) ) {
+			DataElement sodMktElement = dataElementStore.get( dataElement.getInvariantKey()+"-SOD" ) ;
+			if( sodMktElement != null ) {
+				float dx = dataElement.getValue(0) - sodMktElement.getValue(0) ;
+				
+			}
+		} else {
+			DataElement sodDataElement = dataElementStore.get( dataElement.getInvariantKey()+"-SOD" ) ;
+			if( sodDataElement != null ) {
+				rc = sodDataElement.filteredClone( dataElement.getInvariantKey()+"-P&L", "TYPE", "IR01", "P&L" ) ;
+				if( rc != null ) {
+					for( int i=0 ; i<rc.size() ; i++ ) {
+						// ----------------------------
+						// dy  = grad * dx 
+						// 
+						int ix = sodDataElement.findIndex( rc, i, "CONVENTION", "DATA_TYPE" ) ;
+						if( ix >= 0 ) {
+							float grad = sodDataElement.getValue( ix ) ;
+							rc.set( i, factor * grad ) ;
+						}
+					}
 				}
 			}
-			return rc ;
 		}
 		return rc ;
 	}

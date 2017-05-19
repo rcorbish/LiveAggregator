@@ -144,6 +144,8 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 						viewDefinition.addColGroup(value); 
 					} else if( item.equalsIgnoreCase("ROW") ) {
 						viewDefinition.addRowGroup(value); 
+					} else if( item.equalsIgnoreCase("HIDE") ) {
+						viewDefinition.addHiddenAttribute(value); 
 					} else if( item.equalsIgnoreCase("DESC") ) {
 						viewDefinition.setDescription(value); 
 					} else if( item.equalsIgnoreCase("CLASS") ) {

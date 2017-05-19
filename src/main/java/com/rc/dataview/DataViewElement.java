@@ -10,8 +10,20 @@ package com.rc.dataview;
  */
 public class DataViewElement {
 	private float value = 0.0f ;
+	private final boolean hidden ;
 	private boolean updated = false ;		// has this been updated since last send?
 	private boolean unused = false ;		// Mark this as potentially no longer used
+
+
+	/** 
+	 * create a new element in the view. It must be known at 
+	 * construction time that the element is hidden.
+	 * 
+	 * @param hidden, whether this element will ever be displayed on screen
+	 */
+	public DataViewElement( boolean hidden ) {
+		this.hidden = hidden ;
+	}
 
 	/**
 	 * Adds a value to the cell in a view. If the value 
@@ -39,7 +51,10 @@ public class DataViewElement {
 	public boolean isUpdated() {
 		return updated ;
 	}
-	
+	public boolean isHidden() {
+		return hidden ;
+	}
+
 	/**
 	 * Mark a cell as unused, causing it to be removed
 	 * from the output during processing. 

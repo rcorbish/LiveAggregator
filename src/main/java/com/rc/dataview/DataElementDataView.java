@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.BlockingQueue ;
@@ -41,12 +43,11 @@ public class DataElementDataView  implements DataElementProcessor {
 	private static final int CLIENT_UPDATE_INTERVAL = 200 ;	
 	private static final int MAX_MESSAGES_TO_BUFFER = 300 ;
 
-	final long bloomFilter ;
-
 	private final Map<String,String[]> filters ; 	// what key = value is being filtered
 	private final Map<String,Map<String,String>> setValues ; 	// force change in value of an attribute on condition
 	private final String colGroups[] ; 				// what is getting grouped
 	private final String rowGroups[] ; 				// what is getting grouped
+	private final Set<String> hiddenAttributes ; 	// Do not show these atts on screen
 
 	// Map keyed on elementKey ( rows & column attribute values )
 	// The current (expanded) view is stored in here
@@ -122,22 +123,7 @@ public class DataElementDataView  implements DataElementProcessor {
 			tmp.put( k, DataElement.splitComponents(rawFilters.get(k)) ) ;
 		}
 		this.filters = tmp.isEmpty() ? null : tmp ;		
-		//-----------------------------
-		// Now create the bloom filter for quick 
-		// kick out of non-matching elements
-		long bf = 0L ;
-		if( this.filters != null ) {
-			String[] ATTRIBUTE_NAMES = new String[] { "TRADEID", "CPTY", "BOOK", "PRODUCT", "EVENT" } ;
-			for( int i=0 ; i<ATTRIBUTE_NAMES.length ; i++ ) {  // @TODO fix this !!!!
-				bf <<= 10 ;
-				String atts[] = this.filters.get( ATTRIBUTE_NAMES[i] ) ;
-				if( atts == null ) continue ;
-				for( String att : atts ) {
-					bf |= att.hashCode() & 0x3ff ;
-				}
-			} 
-		}
-		this.bloomFilter = bf == 0L ? -1 : bf ;
+
 		//----------------------
 		// S E T   V A L U E S
 		//
@@ -145,14 +131,18 @@ public class DataElementDataView  implements DataElementProcessor {
 		this.setValues = viewDefinition.getSetValues().isEmpty() ? null : viewDefinition.getSetValues() ; 
 
 		if( viewDefinition.getColGroups().length == 0 ) {
-			colGroups = new String[] { "" } ; 
+			this.colGroups = new String[] { "" } ; 
 		} else {
 			this.colGroups = viewDefinition.getColGroups() ;
 		}
 		if( viewDefinition.getRowGroups().length == 0 ) {  
-			rowGroups = new String[] { "" } ; 
+			this.rowGroups = new String[] { "" } ; 
 		} else {
 			this.rowGroups = viewDefinition.getRowGroups() ;
+		}
+		this.hiddenAttributes = new HashSet<String>() ;
+		for( String hiddenAttribute : viewDefinition.getHiddenAttributes() ) {
+			this.hiddenAttributes.add( hiddenAttribute ) ;
 		}
 	}
 
@@ -266,7 +256,7 @@ public class DataElementDataView  implements DataElementProcessor {
 	 * @return
 	 */
 	private boolean matchesCoreElements(DataElement element) {
-		if( filters != null && bloomFilter != -1 ) {
+		if( filters != null ) {
 			//if( !element.quickMatchesCoreKeys( bloomFilter ) ) return false ;
 			for( String k : filters.keySet() ) {
 				String mustMatchOneOfThese[] = filters.get(k) ;
@@ -305,8 +295,10 @@ public class DataElementDataView  implements DataElementProcessor {
 					}
 					removedKeys.add( elementKey ) ;						
 				} else if( dve.isUpdated() ) {
-					for( ClientDataView cdv : clientViews ) {
-						cdv.updatedElement( elementKey, dve.getValue() ) ;
+					if( !dve.isHidden() ) {
+						for( ClientDataView  cdv : clientViews ) {
+							cdv.updatedElement( elementKey, dve.getValue() ) ;
+						}
 					}
 					dve.clearUpdatedFlag();
 				}
@@ -327,7 +319,9 @@ public class DataElementDataView  implements DataElementProcessor {
 	public void sendAll( ClientDataView cdv ) {
 		for( String elementKey : dataViewElements.keySet() ) {
 			DataViewElement dve = dataViewElements.get( elementKey ) ;
-			cdv.updatedElement( elementKey, dve.getValue() ) ;
+			if( !dve.isHidden() ) {
+				cdv.updatedElement( elementKey, dve.getValue() ) ;
+			}
 		}
 	}
 
@@ -419,8 +413,10 @@ public class DataElementDataView  implements DataElementProcessor {
 								String key = elementKey.toString() ;
 								DataViewElement dve = dataViewElements.get( key ) ;
 								if( dve == null ) {   // if we don't have a key create it
+									boolean hidden = hiddenAttributes.contains( rowGroup ) | 
+													 hiddenAttributes.contains( colGroup ) ; 
 									// Allow concurrent elem creates
-									DataViewElement newDve = new DataViewElement() ;
+									DataViewElement newDve = new DataViewElement( hidden ) ;
 									dve = dataViewElements.putIfAbsent( key, newDve ) ;
 									if( dve==null ) {
 										dve = newDve ;
@@ -478,6 +474,9 @@ public class DataElementDataView  implements DataElementProcessor {
 		return rowGroups;
 	}
 
+	public boolean isAttributeHidden( String attributeName ) {
+		return hiddenAttributes.contains( attributeName ) ;
+	}
 
 	public String getViewName() {
 		return viewName;

@@ -1,6 +1,7 @@
 package com.rc.dataview;
 
 import java.text.DecimalFormat;
+import java.util.Arrays;
 import java.util.Set;
 
 import org.eclipse.jetty.util.ConcurrentHashSet;
@@ -47,11 +48,25 @@ public class ClientDataView  {
 		this.closed = false ;
 		
 		dataElementDataView.addClient( this ); 
-
+ 
+		String columns[] = dataElementDataView.getColGroups() ;
+		for( int i=0 ; i<columns.length ; i++ ) {
+			if( dataElementDataView.isAttributeHidden( columns[i] ) ) {
+				columns  = Arrays.copyOf( columns, i ) ;
+				break ;
+			}
+		}
+		String rows[] = dataElementDataView.getRowGroups() ;
+		for( int i=0 ; i<rows.length ; i++ ) {
+			if( dataElementDataView.isAttributeHidden( rows[i] ) ) {
+				rows  = Arrays.copyOf( rows, i ) ;
+				break ;
+			}
+		}
 		clientCommandProcessor.defineView( 
 				getViewName(), 
-				DataElement.mergeComponents( dataElementDataView.getColGroups() ) , 
-				DataElement.mergeComponents( dataElementDataView.getRowGroups() ) , 
+				DataElement.mergeComponents( columns ) , 
+				DataElement.mergeComponents( rows ) , 
 				dataElementDataView.getDescription() ) ;
 	}
 

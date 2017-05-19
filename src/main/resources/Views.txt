@@ -8,6 +8,7 @@ DG0.ROW=TENOR
 DG0.COL=TYPE
 DG0.COL=CCY
 #DG0.FILTER=BOOK=Alpha
+DG0.HIDE=CPTY
 
 #-----------------------------
 # View definition for DG1
@@ -16,8 +17,8 @@ DG1.DESC=DG1: IR01 x CCY/TENOR
 DG1.FILTER=TYPE=IR01
 DG1.COL=CCY
 DG1.ROW=TENOR
-DG1.CLASS=com.rc.dataview.TestDataElementDataView
-DG1.CLASS_ARG=Boo Ya
+#DG1.CLASS=com.rc.dataview.TestDataElementDataView
+#DG1.CLASS_ARG=Boo Ya
 
 
 #-----------------------------
@@ -58,8 +59,8 @@ DG5.ROW=Total
 DG5.ROW=TENOR
 DG5.COL=TYPE
 DG5.COL=EVENT
-DG5.CLASS=com.rc.dataview.CalculatingDataElementDataView
-DG5.CLASS_ARG=-2.0
+#DG5.CLASS=com.rc.dataview.CalculatingDataElementDataView
+#DG5.CLASS_ARG=-2.0
 
 #-----------------------------
 # View definition for DG6

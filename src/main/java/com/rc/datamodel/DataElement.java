@@ -3,6 +3,7 @@ package com.rc.datamodel;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 /**
@@ -35,6 +36,7 @@ public class DataElement  {
 
 	public static final char ROW_COL_SEPARATION_CHAR = '\f' ;
 	public static final char SEPARATION_CHAR = '\t' ;
+	public static final String SEPARATION_STRING = String.valueOf(SEPARATION_CHAR) ;
 	// @TODO - is this thread safe? 
 	private static final Pattern SEPARATION_CHAR_PATTERN = Pattern.compile( Pattern.quote( String.valueOf(SEPARATION_CHAR) ) ) ;
 	
@@ -159,6 +161,17 @@ public class DataElement  {
 	}
 
 	/**
+	 * Find the index of the named attribute
+	 * 
+	 * @param attributeName
+	 * @return the zero based index of the attribute
+	 */
+	public int getAttributeIndex( String attributeName ) {
+		return attributes.getAttributeIndex(attributeName) ;
+	}
+	
+
+	/**
 	 * Return the value of the core attribute given the name of the attribute. 
 	 * The attributeName will be found by searching the list of attributes 
 	 * to find the index of the attribute.   
@@ -185,16 +198,6 @@ public class DataElement  {
 		return ix<0 ? attributeName : ix<coreValues.length ? coreValues[ix] : perimeterValues[index][ix-coreValues.length] ;
 	}
 
-	/**
-	 * Find the index of the named attribute
-	 * 
-	 * @param attributeName
-	 * @return the zero based index of the attribute
-	 */
-	public int getAttributeIndex( String attributeName ) {
-		return attributes.getAttributeIndex(attributeName) ;
-	}
-	
 	
 	/**
 	 * Get the core attribute label from the core attributes. For example
@@ -290,6 +293,7 @@ public class DataElement  {
 	public String[] getAttributeNames() {
 		return attributes.getAttributeNames() ;
 	}
+	
 	/**
 	 * Return the value at the given index.
 	 * @param index
@@ -298,7 +302,29 @@ public class DataElement  {
 	public float getValue( int index ) {
 		return values[index] ;
 	}
-	
+
+
+	public int findIndex( DataElement other, int ix, String ... attributeNames ) {
+
+		StringJoiner otherKey = new StringJoiner( SEPARATION_STRING ) ;
+		for( int i=0 ; i<attributeNames.length ; i++ ) {
+			otherKey.add( other.getAttribute(ix, attributeNames[i] ) ) ;
+		}
+
+		StringJoiner thisKey = new StringJoiner( SEPARATION_STRING ) ;
+
+		for( int i=0 ; i<size() ; i++ ) {
+			thisKey.setEmptyValue( getAttribute(i, attributeNames[0] )) ;
+			for( int j=1 ; j<attributeNames.length ; j++ ) {
+				thisKey.add( getAttribute(i, attributeNames[j] ) ) ;
+				if( otherKey.toString().equals( thisKey.toString() ) )  {
+					return i ;
+				}
+			}
+		}
+		return -1 ;
+	}
+
 	public DataElementAttributes getDataElementAttributes() {
 		return attributes ;
 	}
