@@ -73,11 +73,24 @@ public class DataElementDataView  implements DataElementProcessor {
 		String constructorArg = viewDefinition.getConstructorArg() ;
 		DataElementDataView rc = null ;
 		try {
-			if( constructorArg != null ) {
-				logger.debug( "Passing {} as constructor arg for view {}", constructorArg, viewDefinition.getName()) ;
+			boolean hasArgumentCtor = false ;
+			boolean hasCompatibleCtor = false ;
+			for( Constructor<?> ctor : clazz.getConstructors() ) {
+				Class<?> params[] = ctor.getParameterTypes() ;
+				if( params.length>1 && params[0] == DataElementStore.class && params[1] == ViewDefinition.class ) {
+					hasCompatibleCtor = true ;
+					hasArgumentCtor |= ( params.length>2 && params[2] == String.class ) ;
+				}
+			}
+			if( !hasCompatibleCtor ) {
+				throw new RuntimeException( "Cannot find suitable constructor for " + clazz.getCanonicalName() + ". Need (DataElementStore, ViewDefinition ) or (DataElementStore, ViewDefinition, String )" ) ;
+			}
+			if( hasArgumentCtor && constructorArg != null ) {
 				Constructor<? extends DataElementDataView> ctor = clazz.getConstructor( DataElementStore.class, ViewDefinition.class, String.class ) ;
+				logger.debug( "Passing {} as constructor arg for view {}", constructorArg, viewDefinition.getName()) ;
 				rc = ctor.newInstance( dataElementStore, viewDefinition, constructorArg ) ;
 			} else {
+				logger.debug( "No constructor arg for view {}", constructorArg, viewDefinition.getName()) ;
 				Constructor<? extends DataElementDataView> ctor = clazz.getConstructor( DataElementStore.class, ViewDefinition.class) ;
 				rc = ctor.newInstance( dataElementStore, viewDefinition ) ;
 			}

@@ -137,21 +137,6 @@ public class DataElement  {
 	
 	
 	/**
-	 * Negate each value in the DataElement. This can be used to remove a previous
-	 * copy from totals by adding the negative value of the values to the previous total.  
-	 * 
-	 * The original data element is unchanged by this operation.
-	 * 
-	 * @return anew DataElement with all values having the opposite sign as the receiver
-	 */
-	public DataElement negatedCopy() {
-		DataElement rc = new DataElement(size(), this.attributes, this.coreValues, getInvariantKey() ) ;
-		for( int i=0 ; i<rc.size() ; i++ ) {
-			rc.set(i, perimeterValues[i], -values[i] );
-		}
-		return rc ;		
-	}
-	/**
 	 * Return the primary key for this item
 	 * 
 	 * @return the uniqueu ID used for this instance
@@ -358,6 +343,41 @@ public class DataElement  {
 		return invariantKey + "=>" + values[0] ;
 	}
 	
+
+
+	/**
+	 * Make an identical copy of the DataElement. This can be used to change a data Element
+	 * for one view individually.  
+	 * 
+	 * The original data element is unchanged by this operation.
+	 * 
+	 * @return a new DataElement with all values identical to the receiver
+	 */
+	public DataElement clone() {
+		DataElement rc = new DataElement(size(), this.attributes, this.coreValues, getInvariantKey() ) ;
+		for( int i=0 ; i<rc.size() ; i++ ) {
+			rc.set(i, perimeterValues[i], values[i] );
+		}
+		return rc ;		
+	}
+	
+	
+	/**
+	 * Negate each value in the DataElement. This can be used to remove a previous
+	 * copy from totals by adding the negative value of the values to the previous total.  
+	 * 
+	 * The original data element is unchanged by this operation.
+	 * 
+	 * @return anew DataElement with all values having the opposite sign as the receiver
+	 */
+	public DataElement negatedCopy() {
+		DataElement rc = new DataElement(size(), this.attributes, this.coreValues, getInvariantKey() ) ;
+		for( int i=0 ; i<rc.size() ; i++ ) {
+			rc.set(i, perimeterValues[i], -values[i] );
+		}
+		return rc ;		
+	}
+
 	/**
 	 * Creates a copy of an element, the copy containes only elements matching a certain 
 	 * attribute-value rule. . In addition the value of the attribute is changed to a given

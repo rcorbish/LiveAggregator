@@ -16,6 +16,9 @@ public class CalculatingDataElementDataView  extends  DataElementDataView {
 		logger.info( "Arg is {}", arg );
 		factor = Float.parseFloat( arg ) ;
 	}
+	public CalculatingDataElementDataView( DataElementStore des, ViewDefinition viewDefinition) {
+		this(des, viewDefinition, "1");		
+	}
 
 	/**
 	 * This is the usual process, method. In this case we calculate new
@@ -23,7 +26,6 @@ public class CalculatingDataElementDataView  extends  DataElementDataView {
 	 */
 	@Override
 	public void process( DataElement dataElement )  {
-		super.process( dataElement );
 		DataElement dataElementNew = calculate(dataElement) ;
 		if( dataElementNew != null ) {
 			super.process( dataElementNew );
@@ -31,31 +33,18 @@ public class CalculatingDataElementDataView  extends  DataElementDataView {
 	}
 
 	/**
-	 * This is a simple Taylor series type calculation, as an example.
+	 * This is a simple difference calculation, as an example.
 	 */
 	public DataElement calculate( DataElement dataElement ) {
-		DataElement rc = null ;
-		if( dataElement.getInvariantKey().endsWith( "-MKT" ) ) {
-			DataElement sodMktElement = dataElementStore.get( dataElement.getInvariantKey()+"-SOD" ) ;
-			if( sodMktElement != null ) {
-				float dx = dataElement.getValue(0) - sodMktElement.getValue(0) ;
-				
-			}
-		} else {
-			DataElement sodDataElement = dataElementStore.get( dataElement.getInvariantKey()+"-SOD" ) ;
-			if( sodDataElement != null ) {
-				rc = sodDataElement.filteredClone( dataElement.getInvariantKey()+"-P&L", "TYPE", "IR01", "P&L" ) ;
-				if( rc != null ) {
-					for( int i=0 ; i<rc.size() ; i++ ) {
-						// ----------------------------
-						// dy  = grad * dx 
-						// 
-						int ix = sodDataElement.findIndex( rc, i, "CONVENTION", "DATA_TYPE" ) ;
-						if( ix >= 0 ) {
-							float grad = sodDataElement.getValue( ix ) ;
-							rc.set( i, factor * grad ) ;
-						}
-					}
+		DataElement rc = dataElement ;
+		DataElement sodDataElement = dataElementStore.get( rc.getInvariantKey()+"-SOD" ) ;
+		if( sodDataElement != null ) {
+			rc = dataElement.clone() ;
+			for( int i=0 ; i<rc.size() ; i++ ) {
+				int ix = sodDataElement.findIndex( rc, i, "METRIC", "TENOR" ) ;
+				if( ix >= 0 ) {
+					float sodValue = sodDataElement.getValue( ix ) ;
+					rc.set( i, rc.getValue(i) - sodValue ) ;
 				}
 			}
 		}
