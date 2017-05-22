@@ -39,14 +39,7 @@ public class CalculatingDataElementDataView  extends  DataElementDataView {
 		DataElement rc = dataElement ;
 		DataElement sodDataElement = dataElementStore.get( rc.getInvariantKey()+"-SOD" ) ;
 		if( sodDataElement != null ) {
-			rc = dataElement.clone() ;
-			for( int i=0 ; i<rc.size() ; i++ ) {
-				int ix = sodDataElement.findIndex( rc, i, "METRIC", "TENOR" ) ;
-				if( ix >= 0 ) {
-					float sodValue = sodDataElement.getValue( ix ) ;
-					rc.set( i, rc.getValue(i) - sodValue ) ;
-				}
-			}
+			rc = dataElement.subtract( sodDataElement ) ;
 		}
 		return rc ;
 	}

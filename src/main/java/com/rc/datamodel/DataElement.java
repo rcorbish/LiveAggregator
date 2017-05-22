@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
  * @author richard
  *
  */
-public class DataElement  {
+public class DataElement implements Cloneable {
 
 	public static final char ROW_COL_SEPARATION_CHAR = '\f' ;
 	public static final char SEPARATION_CHAR = '\t' ;
@@ -280,6 +280,14 @@ public class DataElement  {
 	}
 	
 	/**
+	 * Get a copy of the core values. 
+	 * 
+	 * @return a copy of the core values
+	 */
+	public String[] getCoreValues() {
+		return Arrays.copyOf( this.coreValues, this.coreValues.length ) ;
+	}
+	/**
 	 * Return the value at the given index.
 	 * @param index
 	 * @return the value for this element
@@ -344,6 +352,21 @@ public class DataElement  {
 	}
 	
 
+	/**
+	 * Subtract the given element, value by value, from the receiver.
+	 * This returns a new dataelement - DataElements are immutable
+	 * 
+	 * @param other the data element to subtract from 'this'
+	 * @return a new copy of a data element.
+	 */
+	public DataElement subtract( DataElement other ) {
+		DataElement rc = new DataElement(size(), this.attributes, this.coreValues, getInvariantKey() ) ;
+		for( int i=0 ; i<rc.size() ; i++ ) {
+			rc.set( i, perimeterValues[i], values[i]-other.getValue(i) );
+		}
+		return rc ;
+	}
+	
 
 	/**
 	 * Make an identical copy of the DataElement. This can be used to change a data Element
@@ -361,7 +384,42 @@ public class DataElement  {
 		return rc ;		
 	}
 	
-	
+	/**
+	 * Make a copy of the DataElement, and sets a new invariantKey. This can be used to change a data Element
+	 * for one view individually.  
+	 * 
+	 * The original data element is unchanged by this operation.
+	 * 
+	 * @see #clone(String)
+	 * 
+	 * @param invariantKey the new key to use for the cloned element
+	 * @param the core values to use 
+	 * @return a new DataElement with all values identical to the receiver
+	 */
+	public DataElement clone( String invariantKey, String coreValues[] ) {
+		
+		DataElement rc = new DataElement(size(), this.attributes, coreValues, invariantKey ) ;
+		for( int i=0 ; i<rc.size() ; i++ ) {
+			rc.set(i, perimeterValues[i], values[i] );
+		}
+		return rc ;		
+	}
+
+	/**
+	 * Make a copy of the DataElement, and sets a new invariantKey. This can be used to change a data Element
+	 * for one view individually.  
+	 * 
+	 * The original data element is unchanged by this operation.
+	 * 
+	 * @see #clone(String, String[])
+	 * 
+	 * @param invariantKey the new key to use for the cloned element
+	 * @return a new DataElement with all values identical to the receiver
+	 */
+	public DataElement clone( String invariantKey ) {
+		return this.clone( invariantKey, this.coreValues ) ;
+	}
+
 	/**
 	 * Negate each value in the DataElement. This can be used to remove a previous
 	 * copy from totals by adding the negative value of the values to the previous total.  
@@ -387,9 +445,9 @@ public class DataElement  {
 	 * example:
 	 * <pre>
 	 * 
-	 * 	input = { inv-key=6743, CCY=USD, DOB='12/25/2000', [ WEIGHT='170', value=100.0f ], [ WEIGHT='150', value=100.0f ] }
+	 * 	input = { inv-key=6743, CCY=USD, DOB='12/25/2000', [ WEIGHT='170', value=55.0f ], [ WEIGHT='150', value=170.0f ] }
 	 * 	clone( '6743-age', WEIGHT, '170', 'XL' )
-	 * 	output = { inv-key=6743-age, DOB='12/25/2000', [ WEIGHT='XL', value=100.0f ] }
+	 * 	output = { inv-key=6743-age, DOB='12/25/2000', [ WEIGHT='XL', value=55.0f ] }
 	 *  
 	 * </pre>
 	 * 

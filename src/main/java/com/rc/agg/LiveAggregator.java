@@ -36,6 +36,10 @@ public class LiveAggregator implements DataElementProcessor, AutoCloseable {
 	public void process( DataElement dataElement ) {
 		this.dataElementStore.process(dataElement);
 	}
+	
+	public DataElement get( String invariantKey ) {
+		return dataElementStore.get(invariantKey) ;
+	}
 
 	public void startBatch( boolean deleteContents ) {
 		this.dataElementStore.startBatch( deleteContents );

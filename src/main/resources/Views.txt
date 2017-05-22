@@ -7,7 +7,7 @@ DG0.ROW=CPTY
 DG0.ROW=TENOR
 DG0.COL=METRIC
 DG0.COL=CCY
-DG0.HIDE=CPTY
+DG0.HIDE=TENOR
 
 #-----------------------------
 # View definition for DG1
@@ -58,7 +58,7 @@ DG5.ROW=Total
 DG5.ROW=TENOR
 DG5.COL=METRIC
 DG5.COL=EVENT
-DG5.CLASS=com.rc.dataview.CalculatingDataElementDataView
+#DG5.CLASS=com.rc.dataview.CalculatingDataElementDataView
 #DG5.CLASS_ARG=1.0
 
 #-----------------------------

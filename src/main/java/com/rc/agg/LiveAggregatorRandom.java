@@ -24,7 +24,7 @@ public class LiveAggregatorRandom  {
 	private final LiveAggregator aggregator ;
 
 	private static String CCYS[] = new String[] { "USD", "CAD", "EUR", "GBP", "JPY", "SEK", "AUD", "HKD" } ;
-	private static String EVENTS[] = new String[] { "SOD", "NOW"  } ;
+	private static String EVENTS[] = new String[] { "SOD", "AMEND"  } ;
 	private static String METRICS[] = new String[] { "IR01", "NPV", "PV" } ;
 	private static String TENORS[] = new String[] { "JAN-18", "DEC-19", "2018-12-15", "2017-10-01","2018-02-15","O/N", "1B", "1D", "3D", "1M", "3M", "6M", "9M", "1Y", "2Y", "3Y", "4Y", "5Y", "6Y", "7Y", "8Y", "9Y", "10Y", "15Y", "20Y", "25Y", "30Y", "50Y" } ;
 	private static String PRODUCTS[] = new String[] { "SWAP", "FRA", "XCCY", "MMKT", "FEE", "CAP" } ;
@@ -106,8 +106,13 @@ public class LiveAggregatorRandom  {
 									Thread.currentThread().setName( "Test Sender: " + START + "-" + (START+BATCH_SIZE) );
 									for( int n=0 ; n<BATCH_SIZE ; n++ ) {
 										final String invariantKey = String.valueOf(n+START) ;
-										
-										DataElement de = new DataElement(												
+										DataElement de = aggregator.get( invariantKey+"-SOD" ) ;
+										if( de != null ) {
+											String coreValues[] = de.getCoreValues() ;
+											coreValues[ dae.getAttributeIndex( "EVENT") ] = "AMEND" ;
+											de = de.clone( invariantKey, coreValues ) ;
+										} else {
+											de = new DataElement(												
 												DATA_POINTS_PER_ELEMENT,
 												dae,
 												new String[] { 
@@ -119,15 +124,19 @@ public class LiveAggregatorRandom  {
 												},
 												(invariantKey + invariantKeySuffix)
 												) ;				
+											for( int j=0 ; j<de.size() ; j++ ) {
+												de.set(j,
+														new String[] { 
+																METRICS[ random.nextInt( METRICS.length ) ],
+																TENORS[ random.nextInt( TENORS.length ) ],
+																CCYS[ random.nextInt( CCYS.length ) ]
+												},
+														(random.nextInt( 1001 ) - 500) / 10.f
+														) ;
+											}
+										}
 										for( int j=0 ; j<de.size() ; j++ ) {
-											de.set(j,
-													new String[] { 
-															METRICS[ random.nextInt( METRICS.length ) ],
-															TENORS[ random.nextInt( TENORS.length ) ],
-															CCYS[ random.nextInt( CCYS.length ) ]
-											},
-													(random.nextInt( 1001 ) - 500) / 10.f
-													) ;
+											de.set(j, de.getValue(j) + (random.nextInt( 1001 ) - 500) / 100.f ) ;
 										}
 										aggregator.process( de ) ;
 									}
@@ -152,7 +161,12 @@ public class LiveAggregatorRandom  {
 			// Now send random crap for 5 mins
 			while( System.currentTimeMillis()<tPlus5Mins ) {
 				String invariantKey = String.valueOf( random.nextInt( N ) ) ;
-				DataElement de = new DataElement(												
+
+				DataElement de = aggregator.get( invariantKey ) ;
+				if( de != null ) { 
+					de = de.clone() ; 
+				} else {
+					de = new DataElement(												
 						DATA_POINTS_PER_ELEMENT,
 						dae,
 						new String[] { 
@@ -164,15 +178,19 @@ public class LiveAggregatorRandom  {
 						},
 						invariantKey
 						) ;				
+					for( int j=0 ; j<de.size() ; j++ ) {
+						de.set(j,
+								new String[] { 
+										METRICS[ random.nextInt(METRICS.length) ],
+										TENORS[ random.nextInt(TENORS.length) ],
+										CCYS[ random.nextInt(CCYS.length) ]
+						},
+						(random.nextInt( 1001 ) - 500) / 10.f
+						) ;
+					}
+				}
 				for( int j=0 ; j<de.size() ; j++ ) {
-					de.set(j,
-							new String[] { 
-									METRICS[ random.nextInt(METRICS.length) ],
-									TENORS[ random.nextInt(TENORS.length) ],
-									CCYS[ random.nextInt(CCYS.length) ]
-					},
-							(random.nextInt( 1001 ) - 500) / 10.f
-							) ;
+					de.set(j, de.getValue(j) + (random.nextInt( 1001 ) - 500) / 100.f ) ;
 				}
 				aggregator.process( de ) ;
 				Thread.sleep( 997 );  // distance between batch updates
