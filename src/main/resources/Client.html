@@ -98,8 +98,7 @@ h4 {
 }
 #underlying-data table tr:hover{
 	background: #c0d6af;
-	xborder-top: solid 1px #302875 ;
-	xborder-bottom: solid 1px #302875 ;}
+}
 
 #underlying-data-table th {
 	text-align: left;
@@ -112,13 +111,16 @@ h4 {
 .underlying-data-attributes {
 	width: auto !important ;
 	margin-bottom: 25px ;
+	background: #80d6c0 ;
 }
+
 .underlying-data-attributes th {
 	border-bottom: none !important ;
 	text-align: right !important ;
 	padding-left: 25px !important ;
 	padding-right: 15px !important ;
 }
+
 .underlying-data-attributes tr:hover {
 	background: inherit !important ;
 }
@@ -1121,11 +1123,11 @@ td.selected {
 
 		function showItem( item ) {
 			var underlyingData = document.getElementById('underlying-data-table');
-			var tbl = "<table class='underlying-data-attributes'>" ;
+			var tbl = "<table class='underlying-data' id='raw-data'>" ;
 			for( var i=0 ; i<item.coreValues.length ; i++ ) {
-				tbl += "<tr><th>" + item.attributes.attributeNames[i] + "</th><td>" + item.coreValues[i] +"</td></tr>" ;
+				tbl += "<tr class='underlying-data-attributes'><th>" + item.attributes.attributeNames[i] + "</th><td>" + item.coreValues[i] +"</td></tr>" ;
 			}
-			tbl += "</table><table><tr><th>Value</th>" ;
+			tbl += "<tr><th>Value</th>" ;
 			for( var i=item.coreValues.length ; i<item.attributes.attributeNames.length ; i++ ) {
 				tbl += "<th>"+item.attributes.attributeNames[i]+"</th>" ;
 			}
