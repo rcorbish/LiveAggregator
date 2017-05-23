@@ -278,8 +278,15 @@ public class DataElementStore  implements DataElementProcessor {
 	 */
 	public Collection<DataDetailMessage> query( String query, String viewName, int limit ) {
 
-		numberDrillThroughs++ ; // for monitoring activity
 		List<DataDetailMessage> rc = new ArrayList<>(limit*2) ;
+
+		DataElementDataView dedv = getDataElementDataView( viewName ) ;
+		if( dedv == null ) {
+			logger.warn( "Invalid view name '{}' passed to query data.", viewName ) ;
+			return rc ;
+		}
+
+		numberDrillThroughs++ ; // for monitoring activity
 		if( currentElements.size() == 0 ) return rc ;    // not exactly thread safe - but not much else we can do
 
 		//
@@ -312,11 +319,6 @@ public class DataElementStore  implements DataElementProcessor {
 		// matchingTests. The filter MAY already be part of the query so 
 		// this is a merge of the two filters
 		//
-		DataElementDataView dedv = getDataElementDataView( viewName ) ;
-		if( dedv == null ) {
-			logger.warn( "Invalid view name '{}' passed to query data.", viewName ) ;
-			return rc ;
-		}
 		
 		Map<String,String[]>viewFilters = dedv.getFilters() ;
 		if( viewFilters != null ) { // possibly no filters set
@@ -345,13 +347,14 @@ public class DataElementStore  implements DataElementProcessor {
 		if( viewSets != null ) {
 			for( String attributeName : viewSets.keySet() ) {
 				Set<String> queryAttributeValues = matchingTests.get( attributeName ) ;
-				
+				// 1st time seeing this remapped set ?				
 				if( queryAttributeValues == null ) {
 					queryAttributeValues = new HashSet<>() ;
 					matchingTests.put( attributeName, queryAttributeValues ) ;
 				}
 				
 				Map<String,String> viewAttributeSets = viewSets.get( attributeName ) ;
+				logger.info( "Examining set {} => {}", attributeName, viewAttributeSets ) ;
 
 				for( String viewRemappedFrom : viewAttributeSets.keySet() ) {
 					String viewRemappedTo = viewAttributeSets.get( viewRemappedFrom ) ;
@@ -359,8 +362,15 @@ public class DataElementStore  implements DataElementProcessor {
 						queryAttributeValues.add( viewRemappedFrom ) ;
 					}
 				}
+				// OK - we may have (due to dummy columns/rows) and set combinations
+				// an empty filter. We'll remove those now
+				if( queryAttributeValues.isEmpty() ) {
+					matchingTests.remove( attributeName ) ;
+				}
 			}
 		}
+
+
 
 		// 
 		// OK one last thing - if we added a 'dummy' row or column into the view
@@ -385,6 +395,7 @@ public class DataElementStore  implements DataElementProcessor {
 		for( String notRealAttribute : notRealAttributes ) {
 			matchingTests.remove( notRealAttribute ) ;
 		}
+		logger.info( "Ignoring unreal keys {} => testing for {}.", notRealAttributes, matchingTests ) ;
 		
 		
 		//
@@ -395,7 +406,7 @@ public class DataElementStore  implements DataElementProcessor {
 		String attributeNames[] = dae.getAttributeNames() ;
 		float currentMax = 0.f ;
 		for( DataElement value : currentElements.values() ) {
-			if( value.matchesCoreKeys( matchingTests ) ) {		
+			if( value.matchesCoreKeys( matchingTests ) ) {	
 				for( int i=0 ; i<value.size() ; i++ ) {				
 					if( value.matchesPerimiterKeys(i, matchingTests)) {
 						// 2 reasons to add - either we haven't filled up the list
