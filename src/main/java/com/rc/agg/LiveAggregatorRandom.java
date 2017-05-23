@@ -122,10 +122,11 @@ public class LiveAggregatorRandom  {
 												(invariantKey + invariantKeySuffix)
 												) ;				
 											for( int j=0 ; j<de.size() ; j++ ) {
+												String metric = METRICS[ random.nextInt( METRICS.length ) ] ;
 												de.set(j,
 														new String[] { 
-																METRICS[ random.nextInt( METRICS.length ) ],
-																TENORS[ random.nextInt( TENORS.length ) ],
+																metric,
+																metric.equals("IR01")?TENORS[ random.nextInt( TENORS.length ) ]:null,
 																CCYS[ random.nextInt( CCYS.length ) ]
 														},
 														(random.nextInt( 1001 ) - 500) / 10.f
@@ -176,10 +177,11 @@ public class LiveAggregatorRandom  {
 						invariantKey
 						) ;				
 					for( int j=0 ; j<de.size() ; j++ ) {
+						String metric = METRICS[ random.nextInt( METRICS.length ) ] ;
 						de.set(j,
 								new String[] { 
-										METRICS[ random.nextInt(METRICS.length) ],
-										TENORS[ random.nextInt(TENORS.length) ],
+										metric,
+										metric.equals("IR01")?TENORS[ random.nextInt( TENORS.length ) ]:null,
 										CCYS[ random.nextInt(CCYS.length) ]
 						},
 						(random.nextInt( 1001 ) - 500) / 10.f

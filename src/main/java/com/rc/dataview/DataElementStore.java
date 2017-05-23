@@ -3,6 +3,7 @@ package com.rc.dataview;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,13 +34,16 @@ public class DataElementStore  implements DataElementProcessor {
 	private final Map<String,DataElement> 	currentElements ;
 	private boolean							serverBatchComplete ;
 	private Map<String,DataElementDataView>	availableViews ;		// current available views
-
+	private int								numberDrillThroughs ;
+	private final Date						startedAt ;
 	/**
 	 * The singleton constructor. Sets up a huge hash map to store data
 	 */
 	private DataElementStore() {
 		currentElements =  new ConcurrentHashMap<>( 5_000_011 ) ;
 		availableViews = new HashMap<>() ;
+		numberDrillThroughs = 0 ;
+		startedAt = new Date() ;
 	}
 
 
@@ -274,6 +278,7 @@ public class DataElementStore  implements DataElementProcessor {
 	 */
 	public Collection<DataDetailMessage> query( String query, String viewName, int limit ) {
 
+		numberDrillThroughs++ ; // for monitoring activity
 		List<DataDetailMessage> rc = new ArrayList<>(limit*2) ;
 		if( currentElements.size() == 0 ) return rc ;    // not exactly thread safe - but not much else we can do
 
@@ -453,6 +458,7 @@ public class DataElementStore  implements DataElementProcessor {
 	 */
 	public String toString() {
 		return "Data Store containing " + currentElements.size() + 
-		" elements. Batch is " + (serverBatchComplete? "complete." : "processing.") ; 
+		" elements. Batch is " + (serverBatchComplete? "complete." : "processing.") +
+		numberDrillThroughs + " drillthroughs requested since " + startedAt ; 
 	}
 }
