@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
  * @author richard
  *
  */
-public class DataElement implements Cloneable {
+public class DataElement implements Cloneable, Comparable<DataElement> {
 
 	public static final char ROW_COL_SEPARATION_CHAR = '\f' ;
 	public static final char SEPARATION_CHAR = '\t' ;
@@ -40,6 +40,7 @@ public class DataElement implements Cloneable {
 	// @TODO - is this thread safe? 
 	private static final Pattern SEPARATION_CHAR_PATTERN = Pattern.compile( Pattern.quote( String.valueOf(SEPARATION_CHAR) ) ) ;
 	
+	private final long createdTime ;			// timestamp of creation
 	private final String invariantKey ;			// a key for this update - used to identify replacements
 	
 	private final float values[] ;				// each value 
@@ -86,6 +87,7 @@ public class DataElement implements Cloneable {
 	 * @param invariantKey the special attribute - the unique ID of this item
 	 */
 	public DataElement(int length, DataElementAttributes attributes, String coreValues[], String invariantKey ) {
+		this.createdTime	= System.currentTimeMillis() ;
 		this.invariantKey 	= invariantKey ;		
 		this.attributes		= attributes ;
 		this.coreValues 	= coreValues ;
@@ -287,6 +289,17 @@ public class DataElement implements Cloneable {
 	public String[] getCoreValues() {
 		return Arrays.copyOf( this.coreValues, this.coreValues.length ) ;
 	}
+
+	public String[] getAttributeValues( int index ) {
+		String rc[] = new String[ attributes.getAttributeNames().length ] ;
+		for( int i=0 ; i<coreValues.length ; i++ ) {
+			rc[i] = coreValues[i] ;
+		}
+		for( int i=0 ; i<perimeterValues[index].length ; i++ ) {
+			rc[i+coreValues.length] = perimeterValues[index][i] ;
+		}
+		return rc ;
+	}
 	/**
 	 * Return the value at the given index.
 	 * @param index
@@ -296,6 +309,9 @@ public class DataElement implements Cloneable {
 		return values[index] ;
 	}
 
+	public long getCreatedTime() {
+		return createdTime ;
+	}
 
 	public int findIndex( DataElement other, int ix, String ... attributeNames ) {
 
@@ -484,4 +500,11 @@ public class DataElement implements Cloneable {
 		}
 		return rc ;		
 	}
+
+	@Override
+	public int compareTo( DataElement o ) {
+		long rc = o.createdTime - createdTime ;
+		return rc<0 ? -1 : ( rc>0 ) ? 1 : 0  ;
+	}
+
 }

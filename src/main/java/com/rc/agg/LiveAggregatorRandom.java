@@ -3,12 +3,9 @@ package com.rc.agg;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.Random;
-import java.util.StringJoiner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import javax.management.monitor.StringMonitor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,7 +127,7 @@ public class LiveAggregatorRandom  {
 																METRICS[ random.nextInt( METRICS.length ) ],
 																TENORS[ random.nextInt( TENORS.length ) ],
 																CCYS[ random.nextInt( CCYS.length ) ]
-												},
+														},
 														(random.nextInt( 1001 ) - 500) / 10.f
 														) ;
 											}

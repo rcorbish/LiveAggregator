@@ -1,9 +1,8 @@
 package com.rc.dataview;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -271,11 +270,11 @@ public class DataElementStore  implements DataElementProcessor {
 	 * @param query the query string ( e.g. trade-1\tUSD\tBook6\tNPV\tN/A\t100 )
 	 * @param viewName the name of the view requesting data
 	 * @param limit maximum number of items to return
-	 * @return A Collection of Strings, An empty collection perhaps. The 1st row may be empty if no elements match
+	 * @return A Collection of items representing a single value, An empty collection perhaps. The 1st row is the attribute names
 	 */
-	public Collection<String[]> query( String query, String viewName, int limit ) {
+	public Collection<DataDetailMessage> query( String query, String viewName, int limit ) {
 
-		List<String[]> rc = new ArrayList<>(limit+1) ;
+		List<DataDetailMessage> rc = new ArrayList<>(limit*2) ;
 		if( currentElements.size() == 0 ) return rc ;    // not exactly thread safe - but not much else we can do
 
 		//
@@ -384,19 +383,6 @@ public class DataElementStore  implements DataElementProcessor {
 		
 		
 		//
-		// This is used to sort the data, we will only keep the limit
-		// largest values in the return. We don't want to draw too many
-		// things on screen, so we choose the biggest values to show
-		//
-		Comparator<String[]> comparator = new Comparator<String[]>() {
-			@Override
-			public int compare(String[] o1, String[] o2) {
-				float f = Math.abs( Float.parseFloat(o2[1]) ) - Math.abs( Float.parseFloat(o1[1]) ) ;
-				return f<0 ? -1 : ( f>0 ) ? 1 : 0  ;
-			}
-		};
-		
-		//
 		// OK now for the large scan of the concurrent hash map
 		// scan for anything that matches our filter. Add matching
 		// elements and keep the ones with the largest values to return.
@@ -407,12 +393,6 @@ public class DataElementStore  implements DataElementProcessor {
 			if( value.matchesCoreKeys( matchingTests ) ) {		
 				for( int i=0 ; i<value.size() ; i++ ) {				
 					if( value.matchesPerimiterKeys(i, matchingTests)) {
-						String tmp[] = new String[attributeNames.length + 2] ;
-						int ix = 2 ;
-						for( String valueAttributeName : attributeNames ) {
-							tmp[ix] = value.getAttribute( i, valueAttributeName ) ;
-							ix++ ;
-						}
 						// 2 reasons to add - either we haven't filled up the list
 						// or the current value is bigger than the smallest in the 
 						// current list
@@ -421,18 +401,24 @@ public class DataElementStore  implements DataElementProcessor {
 							decidedToAddToList = true;
 						}
 						if(decidedToAddToList) {
-							tmp[0] = value.getInvariantKey() ;
-							tmp[1] = String.valueOf( value.getValue(i) ) ;
-							rc.add( tmp ) ;
+
+							String tmp[] = new String[attributeNames.length + 2] ;
+							int ix = 2 ;
+							for( String valueAttributeName : attributeNames ) {
+								tmp[ix] = value.getAttribute( i, valueAttributeName ) ;
+								ix++ ;
+							}
+							DataDetailMessage ddm = new DataDetailMessage( value, i ) ;
+							rc.add( ddm ) ;
 							// We won't chop the list every time. Keep a bigger list
 							// to reduce sorting. We can clean up at the end
 							if( rc.size() > (2*limit) ) {
-								rc.sort( comparator ) ;
+								Collections.sort( rc ) ;
 								while( rc.size() > limit ) {
 									rc.remove( limit - 1 ) ;
 								} ;
-								String s[] = rc.get( limit-1 ) ;
-								currentMax = Math.abs( Float.parseFloat(s[1]) ) ;
+								DataDetailMessage mx = rc.get( limit-1 ) ;
+								currentMax = mx.createdTime ;
 							}
 						}
 					}
@@ -440,27 +426,22 @@ public class DataElementStore  implements DataElementProcessor {
 			}
 		}
 		
-		rc.sort( comparator ) ;
+		Collections.sort( rc ) ;
 		while( rc.size() > limit ) {
 			rc.remove( limit - 1 ) ;
 		} ;
 		//
 		// Make the numbers pretty - to print in a report
-		DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
-		for( int i=0 ; i<rc.size() ; i++ ) {
-			rc.get(i)[1] = numberFormatter.format( Float.parseFloat( rc.get(i)[1] ) ) ;
-		}		
+		// DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
+		// for( int i=0 ; i<rc.size() ; i++ ) {
+		// 	rc.get(i)[1] = numberFormatter.format( Float.parseFloat( rc.get(i)[1] ) ) ;
+		// }		
 		//
 		// Add in a header row if we found anything.
 		//
 		if( attributeNames != null ) {
-			String tmp[] = new String[ attributeNames.length + 2] ;
-			for( int i=2 ; i<tmp.length ; i++ ) {
-				tmp[i] = attributeNames[i-2] ;						
-			}
-			tmp[0] = "Key" ;
-			tmp[1] = "Value" ;
-			rc.add( 0, tmp ) ;
+			DataDetailMessage hdrs = new DataDetailMessage( attributeNames ) ;
+			rc.add( 0, hdrs ) ;
 		}
 		
 		return rc ;

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.rc.datamodel.DataElement;
+import com.rc.dataview.DataDetailMessage;
 import com.rc.dataview.DataElementStore;
 
 
@@ -50,7 +51,7 @@ public class Monitor implements AutoCloseable {
 			spark.Spark.get( "/item/:" + INVARIANT_KEY_PARAM, this::getItem, gson::toJson ) ;
 			spark.Spark.awaitInitialization() ;
 		} catch( Exception ohohChongo ) {
-
+			logger.error( "Bad server start", ohohChongo ) ;
 		}
 	}
 
@@ -93,7 +94,7 @@ public class Monitor implements AutoCloseable {
 			int limit = Integer.parseInt(tmp) ;
 			logger.info( "Querying for {} in view {} - max {} items", elementKey.replaceAll("\f", "|"), viewName, limit ) ;
 			DataElementStore des = DataElementStore.getInstance() ;
-			Collection<String[]> matching = des.query(elementKey, viewName, limit) ;
+			Collection<DataDetailMessage> matching = des.query(elementKey, viewName, limit) ;
 			rc = matching ;
 			logger.info( "Found {} items", matching.size()>0?matching.size()-1:0  ) ;
 		} catch ( Throwable t ) {
