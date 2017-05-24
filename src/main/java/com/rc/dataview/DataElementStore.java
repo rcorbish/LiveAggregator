@@ -347,10 +347,8 @@ public class DataElementStore  implements DataElementProcessor {
 		if( viewSets != null ) {
 			for( String attributeName : viewSets.keySet() ) {
 				Set<String> queryAttributeValues = matchingTests.get( attributeName ) ;
-				// 1st time seeing this remapped set ?				
 				if( queryAttributeValues == null ) {
-					queryAttributeValues = new HashSet<>() ;
-					matchingTests.put( attributeName, queryAttributeValues ) ;
+					continue ; // no matching attribute == not involved in filter
 				}
 				
 				Map<String,String> viewAttributeSets = viewSets.get( attributeName ) ;
@@ -361,11 +359,6 @@ public class DataElementStore  implements DataElementProcessor {
 					if( queryAttributeValues.contains( viewRemappedTo ) ) {
 						queryAttributeValues.add( viewRemappedFrom ) ;
 					}
-				}
-				// OK - we may have (due to dummy columns/rows) and set combinations
-				// an empty filter. We'll remove those now
-				if( queryAttributeValues.isEmpty() ) {
-					matchingTests.remove( attributeName ) ;
 				}
 			}
 		}
@@ -382,7 +375,7 @@ public class DataElementStore  implements DataElementProcessor {
 		String rowGroups[] = dedv.getRowGroups();
 		for( String s : colGroups ) allKeys.add(s) ;
 		for( String s : rowGroups ) allKeys.add(s) ;
-		logger.info( "Scanning for these keys {}", allKeys ) ;
+		logger.info( "Scanning these keys {} to see whether they are synthetic.", allKeys ) ;
 		DataElement de = currentElements.values().iterator().next() ;
 		DataElementAttributes dae = de.getDataElementAttributes() ;
 		Set<String> notRealAttributes = new HashSet<>() ;
@@ -395,7 +388,7 @@ public class DataElementStore  implements DataElementProcessor {
 		for( String notRealAttribute : notRealAttributes ) {
 			matchingTests.remove( notRealAttribute ) ;
 		}
-		logger.info( "Ignoring unreal keys {} => testing for {}.", notRealAttributes, matchingTests ) ;
+		logger.debug( "Ignoring unreal keys {} => testing for {}.", notRealAttributes, matchingTests ) ;
 		
 		
 		//
@@ -446,12 +439,6 @@ public class DataElementStore  implements DataElementProcessor {
 		while( rc.size() > limit ) {
 			rc.remove( limit - 1 ) ;
 		} ;
-		//
-		// Make the numbers pretty - to print in a report
-		// DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
-		// for( int i=0 ; i<rc.size() ; i++ ) {
-		// 	rc.get(i)[1] = numberFormatter.format( Float.parseFloat( rc.get(i)[1] ) ) ;
-		// }		
 		//
 		// Add in a header row if we found anything.
 		//
