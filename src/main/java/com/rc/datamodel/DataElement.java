@@ -209,7 +209,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 */
 	public String getPerimiterAttribute( int index, String attributeName ) {
 		int ix = attributes.getAttributeIndex(attributeName) ;		
-		return ix>coreValues.length ? perimeterValues[index][ix-coreValues.length] : null ;
+		return ix<coreValues.length ? null : perimeterValues[index][ix-coreValues.length] ;
 	}
 
 	/**
