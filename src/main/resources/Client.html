@@ -86,7 +86,6 @@ h4 {
 	width: 80%;
 	height: 80%;
 	color: #200855;
-	position: absolute;
 	left: 10%;
 	top: 10%;
 	z-index: 100;
@@ -281,6 +280,20 @@ div.spinner div.bar12 {
 	cursor: cell ;
 }
 
+.data-cell-negative {
+	color: #a81306 ;
+}
+
+.data-cell-flash {
+	background-color: inherit ;
+	animation: flash 0.125s linear ;
+}
+
+@keyframes flash {
+	from { background-color: #ffe070 ; } 
+	to { background-color: inherit ; }
+}
+
 .hdr-row-2 {
 	background: #c0c0d0;
 	line-height: 11pt;
@@ -294,6 +307,18 @@ div.spinner div.bar12 {
 .hdr-row-0 {
 	background: #e0e0f0;
 	line-height: 11pt;
+}
+
+.total-col-0 {
+	background: #8aecc0;	
+}
+
+.total-col-1 {
+	background: #9afcd0;	
+}
+
+.total-col-2 {
+	background: #aaffe0;	
 }
 
 .total-row-2 {
@@ -402,8 +427,15 @@ td.selected {
 
 					var cell = findViewCell('grid', msg.colKeys, msg.rowKeys);
 					if (cell != null) {
+						cell.classList.remove( "data-cell-flash" ) ;
 						cell.textContent = msg.value;
+						if( msg.value[0]=='(') {
+							cell.classList.add( "data-cell-negative" ) ;
+						} else {
+							cell.classList.remove( "data-cell-negative" ) ;
+						}
 						updateSelectionTotal();
+						cell.dispatchEvent( new Event("fireanimation") ) ;
 					}
 				} else if (msg.command === "DEL") {
 
@@ -437,6 +469,8 @@ td.selected {
 				} else if (msg.command === "RESET") {
 					setViewDescription("View definitions were changed on the server, updating is temporarily paused.");
 					openView(openViewName);
+				} else if (msg.command === "HEARTBEAT") {
+					// nothing to do here
 				} else {
 					console.log("Unknown server msg: " + msg.command);
 				}
@@ -736,9 +770,19 @@ td.selected {
 
 			for (var j = newRow.cells.length; j < rows[0].cells.length; j++) {
 				newCell = newRow.insertCell(j);
-				newCell.setAttribute("class", "data-cell");
+				newCell.classList.add( "data-cell" ) ;
 				var colKey = rows[0].cells[j].getAttribute("id");
+				var colKeys = makeKeys( colKey ) ;
+				if( colKeys.length < numColLevels ) {
+					newCell.classList.add( "total-col-" + ( ( ( colKeys.length ) - 1 ) % 3 )  ) ;
+				}
 				newCell.setAttribute("id", makeCompoundKeyFromText(colKey, rowKey));
+				newCell.addEventListener( 'fireanimation', function() { 
+					this.classList.add( 'data-cell-flash' ) ;
+				}) ;
+				newCell.addEventListener( 'animationend', function() { 
+					this.classList.remove( 'data-cell-flash' ) ;
+				}) ;
 			}
 
 			return newRow;
@@ -802,14 +846,28 @@ td.selected {
 				}
 			}
 
+
 			// Oh oh - brand new column - need to update every data row in the table !
 			for (var i = numColLevels; i < rows.length; i++) {
-				var row = rows[i];
+				var row = rows[i] ;
 
 				// Add new cells if required to make sure all rows have the proper amount of cells
 				newCell = row.insertCell(insertionPoint);
 				newCell.setAttribute("id", makeCompoundKeyFromText(colId, row.getAttribute("id")));
-				newCell.setAttribute("class", "data-cell");
+				newCell.classList.add("data-cell") ;
+
+//				var colKey = rows[0].cells[i].getAttribute("id");
+//				var colKeys = makeKeys( colKey ) ;
+				if( colKeys.length < numColLevels ) {
+					newCell.classList.add( "total-col-" + ( ( ( colKeys.length ) - 1 ) % 3 ) ) ;
+				}
+
+				newCell.addEventListener( 'fireanimation', function() { 
+					this.classList.add( 'data-cell-flash' ) ;
+				}) ;
+				newCell.addEventListener( 'animationend', function() { 
+					this.classList.remove( 'data-cell-flash' ) ;
+				}) ;
 			}
 
 			return document.getElementById(fullKey);
