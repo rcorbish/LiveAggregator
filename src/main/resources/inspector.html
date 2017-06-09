@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8" />
+<title>Data grid inspector</title>
+<link rel="stylesheet" href="css.css">
+
+<script src='excellentexport.min.js'></script>
+
+<script>
+		
+		// Print a number with  comma separators e.g. 1,000
+		function numberWithCommas(x) {
+			return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+		}
+
+		window.addEventListener( "load", onload, false ) ;			
+
+		function onload() {				
+			const spinner = document.querySelector( "div.spinner" ) ;
+			spinner.style.display = 'inherit' ;
+
+			var url =     document.location.protocol + "://" 
+						+ document.location.host 
+						+ "/data/" 
+						+ document.location.search 
+						;
+		
+			const xhr = new XMLHttpRequest();
+			xhr.open("GET", url );
+			xhr.setRequestHeader( "accept", "application/json" ) ;
+			xhr.onreadystatechange = function() {
+				if(xhr.readyState === XMLHttpRequest.DONE ) {
+					if( xhr.status === 200) {
+						drawData( JSON.parse( xhr.responseText ) ) ;
+						const spinner = document.querySelector( "div.spinner" ) ;
+						spinner.style.display = 'none' ;						
+					} else {
+						closePopup() ;  // non success close popup & spinner
+					}
+			    }
+			} ;
+			xhr.send() ;
+	
+			var underlyingDataClose = document.getElementById('underlying-data-close');
+			underlyingDataClose.addEventListener('click', closePopup, false) ;			
+			document.addEventListener('keypress', function(e) { 
+					if(e.keyCode===27) closePopup() ;
+				}, false) ;			
+		}
+		
+		function closePopup() {
+			window.close() ;
+		}
+
+		function drawData( data ) {
+			const underlyingData = document.getElementById('underlying-data-table');
+			if( data.length > 1 ) {
+				var tbl = "<h3>Most recent " + (data.length-1) + "</h3><table id='raw-data'>" ;
+
+				// print value heading too
+				tbl += "<th>Value</th>"			
+				for( var j=0 ; j<data[0].columns.length ; j++ ) {
+					tbl += "<th>" + data[0].columns[j] + "</th>" ;
+				}
+				for( var i=1 ; i<data.length ; i++ ) {
+					tbl += "<tr onclick=\"inspectItem('" + data[i].invariantKey + "')\"><td>" 
+						+ numberWithCommas( Math.round( data[i].value) ) + "</td>" ;
+					for( var j=0 ; j<data[i].columns.length ; j++ ) {
+						tbl += "<td>" + data[i].columns[j] + "</td>" ;
+					}
+					tbl += "</tr>" ;
+				}
+			} else {
+				tbl = "<h2>No matching data</h2" ;
+			}
+			underlyingData.innerHTML = tbl + "</table>" ;
+		}
+	</script>
+</head>
+
+<body>
+	<div id="underlying-data">
+		<div class="export">
+			<a download="rawData.xls" href="#" onclick="return ExcellentExport.excel(this,'raw-data','RawData');">
+			<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC+ElEQVRYhe2XPWhUQRDHV0NQohBUxEbkxKgx93b2yMLd25n3bmeO60XIiR9FLCy0sLLVwg+wMEUEU0RBbAKCFtr4AaIoqIWN36DYaaOgkkAgGOJZvBye8XIxl3eNuDDNPN7sb2f+O2+eUotclUqlI1uI+3TI+wF5yJC/l4tKVUN8f7GxFl49PSv6I7FAfDAIZQRIngD5yVxUqgLKNDj/XBNfzkWlKjj/fEl7rc9mV2fDmAz6IwblkiZ5BijTuahUBfKTmvzjBIIP9kdiM5nMytq7gHLNEF9paWPjZNSgf2tIfiSp9F/AyV0gPqtdcV8QFndUKpWOZjGWBJCLSlXt/GuN8U5ry5uUUssWGwNI3ueiUrUVU0k9eaAl+hqA41sa5REgD/y1kb+ZHgDKbSD/GJD31GxHobhVKaV0xOV6fxAWd1truwB5T2oABvnj3NQa8jNKJSX+4xny0ZQB5MPcTTTJ2HwAgfO7UgVopIHt+eJmpZTSLvb1/sD5XZlMZmVTgN58tC3b73rqfRsAVmkX+4YAaWsAkC8akpdKqeU1n3b+BKB8bgSQugaCQgz1fh1FazT5cY18rDFAGzSQdLckC5rkpEH5asvl7oYlSFsD9VnQyAeanX4Wtj19AFCumUg+NTt9UoI29YG+vI9nX2j6oWlbHzDIp4DkOyC/UXU34o9MtUMDG7NurSGZMMTnF2pWbdEAIJ82KN9sudwNyFfn9oU5mUpXA729+XWGZMI4f1wppXpdUTcvVcoamL333+qVD8hXDfKLhiVIWwM65P3g/N7fspKPtgHyUEOA//PAPzcPLBqggQYWMo1y/ReA43eAPBBY3KJaGctxCWN5EMqIIXllyM8ktfPjgPIAkIch5MGgEIO1tnMBgNZ/TGrLWtvVF0YFE/Ih42RUkzw1yFOzqp3SJE8B5QKgPwwFCq21XakCzAPVGRRigJAHAXnYkH9oSCZq10wjv9EkY7moVAWSG6kDzLOWZ/tdTxAWd2viM4bkTiJkOddKsJ+HHLzIDsdCuAAAAABJRU5ErkJggg=="></img>
+			</a>
+		</div>
+	
+		<div id='underlying-data-close'>&times;</div>
+		<div id="underlying-data-table"></div>
+		<div class="spinner">
+			<div class="bar1"></div>
+			<div class="bar2"></div>
+			<div class="bar3"></div>
+			<div class="bar4"></div>
+			<div class="bar5"></div>
+			<div class="bar6"></div>
+			<div class="bar7"></div>
+			<div class="bar8"></div>
+			<div class="bar9"></div>
+			<div class="bar10"></div>
+			<div class="bar11"></div>
+			<div class="bar12"></div>
+		</div>
+	</div>
+
+</body>
+
+</html>

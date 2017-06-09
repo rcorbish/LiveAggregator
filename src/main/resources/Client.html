@@ -4,364 +4,7 @@
 <head>
 <meta charset="utf-8" />
 <title>Data grid viewer</title>
-<style type="text/css">
-html {
-	font-family: sans-serif;
-	font-variant: small-caps;
-	margin: 0;
-	padding: 0;
-	background: #f0fff0 ;
-}
-h4 {
-	margin: 0 ;
-}
-#header-area {
-	position: absolute;
-	right: 0;
-	top: 0;
-	left: 0;
-	height: 50px;
-}
-
-#message-count {
-	font-size: 6pt;
-	position: absolute;
-	margin-top: 2px ;
-	right: 0;
-	top: 15px;
-}
-
-#status {
-	font-size: 10pt;
-	font-weight: bold;
-	position: absolute;
-	right: 0;
-	top: 0;
-}
-
-#view-menu {
-	font-size: 11pt;
-	font-weight: bold;
-	position: absolute;
-	left: 0;
-	top: 0;
-}
-
-#view-name {
-	font-size: 12pt;
-	font-weight: bold;
-	position: absolute;
-	left: 0;
-	top: 30px;
-}
-
-#selection-total {
-	font-size: 10pt;
-	position: absolute;
-	background: #b5d8d0;
-	color: #000;
-	right: 0;
-	top: 30px;
-	padding-left: 10px;
-	padding-right: 10px;
-}
-
-#underlying-data-close {
-	margin: 8px;
-	padding: 3px;
-	font-size: 12pt;
-	background: #302875;
-	color: #90c6d8;
-	right: 0 ;
-	top: 0 ;
-	position: absolute ;
-	cursor: pointer;
-}
-
-#underlying-data {
-	border: solid 3px #302875;
-	padding: 8px;
-	display: none;
-	position: absolute;
-	font-size: 9pt;
-	background: #dfe6b8;
-	width: 80%;
-	height: 80%;
-	color: #200855;
-	left: 10%;
-	top: 10%;
-	z-index: 100;
-	overflow: auto;
-}
-#underlying-data table {
-	width: 100%;
-	border-collapse: collapse;
-}
-#underlying-data table tr:hover{
-	background: #c0d6af;
-}
-
-#underlying-data-table th {
-	text-align: left;
-	border-bottom: 1px solid #302875;
-}
-.underlying-data-value {
-	cursor: pointer ;
-}
-
-.underlying-data-attributes {
-	width: auto !important ;
-	margin-bottom: 25px ;
-	background: #80d6c0 ;
-}
-
-.underlying-data-attributes th {
-	border-bottom: none !important ;
-	text-align: right !important ;
-	padding-left: 25px !important ;
-	padding-right: 15px !important ;
-}
-
-.underlying-data-attributes tr:hover {
-	background: inherit !important ;
-}
-
-div.spinner {
-	display: none;
-	width: 100px;
-	height: 100px;
-	width: 100px;
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	margin-left: -50px;
-	margin-top: -50px;
-}
-
-div.spinner div {
-	width: 12%;
-	height: 26%;
-	background: #000;
-	position: absolute;
-	left: 44.5%;
-	top: 37%;
-	opacity: 0;
-	color: #00cc00;
-	animation: fade 1s linear infinite;
-	border-radius: 50px;
-	box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
-}
-
-div.spinner div.bar1 {
-	transform: rotate(0deg) translate(0, -142%);
-	animation-delay: 0s;
-}
-
-div.spinner div.bar2 {
-	transform: rotate(30deg) translate(0, -142%);
-	animation-delay: -0.9167s;
-}
-
-div.spinner div.bar3 {
-	transform: rotate(60deg) translate(0, -142%);
-	animation-delay: -0.833s;
-}
-
-div.spinner div.bar4 {
-	transform: rotate(90deg) translate(0, -142%);
-	animation-delay: -0.75s;
-}
-
-div.spinner div.bar5 {
-	transform: rotate(120deg) translate(0, -142%);
-	animation-delay: -0.667s;
-}
-
-div.spinner div.bar6 {
-	transform: rotate(150deg) translate(0, -142%);
-	animation-delay: -0.5833s;
-}
-
-div.spinner div.bar7 {
-	transform: rotate(180deg) translate(0, -142%);
-	animation-delay: -0.5s;
-}
-
-div.spinner div.bar8 {
-	transform: rotate(210deg) translate(0, -142%);
-	animation-delay: -0.41667s;
-}
-
-div.spinner div.bar9 {
-	transform: rotate(240deg) translate(0, -142%);
-	animation-delay: -0.333s;
-}
-
-div.spinner div.bar10 {
-	transform: rotate(270deg) translate(0, -142%);
-	animation-delay: -0.25s;
-}
-
-div.spinner div.bar11 {
-	transform: rotate(300deg) translate(0, -142%);
-	animation-delay: -0.1667s;
-}
-
-div.spinner div.bar12 {
-	transform: rotate(330deg) translate(0, -142%);
-	animation-delay: -0.0833s;
-}
-
-@keyframes fade {
-	from { opacity: 1; } 
-	to { opacity: 0.25; }
-}
-
-.good-status {
-	color: green;
-}
-
-.bad-status {
-	background-color: #c81306;
-	color: #ffffff ;
-	animation: fade 0.75s alternate infinite;
-}
-
-.export {
-	position: absolute;
-	right: 75px;
-	top: 3px;
-}
-
-#content {
-	position: absolute;
-	left: 0;
-	width: 100%;
-	bottom: 0;
-	top: 55px;
-}
-
-.grid {
-	border-collapse: collapse;
-}
-
-.menuButton {
-	margin-left: 0.01cm;
-	font-size: 9pt;
-}
-
-.expand-button {
-	width: 9pt;
-	height: 9pt;
-	font-size: 6pt;
-	font-weight: bold;
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
-
-.hdr-cell {
-	font-size: 8pt;
-	color: #1f0810;
-	min-width: 1.3cm;
-	text-align: right;
-	font-weight: bold;
-}
-
-.label-hdr-cell {
-	font-size: 8pt;
-	color: #1f0810;
-	min-width: 2.0cm;
-	text-align: left;
-}
-
-.data-cell {
-	font-size: 8pt;
-	text-align: right;
-	padding-left: 0.02cm;
-	user-select: none;
-	-moz-user-select: none;
-	-webkit-user-select: none;
-	cursor: cell ;
-}
-
-.data-cell-negative {
-	color: #a81306 ;
-}
-
-.data-cell-flash {
-	background-color: inherit ;
-	animation: flash 0.2s linear ;
-}
-
-@keyframes flash {
-	from { background-color: #ffe070 ; } 
-	to { background-color: inherit ; }
-}
-
-.hdr-row-2 {
-	background: #c0c0d0;
-	line-height: 11pt;
-}
-
-.hdr-row-1 {
-	background: #d0d0e0;
-	line-height: 11pt;
-}
-
-.hdr-row-0 {
-	background: #e0e0f0;
-	line-height: 11pt;
-}
-
-
-.total-col-2 {
-	background: #aafff0;	
-	border-left: dashed 1px #204080 ;
-}
-
-.total-col-1 {
-	background: #9affe0;	
-	border-left: solid 1px #204080 ;
-}
-
-.total-col-0 {
-	background: #8affd0;	
-	border-left: solid 2px #204080 ;
-}
-
-.total-row-2 {
-	background: #c0c0d0;
-	border-bottom: solid 1px #204080;
-	line-height: 9pt;
-}
-
-.total-row-1 {
-	background: #d8d8e8;
-	border-bottom: solid 1px #305080;
-	line-height: 9pt;
-}
-
-.total-row-0 {
-	background: #f0f0ff;
-	border-bottom: solid 1px #406080;
-	line-height: 9pt;
-}
-
-.dataRow:nth-child(odd) {
-	background: #e4deef;
-	line-height: 9pt;
-}
-
-.dataRow:hover, .total-row-0:hover, .total-row-1:hover, .total-row-2:hover
-	{
-	background: #caf0e5;
-}
-
-td.selected {
-	background: #aed2c9;
-}
-</style>
+<link rel="stylesheet" href="css.css">
 
 <script src='excellentexport.min.js'></script>
 
@@ -1082,8 +725,6 @@ td.selected {
 				
 				openPopup() ;
 
-				var spinner = document.querySelector( "div.spinner" ) ;
-				spinner.style.display = 'inherit' ;
 				const xhr = new XMLHttpRequest();
 				xhr.open("GET", url );
 				xhr.setRequestHeader( "accept", "application/json" ) ;
@@ -1091,6 +732,7 @@ td.selected {
 					if(xhr.readyState === XMLHttpRequest.DONE ) {
 						if( xhr.status === 200) {
 							drawData( JSON.parse( xhr.responseText ) ) ;
+							const spinner = document.querySelector( "div.spinner" ) ;
 							spinner.style.display = 'none' ;						
 						} else {
 							closePopup() ;  // non success close popup & spinner
@@ -1105,24 +747,7 @@ td.selected {
 		function inspectItem( invariantKey ) {
 			var url = "http://" + document.location.host + "/item/" + encodeURIComponent(invariantKey) ;
 			
-			openPopup() ;
-
-			var spinner = document.querySelector( "div.spinner" ) ;
-			spinner.style.display = 'inherit' ;
-			const xhr = new XMLHttpRequest();
-			xhr.open("GET", url );
-			xhr.setRequestHeader( "accept", "application/json" ) ;
-			xhr.onreadystatechange = function() {
-				if(xhr.readyState === XMLHttpRequest.DONE ) {
-					if( xhr.status === 200) {
-						showItem( JSON.parse( xhr.responseText ) ) ;
-						spinner.style.display = 'none' ;						
-					} else {
-						closePopup() ;  // non success close popup & spinner
-					}
-				}
-			} ;
-			xhr.send() ;
+			window.open( url, "_blank", "", false ) ;
 		}
 
 
@@ -1158,36 +783,10 @@ td.selected {
 				var grid = document.getElementById('grid');
 				grid.addEventListener('mousedown', clickedOnGrid, false) ;
 				grid.addEventListener('dblclick', doubleclickedOnGrid, false) ;			
-
-				var underlyingDataClose = document.getElementById('underlying-data-close');
-				underlyingDataClose.addEventListener('click', closePopup, false) ;			
-
-				document.addEventListener('keypress', function(e) { 
-						if(e.keyCode===27) closePopup() ;
-					}, false) ;			
 			},
 			false
 		);
 		
-
-		function openPopup() {
-			var underlyingData = document.getElementById('underlying-data');
-			underlyingData.style.display = "inherit" ;
-			var underlyingDataTable = document.getElementById('underlying-data-table');
-			underlyingDataTable.innerHTML = "" ;
-
-			var grid = document.getElementById('grid');
-			grid.removeEventListener('dblclick', doubleclickedOnGrid, false)
-		}	
-		function closePopup() {
-			var underlyingData = document.getElementById('underlying-data');
-			if( underlyingData.style.display !== "none" ) {
-				underlyingData.style.display = "none" ;
-				var grid = document.getElementById('grid');
-				grid.addEventListener('dblclick', doubleclickedOnGrid, false) ;
-			}
-		}	
-
 		function showItem( item ) {
 			var underlyingData = document.getElementById('underlying-data-table');
 			var tbl = "<table class='underlying-data' id='raw-data'>" ;
@@ -1255,31 +854,6 @@ td.selected {
 	</div>
 	<div id="content">
 		<table id="grid" class='grid'></table>
-	</div>
-
-	<div id="underlying-data">
-		<div class="export">
-			<a download="rawData.xls" href="#" onclick="return ExcellentExport.excel(this,'raw-data','RawData');">
-			<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC+ElEQVRYhe2XPWhUQRDHV0NQohBUxEbkxKgx93b2yMLd25n3bmeO60XIiR9FLCy0sLLVwg+wMEUEU0RBbAKCFtr4AaIoqIWN36DYaaOgkkAgGOJZvBye8XIxl3eNuDDNPN7sb2f+O2+eUotclUqlI1uI+3TI+wF5yJC/l4tKVUN8f7GxFl49PSv6I7FAfDAIZQRIngD5yVxUqgLKNDj/XBNfzkWlKjj/fEl7rc9mV2fDmAz6IwblkiZ5BijTuahUBfKTmvzjBIIP9kdiM5nMytq7gHLNEF9paWPjZNSgf2tIfiSp9F/AyV0gPqtdcV8QFndUKpWOZjGWBJCLSlXt/GuN8U5ry5uUUssWGwNI3ueiUrUVU0k9eaAl+hqA41sa5REgD/y1kb+ZHgDKbSD/GJD31GxHobhVKaV0xOV6fxAWd1truwB5T2oABvnj3NQa8jNKJSX+4xny0ZQB5MPcTTTJ2HwAgfO7UgVopIHt+eJmpZTSLvb1/sD5XZlMZmVTgN58tC3b73rqfRsAVmkX+4YAaWsAkC8akpdKqeU1n3b+BKB8bgSQugaCQgz1fh1FazT5cY18rDFAGzSQdLckC5rkpEH5asvl7oYlSFsD9VnQyAeanX4Wtj19AFCumUg+NTt9UoI29YG+vI9nX2j6oWlbHzDIp4DkOyC/UXU34o9MtUMDG7NurSGZMMTnF2pWbdEAIJ82KN9sudwNyFfn9oU5mUpXA729+XWGZMI4f1wppXpdUTcvVcoamL333+qVD8hXDfKLhiVIWwM65P3g/N7fspKPtgHyUEOA//PAPzcPLBqggQYWMo1y/ReA43eAPBBY3KJaGctxCWN5EMqIIXllyM8ktfPjgPIAkIch5MGgEIO1tnMBgNZ/TGrLWtvVF0YFE/Ih42RUkzw1yFOzqp3SJE8B5QKgPwwFCq21XakCzAPVGRRigJAHAXnYkH9oSCZq10wjv9EkY7moVAWSG6kDzLOWZ/tdTxAWd2viM4bkTiJkOddKsJ+HHLzIDsdCuAAAAABJRU5ErkJggg=="></img>
-			</a>
-		</div>
-	
-		<div id='underlying-data-close'>&times;</div>
-		<div id="underlying-data-table"></div>
-		<div class="spinner">
-			<div class="bar1"></div>
-			<div class="bar2"></div>
-			<div class="bar3"></div>
-			<div class="bar4"></div>
-			<div class="bar5"></div>
-			<div class="bar6"></div>
-			<div class="bar7"></div>
-			<div class="bar8"></div>
-			<div class="bar9"></div>
-			<div class="bar10"></div>
-			<div class="bar11"></div>
-			<div class="bar12"></div>
-		</div>
 	</div>
 
 </body>
