@@ -88,7 +88,7 @@ public class LiveAggregatorRandom  {
 		for( ; ; ) {
 			long startTime = System.currentTimeMillis() ;
 			logger.info( "Restarting processing of data ..." ) ;
-			ExecutorService executor = Executors.newFixedThreadPool( 3 ) ;
+			ExecutorService executor = Executors.newFixedThreadPool( 6 ) ;
 			aggregator.startBatch( sod ) ;
 			
 			final String invariantKeySuffix = sod ? "-SOD" : "";

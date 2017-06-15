@@ -3,7 +3,7 @@
 
 <head>
 <meta charset="utf-8" />
-<title>Cell inspector</title>
+<title>Trade detail</title>
 <link rel="stylesheet" href="css.css">
 
 <script src='excellentexport.min.js'></script>
@@ -23,7 +23,7 @@
 
 			var url =     document.location.protocol + "//" 
 						+ document.location.host 
-						+ "/data/" 
+						+ "/item/" 
 						+ document.location.search.substring( 1 )
 						;
 		
@@ -35,7 +35,7 @@
 					const spinner = document.querySelector( "div.spinner" ) ;
 					spinner.style.display = 'none' ;						
 					if( xhr.status === 200) {
-						drawData( JSON.parse( xhr.responseText ) ) ;
+						showItem( JSON.parse( xhr.responseText ) ) ;
 					} else {
 						const underlyingData = document.getElementById('underlying-data-table');
 						underlyingData.innerHTML = "<h1>Error loading data</h1><h2>" + xhr.statusText + "</h2>"
@@ -55,34 +55,26 @@
 			window.close() ;
 		}
 
-		function drawData( data ) {
-			const underlyingData = document.getElementById('underlying-data-table');
-			if( data.length > 1 ) {
-				var tbl = "<h3>Most recent " + (data.length-1) + "</h3><table id='raw-data'>" ;
-
-				// print value heading too
-				tbl += "<th>Value</th>"			
-				for( var j=0 ; j<data[0].columns.length ; j++ ) {
-					tbl += "<th>" + data[0].columns[j] + "</th>" ;
+		function showItem( item ) {
+			var underlyingData = document.getElementById('underlying-data-table');
+			var tbl = "<table class='underlying-data' id='raw-data'>" ;
+			for( var i=0 ; i<item.coreValues.length ; i++ ) {
+				tbl += "<tr class='underlying-data-attributes'><th>" + item.attributes.attributeNames[i] + "</th><td>" + item.coreValues[i] +"</td></tr>" ;
+			}
+			tbl += "<tr><th>Value</th>" ;
+			for( var i=item.coreValues.length ; i<item.attributes.attributeNames.length ; i++ ) {
+				tbl += "<th>"+item.attributes.attributeNames[i]+"</th>" ;
+			}
+			tbl+="</tr>" ;
+			
+			for( var i=0 ; i<item.values.length ; i++ ) {
+				tbl += "<tr><td>"+ numberWithCommas( Math.round( item.values[i] ) ) ;
+				for( var j=0 ; j<item.perimeterValues[j].length ; j++ ) {
+					tbl += "</td><td>"+item.perimeterValues[i][j]+"</td>" ;
 				}
-				for( var i=1 ; i<data.length ; i++ ) {
-					tbl += "<tr onclick=\"inspectItem('" + data[i].invariantKey + "')\"><td>" 
-						+ numberWithCommas( Math.round( data[i].value) ) + "</td>" ;
-					for( var j=0 ; j<data[i].columns.length ; j++ ) {
-						tbl += "<td>" + data[i].columns[j] + "</td>" ;
-					}
-					tbl += "</tr>" ;
-				}
-			} else {
-				tbl = "<h2>No matching data</h2" ;
+				tbl+="</tr>" ;
 			}
 			underlyingData.innerHTML = tbl + "</table>" ;
-		}
-
-		function inspectItem( invariantKey ) {
-			var url = document.location.protocol + "//" + document.location.host 
-					+ "/detail.html?" + encodeURIComponent(invariantKey) ;			
-			window.open( url ) ;
 		}
 
 	</script>

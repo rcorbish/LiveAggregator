@@ -1,6 +1,6 @@
 #!/bin/sh
 
-CP=${CP:-build/resources/main}
+CP=${CP:-src/main/resources}
 
 for l in build/libs/*.jar 
 do 
@@ -23,14 +23,14 @@ then
 	BATCH_SIZE=500
 fi
 
-if [ $RAM_SIZE -gt 8 ]
+if [ $RAM_SIZE -gt 12 ]
 then
-	RAM_SIZE=8
+	RAM_SIZE=12
 fi
 
-if [ $BATCH_SIZE -gt 3000 ]
+if [ $BATCH_SIZE -gt 6000 ]
 then
-	BATCH_SIZE=3000
+	BATCH_SIZE=6000
 fi
 
 
