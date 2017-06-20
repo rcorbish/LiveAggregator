@@ -17,6 +17,7 @@ public class DataElementAttributes {
 	private final Map<String,Integer> attributeIndices ;
 	private final int numCoreAttributes ;
 	private final String attributeNames[] ;
+	private final long  attributeNamesHash ;
 
 	/**
 	 * Create the internal map of name -> index
@@ -29,6 +30,12 @@ public class DataElementAttributes {
 		for( int i=0 ; i<attributeNames.length ; i++ ) {
 			attributeIndices.put( attributeNames[i], i ) ;
 		}
+		long attributeNamesHash = 0L ;
+		for( String s : attributeNames ) {
+			attributeNamesHash <<= 8 ;
+			attributeNamesHash ^= s.hashCode() ;
+		}
+		this.attributeNamesHash = attributeNamesHash ;
 	}
 	
 	/**
@@ -60,5 +67,9 @@ public class DataElementAttributes {
 	 */
 	public String[] getAttributeNames() {
 		return attributeNames ;
+	}
+
+	public long getAttributeNameHash() {
+		return attributeNamesHash ;
 	}
 }

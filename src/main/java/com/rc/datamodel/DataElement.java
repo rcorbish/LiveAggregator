@@ -6,6 +6,11 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
+
 /**
  * A DataElement represents an input to the aggregator. It may be the result of
  * a calculation for example that will be presented to the viewer.
@@ -33,6 +38,7 @@ import java.util.regex.Pattern;
  *
  */
 public class DataElement implements Cloneable, Comparable<DataElement> {
+	final static Logger logger = LoggerFactory.getLogger( DataElement.class ) ;
 
 	public static final char ROW_COL_SEPARATION_CHAR = '\f' ;
 	public static final char SEPARATION_CHAR = '\t' ;
@@ -281,6 +287,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 		return attributes.getAttributeNames() ;
 	}
 	
+
 	/**
 	 * Get a copy of the core values. 
 	 * 
@@ -377,8 +384,16 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 */
 	public DataElement subtract( DataElement other ) {
 		DataElement rc = new DataElement(size(), this.attributes, this.coreValues, getInvariantKey() ) ;
-		for( int i=0 ; i<rc.size() ; i++ ) {
-			rc.set( i, perimeterValues[i], values[i]-other.getValue(i) );
+		
+		if( rc.size() == other.size() && rc.attributes.getAttributeNameHash()==other.attributes.getAttributeNameHash() ) {
+			for( int i=0 ; i<rc.size() ; i++ ) {
+				rc.set( i, perimeterValues[i], values[i]-other.getValue(i) );
+			}
+		} else {
+			logger.info( "Slow subtract detected. Too many of these messages gives bad performance" ) ;
+			for( int i=0 ; i<rc.size() ; i++ ) {
+				rc.set( i, perimeterValues[i], values[i]-other.getValue(i) );
+			}
 		}
 		return rc ;
 	}

@@ -20,7 +20,7 @@ BATCH_SIZE=$( free -g | awk 'NR==2 {print $4*700}' )
 if [ $RAM_SIZE -eq 0 ]
 then
 	RAM_SIZE=1
-	BATCH_SIZE=500
+	BATCH_SIZE=150
 fi
 
 if [ $RAM_SIZE -gt 12 ]
