@@ -198,9 +198,9 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 *  
 	 * @param attributeName
 	 * @return the label value for the attribute name or null if no attribute exists
-	 * 
+	 * @deprecated
 	 */
-	public String getCoreAttribute( String attributeName ) {
+	public String $getCoreAttribute( String attributeName ) {
 		int ix = attributes.getAttributeIndex(attributeName) ;		
 		return ix<0 ? attributeName : ix<coreValues.length ? coreValues[ix] : null ;
 	}
@@ -212,8 +212,9 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 * @param index the DataElement value in the DataElement
 	 * @param attributeName 
 	 * @return the value of the given attribute key or null if NOT a perimiter attribute
+	 * @deprecated
 	 */
-	public String getPerimiterAttribute( int index, String attributeName ) {
+	public String $getPerimiterAttribute( int index, String attributeName ) {
 		int ix = attributes.getAttributeIndex(attributeName) ;		
 		return ix<coreValues.length ? null : perimeterValues[index][ix-coreValues.length] ;
 	}

@@ -272,7 +272,9 @@ public class DataElementDataView  implements DataElementProcessor {
 			//if( !element.quickMatchesCoreKeys( bloomFilter ) ) return false ;
 			for( String k : filters.keySet() ) {
 				String mustMatchOneOfThese[] = filters.get(k) ;
-				String att = element.getCoreAttribute( k ) ;
+				// String att = element.getCoreAttribute( k ) ;
+				//ZXCVBNM
+				String att = element.getAttribute( k ) ;
 				if( att != null ) {
 					boolean matchedOneOfThese = false ;
 					for( String couldMatchThis : mustMatchOneOfThese ) {

@@ -176,13 +176,14 @@ public class LiveAggregatorRandom  {
 						},
 						invariantKey
 						) ;				
+					String ccy = CCYS[ random.nextInt(CCYS.length) ] ;
 					for( int j=0 ; j<de.size() ; j++ ) {
 						String metric = METRICS[ random.nextInt( METRICS.length ) ] ;
 						de.set(j,
 								new String[] { 
 										metric,
 										metric.equals("IR01")?TENORS[ random.nextInt( TENORS.length ) ]:null,
-										CCYS[ random.nextInt(CCYS.length) ]
+										ccy
 						},
 						(random.nextInt( 1001 ) - 500) / 10.f
 						) ;
