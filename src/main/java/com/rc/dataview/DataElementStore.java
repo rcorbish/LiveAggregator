@@ -388,7 +388,7 @@ public class DataElementStore  implements DataElementProcessor {
 		for( String notRealAttribute : notRealAttributes ) {
 			matchingTests.remove( notRealAttribute ) ;
 		}
-		logger.debug( "Ignoring unreal keys {} => testing for {}.", notRealAttributes, matchingTests ) ;
+		logger.info( "Ignoring unreal keys {} => testing for {}.", notRealAttributes, matchingTests ) ;
 		
 		
 		//
@@ -397,18 +397,25 @@ public class DataElementStore  implements DataElementProcessor {
 		// elements and keep the ones with the largest values to return.
 		//
 		String attributeNames[] = dae.getAttributeNames() ;
-		float currentMax = 0.f ;
+		long currentMaxTime = 0L ;
 		for( DataElement value : currentElements.values() ) {
+			
+			// If this is older than the oldest in the list forget it
+			// if the list is already full ( performance ... )
+			boolean decidedToAddToList = value.getCreatedTime() > currentMaxTime || rc.size() < (2*limit) ;
+
 			if( value.matchesCoreKeys( matchingTests ) ) {	
 				for( int i=0 ; i<value.size() ; i++ ) {				
 					if( value.matchesPerimiterKeys(i, matchingTests)) {
 						// 2 reasons to add - either we haven't filled up the list
-						// or the current value is bigger than the smallest in the 
-						// current list
-						boolean decidedToAddToList = rc.size() < limit ;
-						if( Math.abs(value.getValue(i)) > currentMax ) {
-							decidedToAddToList = true;
-						}
+						// or the current value is younger than the oldest in the 
+						// current list ( see above part of the test )
+						//
+						// We do 2x for optimization - so we sort infrequently later
+						// If it's faster to sort than add each time this can be changed
+						// i.e. maintain a sorted list ( priorityqueue ? )
+						decidedToAddToList = rc.size() < (2*limit) ;		
+						
 						if(decidedToAddToList) {
 
 							String tmp[] = new String[attributeNames.length + 2] ;
@@ -421,13 +428,13 @@ public class DataElementStore  implements DataElementProcessor {
 							rc.add( ddm ) ;
 							// We won't chop the list every time. Keep a bigger list
 							// to reduce sorting. We can clean up at the end
-							if( rc.size() > (2*limit) ) {
+							if( rc.size() >= (2*limit) ) {
 								Collections.sort( rc ) ;
 								while( rc.size() > limit ) {
 									rc.remove( limit - 1 ) ;
 								} ;
 								DataDetailMessage mx = rc.get( limit-1 ) ;
-								currentMax = mx.createdTime ;
+								currentMaxTime = mx.createdTime ;
 							}
 						}
 					}
