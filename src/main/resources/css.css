@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 html {
-	font-family: sans-serif;
-	font-variant: small-caps;
 	margin: 0;
 	padding: 0;
 	background: #f0fff0 ;
 }
+
+body {
+	font-family: Sans-Serif;
+	font-variant: small-caps;
+}
+
 h4 {
 	margin: 0 ;
 }

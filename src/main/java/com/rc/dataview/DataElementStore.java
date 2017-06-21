@@ -434,7 +434,7 @@ public class DataElementStore  implements DataElementProcessor {
 							if( rc.size() >= (2*limit) ) {
 								Collections.sort( rc ) ;
 								while( rc.size() > limit ) {
-									rc.remove( limit - 1 ) ;
+									rc.remove( limit ) ;
 								} ;
 								DataDetailMessage mx = rc.get( limit-1 ) ;
 								currentMaxTime = mx.createdTime ;
@@ -447,7 +447,7 @@ public class DataElementStore  implements DataElementProcessor {
 		
 		Collections.sort( rc ) ;
 		while( rc.size() > limit ) {
-			rc.remove( limit - 1 ) ;
+			rc.remove( limit ) ;
 		} ;
 		//
 		// Add in a header row if we found anything.
