@@ -218,7 +218,10 @@ div.spinner div.bar12 {
 .bad-status {
 	background-color: #c81306;
 	color: #ffffff ;
+	font-size:48pt !important ;
+	letter-spacing: 5pt ;
 	animation: fade 0.75s alternate infinite;
+	z-index: -10 ;
 }
 
 .export {
