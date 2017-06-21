@@ -19,8 +19,9 @@ import com.rc.datamodel.DataElement;
 import com.rc.datamodel.DataElementAttributes;
 
 /**
- * This is the cache of all currently valaid data. It's big and stupid and fast!
+ * This is the cache of all currently valid data. It's big and stupid and fast!
  * Any data element that might contribute to a view will be cached in here.
+ * 
  * This is a singleton.
  * 
  * @author richard
@@ -36,6 +37,7 @@ public class DataElementStore  implements DataElementProcessor {
 	private Map<String,DataElementDataView>	availableViews ;		// current available views
 	private int								numberDrillThroughs ;
 	private final Date						startedAt ;
+	
 	/**
 	 * The singleton constructor. Sets up a huge hash map to store data
 	 */
@@ -144,6 +146,7 @@ public class DataElementStore  implements DataElementProcessor {
 		}
 	}
 
+	
 	public void setViewDefinitions(ViewDefinitions viewDefinitions) {
 
 		logger.info( "Updating view definitions." );
@@ -401,7 +404,7 @@ public class DataElementStore  implements DataElementProcessor {
 		for( DataElement value : currentElements.values() ) {
 			
 			// If this is older than the oldest in the list forget it
-			// if the list is already full ( performance ... )
+			// The time applies to the whole element - so we can optimize out a loop
 			boolean decidedToAddToList = value.getCreatedTime() > currentMaxTime || rc.size() < (2*limit) ;
 
 			if( value.matchesCoreKeys( matchingTests ) ) {	
@@ -411,9 +414,9 @@ public class DataElementStore  implements DataElementProcessor {
 						// or the current value is younger than the oldest in the 
 						// current list ( see above part of the test )
 						//
-						// We do 2x for optimization - so we sort infrequently later
+						// We do 2x for optimization - so we sort less frequently 
 						// If it's faster to sort than add each time this can be changed
-						// i.e. maintain a sorted list ( priorityqueue ? )
+						// i.e. maintain a sorted list ( priorityqueue ? )						
 						decidedToAddToList = rc.size() < (2*limit) ;		
 						
 						if(decidedToAddToList) {

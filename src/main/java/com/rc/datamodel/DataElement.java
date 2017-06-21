@@ -378,22 +378,34 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 
 	/**
 	 * Subtract the given element, value by value, from the receiver.
-	 * This returns a new dataelement - DataElements are immutable
+	 * This returns a new DataElement - DataElements are immutable
 	 * 
 	 * @param other the data element to subtract from 'this'
 	 * @return a new copy of a data element.
 	 */
 	public DataElement subtract( DataElement other ) {
-		DataElement rc = new DataElement(size(), this.attributes, this.coreValues, getInvariantKey() ) ;
 		
-		if( rc.size() == other.size() && rc.attributes.getAttributeNameHash()==other.attributes.getAttributeNameHash() ) {
+		DataElement rc = null ;
+		if( size() == other.size() && attributes.getAttributeNameHash()==other.attributes.getAttributeNameHash() ) {
+			rc = new DataElement(size(), this.attributes, this.coreValues, getInvariantKey() ) ;
 			for( int i=0 ; i<rc.size() ; i++ ) {
 				rc.set( i, perimeterValues[i], values[i]-other.getValue(i) );
 			}
 		} else {
-			logger.info( "Slow subtract detected. Too many of these messages gives bad performance" ) ;
-			for( int i=0 ; i<rc.size() ; i++ ) {
-				rc.set( i, perimeterValues[i], values[i]-other.getValue(i) );
+			logger.warn( "Slow subtract detected. Expect bad performance (if too many) - [ untested!!!! ]" ) ;
+			//
+			// NOT TESTED   NOT TESTED   NOT TESTED    NOT TESTED   NOT TESTED
+			//
+			// @TODO - this needs to be properly fixed. How do we subtract from 2 different things ?
+			// 
+			// if the core values are different - we can't subtract ( check that later )
+			//
+			rc = new DataElement(size()+other.size(), this.attributes, this.coreValues, getInvariantKey() ) ;
+			for( int i=0 ; i<size() ; i++ ) {				
+				rc.set( i, perimeterValues[i], values[i] );
+			}
+			for( int i=0 ; i<other.size() ; i++ ) {				
+				rc.set( size() + i, perimeterValues[i], -other.getValue(i) );
 			}
 		}
 		return rc ;
