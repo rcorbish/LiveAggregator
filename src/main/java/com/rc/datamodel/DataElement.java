@@ -99,14 +99,6 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 		this.coreValues 	= coreValues ;
 		values 				= new float[length] ;
 		perimeterValues 	= new String[length][] ;
-		/*
-		long bf = 0L ;
-		for( int i=0 ; i<coreValues.length ; i++ ) {
-			bf <<= 10 ;
-			bf |= (long)( coreValues[i].hashCode() & 0x3ff ) ;
-		}
-		bloomFilter = bf == 0L ? -1L : bf ;
-		*/
 	}
 
 	/**
@@ -334,9 +326,9 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 			thisKey.setEmptyValue( getAttribute(i, attributeNames[0] )) ;
 			for( int j=1 ; j<attributeNames.length ; j++ ) {
 				thisKey.add( getAttribute(i, attributeNames[j] ) ) ;
-				if( otherKey.toString().equals( thisKey.toString() ) )  {
-					return i ;
-				}
+			}
+			if( otherKey.toString().equals( thisKey.toString() ) )  {
+				return i ;
 			}
 		}
 		return -1 ;
@@ -395,17 +387,40 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 			logger.warn( "Slow subtract detected. Expect bad performance (if too many) - [ untested!!!! ]" ) ;
 			//
 			// NOT TESTED   NOT TESTED   NOT TESTED    NOT TESTED   NOT TESTED
-			//
-			// @TODO - this needs to be properly fixed. How do we subtract from 2 different things ?
 			// 
 			// if the core values are different - we can't subtract ( check that later )
 			//
+			String attributeNames[] = getAttributeNames() ;
 			rc = new DataElement(size()+other.size(), this.attributes, this.coreValues, getInvariantKey() ) ;
-			for( int i=0 ; i<size() ; i++ ) {				
-				rc.set( i, perimeterValues[i], values[i] );
+			int flagsOther[] = new int[ size() ] ;
+			int flagsThis[] = new int[ size() ] ;
+			for( int i=0 ; i<size() ; i++ ) {		
+				int matchingIndex = rc.findIndex(other, i, attributeNames) ;
+				if( matchingIndex >= 0 ) {
+					flagsOther[matchingIndex] = 1 ;
+					flagsThis[i] = 1 ;
+					rc.set( i, perimeterValues[i], values[i]-other.getValue(matchingIndex) );
+				}
 			}
-			for( int i=0 ; i<other.size() ; i++ ) {				
-				rc.set( size() + i, perimeterValues[i], -other.getValue(i) );
+			
+			int numExtra = 0 ;
+			for( int i=0 ; i<size() ; i++ ) {
+				if( flagsThis[i] == 0 ) {
+					rc.set( flagsThis[i], perimeterValues[i], getValue(flagsThis[i]) );
+				}
+				numExtra += flagsOther[i] ; 
+			}
+			
+			if( numExtra > 0 ) {
+				logger.info( "Extremely slow subtract detected. Try and subtract similar elements from each other." ) ;
+
+				rc = rc.clone( size() + numExtra ) ;			
+				for( int i=0 ; i<size() ; i++ ) {
+					if( flagsOther[i] == 0 ) {
+						numExtra-- ;
+						rc.set( numExtra, other.perimeterValues[flagsOther[i]], -other.getValue(flagsOther[flagsOther[i]]) );
+					}
+				}
 			}
 		}
 		return rc ;
@@ -463,6 +478,28 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	public DataElement clone( String invariantKey ) {
 		return this.clone( invariantKey, this.coreValues ) ;
 	}
+	
+	/**
+	 * Make a copy of the DataElement, but add some extra space in the perimiter values. This copies 
+	 * the given n elements from the original. If n is smaller that the length - the first n items
+	 * are copied. If n is larger - empty elements are appened to the receiver's copy  
+	 * 
+	 * The original data element is unchanged by this operation.
+	 * 
+	 * @see #clone
+	 * 
+	 * @param newSize the size of the new perimiter values
+	 * @return a new DataElement with all values identical to the receiver
+	 */
+	public DataElement clone( int newSize ) {
+		DataElement rc = new DataElement( newSize, this.attributes, coreValues, invariantKey ) ;
+		for( int i=0 ; i<rc.size() ; i++ ) {
+			rc.set(i, perimeterValues[i], values[i] );
+		}
+		return rc ;		
+	}
+	
+		
 
 	/**
 	 * Negate each value in the DataElement. This can be used to remove a previous
@@ -495,7 +532,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 *  
 	 * </pre>
 	 * 
-	 * The above output can be used to calculate an size from the weight as part of
+	 * The above output can be used to calculate a size from the weight as part of
 	 * a calculating view. <need a better example>
 	 *   
 	 * @param invariantKey the unique ID of the key to find in the data store
