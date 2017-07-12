@@ -9,9 +9,11 @@ DG0.ROW=TENOR
 DG0.COL=METRIC
 DG0.COL=CCY
 DG0.TOTAL=TENOR
+#DG0.TOTAL=METRIC
 #DG0.HIDE=CCY
 
 #END
+
 
 #-----------------------------
 # View definition for DG1
@@ -48,6 +50,7 @@ DG4.COL=BOOK
 DG4.ROW=CCY
 DG4.SET=BOOK=Alpha=BookX
 DG4.SET=BOOK=Beta=BookX
+DG4.TOTAL=BOOK
 
 #-----------------------------
 # View definition for DG5
@@ -72,7 +75,7 @@ DG6.DESC=DG6: aka DG4 w/o agg
 DG6.FILTER=METRIC=NPV
 DG6.FILTER=BOOK=Alpha
 DG6.FILTER=BOOK=Beta
-DG6.ROW=Total
+DG6.TOTAL=BOOK
 DG6.ROW=BOOK
 DG6.COL=CCY
 

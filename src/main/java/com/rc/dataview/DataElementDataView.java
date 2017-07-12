@@ -357,13 +357,15 @@ public class DataElementDataView  implements DataElementProcessor {
 		for( String elementKey : dataViewElements.keySet() ) {
 			DataViewElement dve = dataViewElements.get( elementKey ) ;
 			if( dve.isTotal() ) continue ;
-			String totalKey = makeTotalKey(elementKey) ;
-			if( totalKey == null ) continue ;
-			Double d = totals.get( totalKey ) ;
-			if( d == null ) {
-				totals.put( totalKey, new Double( dve.getValue() ) ) ;
-			} else {
-				totals.put( totalKey, new Double( dve.getValue() + d.doubleValue() ) ) ;
+			List<String> totalKeys = makeTotalKeys(elementKey) ;
+
+			for( String totalKey : totalKeys ) {
+				Double d = totals.get( totalKey ) ;
+				if( d == null ) {
+					totals.put( totalKey, new Double( dve.getValue() ) ) ;
+				} else {
+					totals.put( totalKey, new Double( dve.getValue() + d.doubleValue() ) ) ;
+				}
 			}
 		}
 
@@ -379,45 +381,56 @@ public class DataElementDataView  implements DataElementProcessor {
 		}
 	}
 	
-	protected String makeTotalKey( String elementKey  ) {
+	protected List<String> makeTotalKeys( String elementKey  ) {
 		
+		List<String> keys = new ArrayList<>() ;
+
 		String components[] = elementKey.split( DataElement.ROW_COL_SEPARATION_STRING ) ;
 		String rowKeys = components[1] ; // keys is cols then rows
 		String colKeys = components[0] ;
-		
+
 		StringJoiner sjr = new StringJoiner( DataElement.SEPARATION_STRING ) ;
 		String keysR[] = rowKeys.split( DataElement.SEPARATION_STRING ) ;
-
-		boolean foundAnyTotal = false ;
-		
-		for( int i=0 ; i<keysR.length ; i++ ) {
-			boolean foundTotalR = false ;
-			for( int j=0 ; j<totalRows.length ; j++ ) {
-				if( totalRows[j] == i ) {
-					foundTotalR = true ;
-					break ;
-				}
-			}			
-			foundAnyTotal |= foundTotalR ;
-			sjr.add( foundTotalR ? TOTAL_LABEL : keysR[i] ) ;
-		}
-		
 		StringJoiner sjc = new StringJoiner( DataElement.SEPARATION_STRING ) ;
 		String keysC[] = colKeys.split( DataElement.SEPARATION_STRING ) ;
-
-		for( int i=0 ; i<keysC.length ; i++ ) {
-			boolean foundTotalC = false ;
-			for( int j=0 ; j<totalCols.length ; j++ ) {
-				if( totalCols[j] == i ) {
-					foundTotalC = true ;
-					break ;
-				}
-			}			
-			foundAnyTotal |= foundTotalC ;
-			sjc.add( foundTotalC ? TOTAL_LABEL : keysC[i] ) ;
-		}
 		
-		return foundAnyTotal ? ( sjc.toString() + DataElement.ROW_COL_SEPARATION_CHAR + sjr.toString() ) : null ;
+		// max 10 totals ( should be unlimited )
+		for( int k=0 ; k<10 ; k++ ) {
+			int numTotalsFound = 0 ;
+			sjr = new StringJoiner( DataElement.SEPARATION_STRING ) ;
+			sjc = new StringJoiner( DataElement.SEPARATION_STRING ) ;
+
+			for( int r=0 ; r<keysR.length ; r++ ) {
+				boolean foundTotalR = false ;
+				for( int j=0 ; j<totalRows.length ; j++ ) {
+					if( totalRows[j] == r && k<=numTotalsFound ) {
+						sjr.add( TOTAL_LABEL ) ;
+						numTotalsFound++ ;
+						foundTotalR = true ;
+					} 
+				} 
+				if( !foundTotalR ) {
+					sjr.add( keysR[r] ) ;
+				}			
+				
+				for( int c=0 ; c<keysC.length ; c++ ) {
+					boolean foundTotalC = false ;
+					for( int j=0 ; j<totalCols.length ; j++ ) {
+						if( totalCols[j] == c && k<=numTotalsFound ) {
+							sjc.add( TOTAL_LABEL ) ;
+							numTotalsFound++ ;
+							foundTotalC = true ;
+						} 
+					}
+					if( !foundTotalC ) {
+						sjc.add( keysC[c] ) ;
+					}
+				}
+			}
+			if( numTotalsFound == 0 ) break ;
+			keys.add( sjc.toString() + DataElement.ROW_COL_SEPARATION_CHAR + sjr.toString() ) ;
+		}
+		return keys ;
 	}
 
 	/**

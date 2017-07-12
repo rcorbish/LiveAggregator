@@ -116,7 +116,7 @@
 					document.getElementById('grid').style.display = "block";
 					sendObj(msg); // echo the ready message to enable updates in server
 				} else if (msg.command === "CLOSE") {
-					statusBad();
+					//statusBad();
 					resetView();
 				} else if (msg.command === "RESET") {
 					setViewDescription("View definitions were changed on the server, updating is temporarily paused.");
