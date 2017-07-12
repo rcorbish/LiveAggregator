@@ -9,8 +9,9 @@ package com.rc.dataview;
  *
  */
 public class DataViewElement {
-	private float value = 0.0f ;
+	private double value = 0.0 ;
 	private final boolean hidden ;
+	private final boolean isTotal ;		// is this a special total element ?
 	private boolean updated = false ;		// has this been updated since last send?
 	private boolean unused = false ;		// Mark this as potentially no longer used
 
@@ -22,7 +23,19 @@ public class DataViewElement {
 	 * @param hidden, whether this element will ever be displayed on screen
 	 */
 	public DataViewElement( boolean hidden ) {
+		this( hidden, false ) ;
+	}
+
+	/** 
+	 * create a new element in the view. It must be known at 
+	 * construction time that the element is hidden.
+	 * 
+	 * @param hidden, whether this element will ever be displayed on screen
+	 * @param isTotal whether this represents a total cell on screen
+	 */
+	public DataViewElement( boolean hidden, boolean isTotal ) {
 		this.hidden = hidden ;
+		this.isTotal = isTotal ;
 	}
 
 	/**
@@ -31,9 +44,9 @@ public class DataViewElement {
 	 * 
 	 * @param value
 	 */
-	public void add( float value ) {
+	public void add( double value ) {
 //		Be careful with this, the data is read and written by 2
-//		separate threads - the view (to updated new elelemnts ) 
+//		separate threads - the view (to updated new elements ) 
 //		and the message sender (which may reset the updated & unused flags)
 //		The order of processing is important to avoid thread issues
 		this.value += value ;
@@ -41,7 +54,13 @@ public class DataViewElement {
 		this.unused = false ; //(value == 0.f) ;
 	}
 
-	public float getValue() {
+	
+	public void set( double value ) {
+		this.updated = this.value != value ;		
+		this.value = value ;
+	}
+	
+	public double getValue() {
 		return value ;
 	}
 
@@ -53,6 +72,9 @@ public class DataViewElement {
 	}
 	public boolean isHidden() {
 		return hidden ;
+	}
+	public boolean isTotal() {
+		return isTotal ;
 	}
 
 	/**

@@ -157,7 +157,7 @@ public class ClientDataView  {
 	 * @param elementKey the full key
 	 * @param value the new data value
 	 */
-	public void updatedElement( String elementKey, float value ) {
+	public void updatedElement( String elementKey, double value ) {
 		if( isClosed() ) return ;
 		
 		int ix = elementKey.indexOf( DataElement.ROW_COL_SEPARATION_CHAR ) ;
@@ -168,7 +168,7 @@ public class ClientDataView  {
 			boolean rowExpanded = parentRowKeysExpanded(rowKey) ;
 			boolean colExpanded = parentColKeysExpanded(colKey) ;
 			
-			if( rowExpanded && colExpanded ) {
+			//if( rowExpanded && colExpanded ) {
 				DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
 				clientCommandProcessor.updateCell( 
 						getViewName(), 
@@ -176,7 +176,7 @@ public class ClientDataView  {
 						rowKey,
 						numberFormatter.format(value)  
 						) ;
-			}
+			//}
 		} catch (ClientDisconnectedException e) {
 			logger.warn( "Remote client for {} disconnected during cell update.", getViewName() ) ;
 			close(); 

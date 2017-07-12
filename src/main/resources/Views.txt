@@ -1,13 +1,17 @@
 #-----------------------------
 # View definition for DG0
 #
-DG0.DESC=DG0: Books/Client x Type/Currency
-DG0.ROW=BOOK
-DG0.ROW=CPTY
+DG0.DESC=DG0: Simple Risk
+DG0.FILTER=METRIC=IR01
+#DG0.ROW=BOOK
+#DG0.ROW=CPTY
 DG0.ROW=TENOR
 DG0.COL=METRIC
 DG0.COL=CCY
-DG0.HIDE=TENOR
+DG0.TOTAL=TENOR
+#DG0.HIDE=CCY
+
+#END
 
 #-----------------------------
 # View definition for DG1
@@ -76,9 +80,8 @@ DG6.COL=CCY
 # View definition for DG7
 #
 DG7.DESC=DG7: Tenor x Metric - USD
-DG7.ROW=Total2
 DG7.ROW=TENOR
-DG7.COL=Total
+DG7.TOTAL=PRODUCT
 DG7.COL=PRODUCT
 DG7.COL=EVENT
 DG7.FILTER=METRIC=IR01

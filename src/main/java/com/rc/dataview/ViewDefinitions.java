@@ -130,6 +130,10 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 				if( s.length()==0 || s.charAt(0)=='#' ) {	// comment or empty line
 					continue ;
 				}
+				if( s.equals("END") ) {
+					logger.info("Early end to views.txt - END at line {}", lineNum ) ;
+					break ;
+				}
 				Matcher m = viewDefinitionPattern.matcher( s ) ;
 				if( m.matches() ) {
 					String viewName = m.group(1) ;
@@ -146,6 +150,8 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 						viewDefinition.addRowGroup(value); 
 					} else if( item.equalsIgnoreCase("HIDE") ) {
 						viewDefinition.addHiddenAttribute(value); 
+					} else if( item.equalsIgnoreCase("TOTAL") ) {
+						viewDefinition.addTotalAttribute(value); 
 					} else if( item.equalsIgnoreCase("DESC") ) {
 						viewDefinition.setDescription(value); 
 					} else if( item.equalsIgnoreCase("CLASS") ) {

@@ -37,6 +37,7 @@ public class ViewDefinition {
 	private String colGroups[] ;
 	private String rowGroups[] ;
 	private String hiddenAttributes[] ;
+	private String totalAttributes[] ;
 	private Map<String,String> filters ;
 
 	// this is a map keyed on attribute name
@@ -62,6 +63,10 @@ public class ViewDefinition {
 		return hiddenAttributes;
 	}
 
+	public String[] getTotalAttributes() {
+		return totalAttributes;
+	}
+
 	public Map<String, String> getFilters() {
 		return filters;
 	}
@@ -74,6 +79,7 @@ public class ViewDefinition {
 		colGroups = new String[0] ;
 		rowGroups = new String[0] ;
 		hiddenAttributes = new String[0] ;
+		totalAttributes = new String[0] ;
 		filters = new HashMap<>() ;
 		setValues = new HashMap<>() ;
 	}
@@ -111,6 +117,11 @@ public class ViewDefinition {
 	public void addHiddenAttribute( String attributeName ) {
 		hiddenAttributes = Arrays.copyOf( hiddenAttributes, hiddenAttributes.length+1 ) ;
 		hiddenAttributes[hiddenAttributes.length-1] = attributeName ;
+ 	}
+	
+	public void addTotalAttribute( String attributeName ) {
+		totalAttributes = Arrays.copyOf( totalAttributes, totalAttributes.length+1 ) ;
+		totalAttributes[totalAttributes.length-1] = attributeName ;
  	}
 	
 	public void addFilter( String attribute, String value ) {

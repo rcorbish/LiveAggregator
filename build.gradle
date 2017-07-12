@@ -1,19 +1,7 @@
 
-buildscript {
-  repositories {
-    maven {
-      url "https://plugins.gradle.org/m2/"
-    }
-  }
-  dependencies {
-    classpath "gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.12.0"
-  }
-}
 
 apply plugin: 'java'
-apply plugin: 'maven'
 apply plugin: 'findbugs'
-apply plugin: 'com.palantir.docker'
 
 
 group = 'LiveAggregator'
@@ -40,8 +28,9 @@ findbugs {
 }
 
 repositories {
-     maven { url "http://repo.maven.apache.org/maven2" }
+     mavenCentral()
 }
+
 dependencies {
     compile group: 'junit', name: 'junit', version:'4.11'
     compile group: 'com.sparkjava', name: 'spark-core', version:'2.5.4'
@@ -49,23 +38,8 @@ dependencies {
     compile group: 'com.google.code.gson', name: 'gson', version:'2.8.0'
 }
 
-task runRandom(type:Exec) {
-    commandLine './run.sh'
-}
-
 task copyDependencies(type: Copy) {
     from configurations.runtime
     into new File(".", "libs")
-}
-
-task buildDockerImage {
-	inputs.file 'Dockerfile'
-	description 'Builds the docker image'
-	
-	docker {
-    	name 'rcorbish/live-aggregator'
-    	dockerfile 'Dockerfile'
-		buildArgs( ['-H': 'tcp://mercury.rac.local:2375'] )
-	}
 }
 

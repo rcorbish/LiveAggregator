@@ -43,6 +43,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	public static final char ROW_COL_SEPARATION_CHAR = '\f' ;
 	public static final char SEPARATION_CHAR = '\t' ;
 	public static final String SEPARATION_STRING = String.valueOf(SEPARATION_CHAR) ;
+	public static final String ROW_COL_SEPARATION_STRING = String.valueOf(ROW_COL_SEPARATION_CHAR) ;
 	// @TODO - is this thread safe? 
 	private static final Pattern SEPARATION_CHAR_PATTERN = Pattern.compile( Pattern.quote( String.valueOf(SEPARATION_CHAR) ) ) ;
 	
@@ -180,36 +181,11 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 */
 	public String getAttribute( int index, String attributeName ) {
 		int ix = attributes.getAttributeIndex(attributeName) ;		
-		return ix<0 ? attributeName : ix<coreValues.length ? coreValues[ix] : perimeterValues[index][ix-coreValues.length] ;
+		String rc =  ix<0 ? attributeName : ix<coreValues.length ? coreValues[ix] : perimeterValues[index][ix-coreValues.length] ;
+		return rc == null ? "-" : rc ;
 	}
 
 	
-	/**
-	 * Get the core attribute label from the core attributes. For example
-	 * ask for 'Currency' and get 'USD'
-	 *  
-	 * @param attributeName
-	 * @return the label value for the attribute name or null if no attribute exists
-	 * @deprecated
-	 */
-	public String $getCoreAttribute( String attributeName ) {
-		int ix = attributes.getAttributeIndex(attributeName) ;		
-		return ix<0 ? attributeName : ix<coreValues.length ? coreValues[ix] : null ;
-	}
-
-	/**
-	 * Return the value of the perimiter attribute given the name of the attribute. 
-	 * The attributeName is used to find the index of the attribute.  
-	 * 
-	 * @param index the DataElement value in the DataElement
-	 * @param attributeName 
-	 * @return the value of the given attribute key or null if NOT a perimiter attribute
-	 * @deprecated
-	 */
-	public String $getPerimiterAttribute( int index, String attributeName ) {
-		int ix = attributes.getAttributeIndex(attributeName) ;		
-		return ix<coreValues.length ? null : perimeterValues[index][ix-coreValues.length] ;
-	}
 
 	/**
 	 * How many values exist in this DataElement. 
@@ -340,7 +316,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	/**
 	 * This helper method is used to split a key into separate components. 
 	 * This would be expected to be used for the  data element label
-	 * components - whera cell label is indexed by muli-level keys
+	 * components - where cell label is indexed by muli-level keys
 	 * 
 	 * @param in the input key as a flat string
 	 * @return the array of components 
@@ -354,7 +330,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 * @param in an array of Strings to merge into a label
 	 * @return the flat label of merged components
 	 */
-	static public String mergeComponents( String in[] ) {		
+	static public String mergeComponents( String ...in  ) {		
 		if( in.length == 0 ) return "" ;
 		StringBuilder rc = new StringBuilder( in[0] ) ;
 		for( int i=1 ; i<in.length ; i++ ) {

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.BlockingQueue ;
@@ -36,6 +37,8 @@ public class DataElementDataView  implements DataElementProcessor {
 
 	final static Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
 
+	public final static String TOTAL_LABEL = "Total" ;
+	
 	final DataElementStore dataElementStore ;
 
 	// How often to send an update to the client (millis)
@@ -47,6 +50,8 @@ public class DataElementDataView  implements DataElementProcessor {
 	private final String colGroups[] ; 				// what is getting grouped
 	private final String rowGroups[] ; 				// what is getting grouped
 	private final Set<String> hiddenAttributes ; 	// Do not show these atts on screen
+	private final int totalCols[] ; 				// Which cols to total - by index into colGroups 
+	private final int totalRows[] ; 				// Which rows to total 
 
 	// Map keyed on elementKey ( rows & column attribute values )
 	// The current (expanded) view is stored in here
@@ -61,7 +66,7 @@ public class DataElementDataView  implements DataElementProcessor {
 	private Thread messageSender ;
 	private Thread messageReceiver ;
 
-	/** Use this to create an inmstance. If the view definition indicates
+	/** Use this to create an instance. If the view definition indicates
 	 * a special class that will be used instead of this parent instance.
 	 * @param viewDefinition the definition of the View - from config
 	 */
@@ -152,10 +157,29 @@ public class DataElementDataView  implements DataElementProcessor {
 		} else {
 			this.rowGroups = viewDefinition.getRowGroups() ;
 		}
+		
 		this.hiddenAttributes = new HashSet<String>() ;
 		for( String hiddenAttribute : viewDefinition.getHiddenAttributes() ) {
 			this.hiddenAttributes.add( hiddenAttribute ) ;
 		}
+		
+		// Now get a list of column and rows to total
+		// the list contains indices into rowGroups/colGroups
+		List<Integer>rowTotals = new ArrayList<>() ;
+		List<Integer>colTotals = new ArrayList<>() ;
+		
+		for( String total : viewDefinition.getTotalAttributes() ) {
+			for( int i=0 ; i<this.rowGroups.length ; i++ ) { 
+				if( this.rowGroups[i].equals(total) ) rowTotals.add(i) ;  
+			}
+			for( int i=0 ; i<this.colGroups.length ; i++ ) { 
+				if( this.colGroups[i].equals(total) ) colTotals.add(i) ;  
+			}
+		}
+		this.totalRows = new int[rowTotals.size()] ;
+		this.totalCols = new int[colTotals.size()] ;
+		for( int i=0 ; i<this.totalRows.length ; i++ ) this.totalRows[i] = rowTotals.get(i) ; 
+		for( int i=0 ; i<this.totalCols.length ; i++ ) this.totalCols[i] = colTotals.get(i) ; 
 	}
 
 /**
@@ -299,7 +323,9 @@ public class DataElementDataView  implements DataElementProcessor {
 	 *  be cleaned up to separate the row keys from the underlying data
 	 */
 	private synchronized void sendUpdates() {
-		if( serverBatchComplete ) {
+		if( serverBatchComplete ) {			
+			updateTotals();
+			
 			List<String>	removedKeys = new ArrayList<>() ;
 			for( String elementKey : dataViewElements.keySet() ) {
 				DataViewElement dve = dataViewElements.get( elementKey ) ;
@@ -310,7 +336,7 @@ public class DataElementDataView  implements DataElementProcessor {
 					removedKeys.add( elementKey ) ;						
 				} else if( dve.isUpdated() ) {
 					if( !dve.isHidden() ) {
-						for( ClientDataView  cdv : clientViews ) {
+						for( ClientDataView cdv : clientViews ) {
 							cdv.updatedElement( elementKey, dve.getValue() ) ;
 						}
 					}
@@ -323,6 +349,76 @@ public class DataElementDataView  implements DataElementProcessor {
 		}
 	}
 
+	protected void updateTotals() {
+		if( totalRows.length == 0 && totalCols.length==0 ) return ;
+		
+		Map<String,Double> totals = new HashMap<>( dataViewElements.size() ) ;
+		
+		for( String elementKey : dataViewElements.keySet() ) {
+			DataViewElement dve = dataViewElements.get( elementKey ) ;
+			if( dve.isTotal() ) continue ;
+			String totalKey = makeTotalKey(elementKey) ;
+			if( totalKey == null ) continue ;
+			Double d = totals.get( totalKey ) ;
+			if( d == null ) {
+				totals.put( totalKey, new Double( dve.getValue() ) ) ;
+			} else {
+				totals.put( totalKey, new Double( dve.getValue() + d.doubleValue() ) ) ;
+			}
+		}
+
+		
+		for( String totalKey : totals.keySet() ) {
+			
+			DataViewElement dve2 = 	dataViewElements.get( totalKey ) ;
+			if( dve2 == null ) {
+				dve2 = new DataViewElement( false, true ) ; // a non hidden total element
+				dataViewElements.put( totalKey, dve2 ) ;
+			}
+			dve2.set( totals.get(totalKey) );
+		}
+	}
+	
+	protected String makeTotalKey( String elementKey  ) {
+		
+		String components[] = elementKey.split( DataElement.ROW_COL_SEPARATION_STRING ) ;
+		String rowKeys = components[1] ; // keys is cols then rows
+		String colKeys = components[0] ;
+		
+		StringJoiner sjr = new StringJoiner( DataElement.SEPARATION_STRING ) ;
+		String keysR[] = rowKeys.split( DataElement.SEPARATION_STRING ) ;
+
+		boolean foundAnyTotal = false ;
+		
+		for( int i=0 ; i<keysR.length ; i++ ) {
+			boolean foundTotalR = false ;
+			for( int j=0 ; j<totalRows.length ; j++ ) {
+				if( totalRows[j] == i ) {
+					foundTotalR = true ;
+					break ;
+				}
+			}			
+			foundAnyTotal |= foundTotalR ;
+			sjr.add( foundTotalR ? TOTAL_LABEL : keysR[i] ) ;
+		}
+		
+		StringJoiner sjc = new StringJoiner( DataElement.SEPARATION_STRING ) ;
+		String keysC[] = colKeys.split( DataElement.SEPARATION_STRING ) ;
+
+		for( int i=0 ; i<keysC.length ; i++ ) {
+			boolean foundTotalC = false ;
+			for( int j=0 ; j<totalCols.length ; j++ ) {
+				if( totalCols[j] == i ) {
+					foundTotalC = true ;
+					break ;
+				}
+			}			
+			foundAnyTotal |= foundTotalC ;
+			sjc.add( foundTotalC ? TOTAL_LABEL : keysC[i] ) ;
+		}
+		
+		return foundAnyTotal ? ( sjc.toString() + DataElement.ROW_COL_SEPARATION_CHAR + sjr.toString() ) : null ;
+	}
 
 	/**
 	 *  Look at all the saved elements and send any that have changed.
@@ -386,9 +482,12 @@ public class DataElementDataView  implements DataElementProcessor {
 					if( matchesPerimeterElements( i, dataElement ) ) {
 						colKeyPiece.setLength(0);
 						// for each column key piece
+						boolean hidden = false ;
+
 						for( String colGroup : colGroups ) {
+							hidden |= hiddenAttributes.contains( colGroup ) ;
 							// add the next piece to the cumulative column key
-							String rawColAttributeValue = dataElement.getAttribute(i, colGroup ) ;
+							String rawColAttributeValue = dataElement.getAttribute( i, colGroup ) ;
 							// will we rename any values ( i.e. part of a group ) ?
 							if( this.setValues != null ) {
 								Map<String,String> setValuesForThisColGroup = this.setValues.get( colGroup ) ;
@@ -401,48 +500,54 @@ public class DataElementDataView  implements DataElementProcessor {
 							} else { // no grouping defined at all
 								colKeyPiece.append( rawColAttributeValue ) ;
 							}
-							// restart the cartesian key at empty
-							elementKey.setLength(0);
-							// Then add in the proper number of column components 
-							elementKey.append( colKeyPiece ).append( DataElement.ROW_COL_SEPARATION_CHAR ) ;
-							// Now with the base column done - add each row key, one at a time
-							// so get the cartesian of rows & columns into the 
-							// elementKey. This inner loop executes once per item in the 
-							// cartesian ... 2 row keys & 3 col keys == 6 loops
-							for( String rowGroup : rowGroups ) {
-								String rawRowAttributeValue = dataElement.getAttribute(i, rowGroup ) ;
-								if( this.setValues != null ) {  // any grouping defined?
-									Map<String,String> setValuesForThisRowGroup = this.setValues.get( rowGroup ) ;
-									if( setValuesForThisRowGroup == null ) { // no groups defined for this section
-										elementKey.append( rawRowAttributeValue ) ;
-									} else { // group is defined so rename if attribte matches or keep the original
-										String replacementValue = setValuesForThisRowGroup.get( rawRowAttributeValue ) ;
-										elementKey.append( replacementValue==null ? rawRowAttributeValue : replacementValue ) ;
-									}
-								} else { 
-									elementKey.append( rawRowAttributeValue ) ;  // no groups defined
-								}
-
-								// now turn the key into a hashable thing
-								String key = elementKey.toString() ;
-								DataViewElement dve = dataViewElements.get( key ) ;
-								if( dve == null ) {   // if we don't have a key create it
-									boolean hidden = hiddenAttributes.contains( rowGroup ) | 
-													 hiddenAttributes.contains( colGroup ) ; 
-									// Allow concurrent elem creates
-									DataViewElement newDve = new DataViewElement( hidden ) ;
-									dve = dataViewElements.putIfAbsent( key, newDve ) ;
-									if( dve==null ) {
-										dve = newDve ;
-									}
-								}
-								// add the value to the new key
-								// This is where the aggregation happens
-								dve.add( dataElement.getValue(i) )  ; 							
-								elementKey.append( DataElement.SEPARATION_CHAR ) ;
-							}					
 							colKeyPiece.append( DataElement.SEPARATION_CHAR ) ;
 						}
+						colKeyPiece.setLength( colKeyPiece.length() - 1 ) ;
+						// restart the cartesian key at empty
+						elementKey.setLength(0);
+						// Then add in the proper number of column components 
+						elementKey.append( colKeyPiece ).append( DataElement.ROW_COL_SEPARATION_CHAR ) ;
+						// Now with the base column done - add each row key, one at a time
+						// so get the cartesian of rows & columns into the 
+						// elementKey. This inner loop executes once per item in the 
+						// cartesian ... 2 row keys & 3 col keys == 6 loops
+						for( String rowGroup : rowGroups ) {
+							hidden |= hiddenAttributes.contains( rowGroup ) ;
+							String rawRowAttributeValue = dataElement.getAttribute( i, rowGroup ) ;
+							if( this.setValues != null ) {  // any grouping defined?
+								Map<String,String> setValuesForThisRowGroup = this.setValues.get( rowGroup ) ;
+								if( setValuesForThisRowGroup == null ) { // no groups defined for this section
+									elementKey.append( rawRowAttributeValue ) ;
+								} else { // group is defined so rename if attribte matches or keep the original
+									String replacementValue = setValuesForThisRowGroup.get( rawRowAttributeValue ) ;
+									elementKey.append( replacementValue==null ? rawRowAttributeValue : replacementValue ) ;
+								}
+							} else { 
+								elementKey.append( rawRowAttributeValue ) ;  // no groups defined
+							}
+							elementKey.append( DataElement.SEPARATION_CHAR ) ;
+						}
+						elementKey.setLength( elementKey.length() - 1 ) ;
+
+						// now turn the key into a hashable thing
+						String key = elementKey.toString() ;
+						/*
+						if( serverBatchComplete ) {
+							logger.info( "Processed element key {}", key ) ;
+						}
+						*/
+						DataViewElement dve = dataViewElements.get( key ) ;
+						if( dve == null ) {   // if we don't have a key create it
+							// Allow concurrent elem creates
+							DataViewElement newDve = new DataViewElement( hidden ) ;
+							dve = dataViewElements.putIfAbsent( key, newDve ) ;
+							if( dve==null ) {
+								dve = newDve ;
+							}
+						}
+						// add the value to the new key
+						// This is where the aggregation happens
+						dve.add( dataElement.getValue(i) )  ; 							
 					}
 				}
 			}

@@ -536,12 +536,13 @@
 		
 		var months = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ] ;
 		function getSortOrder( key, attributeName ) {
+			if( key === "Total" ) return '00' ;
 			if( attributeName === 'CCY' ) {
 				if( key === 'USD' ) return '00' ;
 				if( key === 'CAD' ) return '01' ;
 				if( key === 'EUR' ) return '02' ;
 				if( key === 'GBP' ) return '03' ;
-				if( key === 'JPY' ) return '03' ;
+				if( key === 'JPY' ) return '04' ;
 			}
 			if( attributeName === 'EVENT' ) {
 				if( key === 'SOD' ) return '00' ;
