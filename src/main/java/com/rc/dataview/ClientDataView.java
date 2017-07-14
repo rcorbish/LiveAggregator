@@ -123,6 +123,7 @@ public class ClientDataView  {
 	 */
 	public void expandCollapseCol( String colKey, boolean expanded) {
 		if( expanded ) { expandedCols.add( colKey ) ; } else { expandedCols.remove(colKey) ; } 
+		logger.info( "Col keys now: {}", expandedCols ) ;
 	}
 
 	/**
@@ -134,7 +135,6 @@ public class ClientDataView  {
 		int ix = elementKey.indexOf( DataElement.ROW_COL_SEPARATION_CHAR ) ;
 		String colKey = elementKey.substring(0,ix) ;
 		String rowKey = elementKey.substring(ix+1) ;
-
 		if( parentKeysExpanded(colKey, rowKey) ) {
 			try {
 				clientCommandProcessor.deleteCell( 
@@ -165,10 +165,12 @@ public class ClientDataView  {
 		String rowKey = elementKey.substring(ix+1) ;
 
 		try {
+			colKey = colKey.trim() ;
 			boolean rowExpanded = parentRowKeysExpanded(rowKey) ;
 			boolean colExpanded = parentColKeysExpanded(colKey) ;
 			
-			//if( rowExpanded && colExpanded ) {
+			if( !colExpanded ) { logger.info( "{} is not expanded", colKey ) ; }
+			if( rowExpanded && colExpanded ) {
 				DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
 				clientCommandProcessor.updateCell( 
 						getViewName(), 
@@ -176,7 +178,7 @@ public class ClientDataView  {
 						rowKey,
 						numberFormatter.format(value)  
 						) ;
-			//}
+			}
 		} catch (ClientDisconnectedException e) {
 			logger.warn( "Remote client for {} disconnected during cell update.", getViewName() ) ;
 			close(); 

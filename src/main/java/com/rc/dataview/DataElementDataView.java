@@ -38,7 +38,7 @@ public class DataElementDataView  implements DataElementProcessor {
 
 	final static Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
 
-	public final static String TOTAL_LABEL = "Total" ;
+	public final static String TOTAL_LABEL = ""; //Total" ;
 	
 	final DataElementStore dataElementStore ;
 
