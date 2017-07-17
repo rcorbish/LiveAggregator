@@ -1,6 +1,7 @@
 package com.rc.agg.client;
 
 import java.io.IOException;
+import java.util.StringJoiner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,11 +88,13 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	 * @return one String representing the array
  	 */
 	public static String printArray( String arr[] ) {
-		StringBuilder sb = new StringBuilder( ' ' ) ;
-		for( String a : arr ) {
-			sb.append( '"' ).append( a ).append( "\"," ) ;
+		if( arr.length == 0 ) return "" ;
+		
+		StringBuilder sb = new StringBuilder( "\"" + arr[0] ) ;
+		for( int i=1 ; i<arr.length ; i++ ) {
+			sb.append("\",\"" ).append( arr[i] ) ;
 		}
-		sb.deleteCharAt( sb.length() - 1 ) ;
+		sb.append( '"' ) ;
 		return sb.toString() ;
 	}
 	/**

@@ -20,6 +20,8 @@
 		var numHeartbeatsMissed = 0;
 		var connectionActive = false;
 
+		var hiddenColumns = {}
+		
 		openWebSocket();
 
 		function openWebSocket() {
@@ -238,10 +240,10 @@
 				colKeys: []
 			};
 
+/*
 			//
 			// Pull the view open rows and cols from local storage
 			//
-
 			if (typeof (Storage) !== "undefined") {
 				var openRowKey = openViewName + "\fEXR\f";
 				var openColKey = openViewName + "\fEXC\f";
@@ -255,6 +257,7 @@
 					}
 				}
 			}
+*/			
 			sendObj(msg);
 		}
 
@@ -406,7 +409,8 @@
 			for (var i = 0; i < numRowLevels; i++) {
 				var newCell = newRow.insertCell(i);
 				newCell.setAttribute("class", "label-hdr-cell");
-				if (i < rowKeys.length) {
+				//if( i < rowKeys.length ) {
+				if( rowKeys[i] !== "Total" ) {
 					newCell.textContent = rowKeys[i];
 				} else {
 					newRow.setAttribute("class", ("total-row-" + (numButtonsAddedInThisRow % 3)));
@@ -425,8 +429,10 @@
 				newCell.classList.add( "data-cell" ) ;
 				var colKey = rows[0].cells[j].getAttribute("id");
 				var colKeys = makeKeys( colKey ) ;
-				if( colKeys.length < numColLevels ) {
-					newCell.classList.add( "total-col-" + ( ( ( colKeys.length ) - 1 ) % 3 )  ) ;
+//				if( colKeys.length < numColLevels ) {
+				var ti = colKeys.indexOf( "Total" ) ;
+				if( ti !== -1 ) {
+					newCell.classList.add( "total-col-" + (ti % 3)  ) ;
 				}
 				newCell.setAttribute("id", makeCompoundKeyFromText(colKey, rowKey));
 				newCell.addEventListener( 'fireanimation', function() { 
@@ -484,20 +490,24 @@
 			for (var i = 0; i < numColLevels; i++) {
 				var newCell = rows[i].insertCell(insertionPoint);
 				newCell.setAttribute("class", "hdr-cell");
-				if (i < colKeys.length) {
-					if (i == 0) { // only set the ID of the first header row 
-						newCell.setAttribute("id", colId);						
-						newCell.setAttribute("sort-order", sortOrder );
-					}
+
+				if (i == 0) { // only set the ID of the first header row 
+					newCell.setAttribute("id", colId);						
+					newCell.setAttribute("sort-order", sortOrder );
+				}
+
+				if (colKeys[i] !== "Total" ) {
 					newCell.textContent = colKeys[i];
 				} else {
 					var key = openViewName + "\fEXC\f" + colKey;
 					var state = getKey(key);
-					newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleCol( '" + openViewName + "'," +
-						printKeys(colKeys) + ",this);\" value='" + (state == 'OPE' ? '-' : '+') + "' />";
+					newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleCol( '" + 
+							openViewName + "'," +
+							printKeys(colKeys) + ",this);\" value='" + (state === 'OPE'?"-":"+") + "'/>";
 				}
 			}
 
+			setColState( name, colKeys ) ;
 
 			// Oh oh - brand new column - need to update every data row in the table !
 			for (var i = numColLevels; i < rows.length; i++) {
@@ -507,11 +517,14 @@
 				newCell = row.insertCell(insertionPoint);
 				newCell.setAttribute("id", makeCompoundKeyFromText(colId, row.getAttribute("id")));
 				newCell.classList.add("data-cell") ;
+				
+				if( hiddenColumns[insertionPoint] ) {
+					newCell.classList.add( "hidden-cell" ) ;
+				}
 
-//				var colKey = rows[0].cells[i].getAttribute("id");
-//				var colKeys = makeKeys( colKey ) ;
-				if( colKeys.length < numColLevels ) {
-					newCell.classList.add( "total-col-" + ( ( ( colKeys.length ) - 1 ) % 3 ) ) ;
+				var ti = colKeys.indexOf( "Total" ) ;
+				if( ti !== -1 ) {
+					newCell.classList.add( "total-col-" + (ti % 3)  ) ;
 				}
 
 				newCell.addEventListener( 'fireanimation', function() { 
@@ -521,7 +534,7 @@
 					this.classList.remove( 'data-cell-flash' ) ;
 				}) ;
 			}
-
+			
 			return document.getElementById(fullKey);
 		}
 		
@@ -536,7 +549,7 @@
 		
 		var months = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ] ;
 		function getSortOrder( key, attributeName ) {
-			if( key === "Total" ) return '00' ;
+			if( key === "Total" ) return '     ' ;   // this will sort first ( except ctrl chars ) space is 1st real character in any charset!
 			if( attributeName === 'CCY' ) {
 				if( key === 'USD' ) return '01' ;
 				if( key === 'CAD' ) return '02' ;
@@ -596,7 +609,7 @@
 
 		function setKey(key, val) {
 			if (typeof (Storage) !== "undefined") {
-				if (val == null) {
+				if (val === null) {
 					localStorage.removeItem(key);
 				} else {
 					localStorage.setItem(key, val);
@@ -651,34 +664,55 @@
 			});
 		}
 
-		function toggleCol(view, colKeys, button) {
+		function toggleCol( view, colKeys, button ) {
 			var key = view + "\fEXC\f" + makeKey(colKeys);
-			var state = getKey(key);
+			var willCollapse = getKey(key)==="OPE" ;
 
-			if (state == "OPE") {
+			if( willCollapse ) {
 				setKey(key, null);
 				button.value = '+';
-				sendObj({
-					"viewName": view,
-					"command": "COC",
-					"colKeys": colKeys
-				});
 			} else {
 				setKey(key, "OPE");
 				button.value = '-';
-				sendObj({
-					"viewName": view,
-					"command": "EXC",
-					"colKeys": colKeys
-				});
 			}
-			resetView();
-			sendObj({
-				"viewName": view,
-				"command": "RST"
-			});
+			
+			setColState( view, colKeys ) ;
+		}
+		
+
+		function setColState( view, colKeys ) {
+			var rows = grid.rows ;
+			
+			var hdr = document.getElementById( makeKey(colKeys) )  ;
+			
+			var hdrIndexStart = 0 ;
+			while( (hdr = hdr.previousSibling) != null ) hdrIndexStart++ ;
+
+			hdr = rows[0].cells[hdrIndexStart] ;			
+			var hdrIndexEnd = hdrIndexStart ;
+			while( (hdr = hdr.nextSibling) != null ) {
+				if( hdr.childElementCount !== 0 ) break ;				
+				hdrIndexEnd++ ;
+			}
+
+			var key = view + "\fEXC\f" + makeKey(colKeys);
+			var isOpen = getKey(key)==="OPE" ;
+			
+			for( var r=0 ; r<rows.length ; r++ ) {
+				var cells = rows[r].cells ;
+				for( var c=hdrIndexStart+1 ; c<=hdrIndexEnd && c<cells.length ; c++ ) {
+					if( isOpen ) {
+						delete( hiddenColumns[c] ) ;
+						cells[c].classList.remove( 'hidden-cell' ) ;
+					} else {
+						hiddenColumns[c] = true ;
+						cells[c].classList.add( 'hidden-cell' ) ;
+					}
+				}
+			}
 		}
 
+	
 		function updateSelectionTotal() {
 			var selectedCells = document.querySelectorAll("td.selected");
 				if( selectedCells.length > 0 ) {

@@ -282,17 +282,21 @@ div.spinner div.bar12 {
 	cursor: cell ;
 }
 
+.hidden-cell {
+	display: none ;
+}
+
 .data-cell-negative {
 	color: #a81306 ;
 }
 
 .data-cell-flash {
 	background-color: inherit ;
-	animation: flash 0.2s linear ;
+	animation: flash 0.1s linear ;
 }
 
 @keyframes flash {
-	from { background-color: #ffe070 ; } 
+	from { background-color: #e0e0e0 ; } 
 	to { background-color: inherit ; }
 }
 

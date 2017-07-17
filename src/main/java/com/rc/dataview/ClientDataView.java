@@ -113,6 +113,7 @@ public class ClientDataView  {
 	 */
 	public void expandCollapseRow( String rowKey, boolean expanded) {
 		if( expanded ) { expandedRows.add( rowKey ) ; } else { expandedRows.remove(rowKey) ; } 
+		logger.info( "Exapnded Row keys: {}", expandedRows ) ;
 	}
 	
 	/**
@@ -123,11 +124,11 @@ public class ClientDataView  {
 	 */
 	public void expandCollapseCol( String colKey, boolean expanded) {
 		if( expanded ) { expandedCols.add( colKey ) ; } else { expandedCols.remove(colKey) ; } 
-		logger.info( "Col keys now: {}", expandedCols ) ;
+		logger.info( "Expanded Col keys : {}", expandedCols ) ;
 	}
 
 	/**
-	 * Mark an element as unused ( just beenb hidded for example by closing a row or column )
+	 * Mark an element as unused ( just been hidden for example by closing a row or column )
 	 * An usused element is deleted from the client view.
 	 * @param elementKey
 	 */
@@ -165,12 +166,7 @@ public class ClientDataView  {
 		String rowKey = elementKey.substring(ix+1) ;
 
 		try {
-			colKey = colKey.trim() ;
-			boolean rowExpanded = parentRowKeysExpanded(rowKey) ;
-			boolean colExpanded = parentColKeysExpanded(colKey) ;
-			
-			if( !colExpanded ) { logger.info( "{} is not expanded", colKey ) ; }
-			if( rowExpanded && colExpanded ) {
+			if( parentKeysExpanded(colKey, rowKey) ) {
 				DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
 				clientCommandProcessor.updateCell( 
 						getViewName(), 
@@ -223,7 +219,7 @@ public class ClientDataView  {
 		String parentRowKey = rowKey ; 
 		for( int i = rowKey.lastIndexOf( DataElement.SEPARATION_CHAR) ; i>0 ; i=parentRowKey.lastIndexOf(DataElement.SEPARATION_CHAR) ) {
 			parentRowKey = parentRowKey.substring(0,i) ;
-			rc &= expandedRows.contains( parentRowKey ) ;
+			rc &= parentRowKey.equals( DataElementDataView.TOTAL_LABEL ) || expandedRows.contains( parentRowKey ) ;
 		}
 		return rc ;
 	}
@@ -237,13 +233,24 @@ public class ClientDataView  {
 	 * @return whether the parent rows keys are expanded
 	 */
 	protected boolean parentColKeysExpanded( String colKey ) {
-		boolean rc = !isClosed()  ;				
-		String parentColKey = colKey ; 
-		for( int i = colKey.lastIndexOf(DataElement.SEPARATION_CHAR) ; i>0 ; i=parentColKey.lastIndexOf(DataElement.SEPARATION_CHAR) ) {
-			parentColKey = parentColKey.substring(0,i) ;
-			rc &= expandedCols.contains( parentColKey ) ;
-		}
-		return rc ;
+		return true ; 
+		/*
+ 		boolean rc = !isClosed() ;
+ 		String ck[] = colKey.split( DataElement.SEPARATION_STRING ) ;
+ 		if( ck[0].equals( DataElementDataView.TOTAL_LABEL) ) return rc ;
+ 		rc = false ;
+ 		for( String ecc : expandedCols ) {
+ 			String ec[] = ecc.split( DataElement.SEPARATION_STRING ) ;
+			boolean b2 = true ;
+ 			for( int i=0 ; i<ck.length ; i++ ) {
+ 				b2 &= ec[i].equals( DataElementDataView.TOTAL_LABEL ) || 
+ 						ck[i].equals( DataElementDataView.TOTAL_LABEL ) ||
+ 						ck[i].equals( ec[i] ) ;
+ 			}
+ 			rc |= b2 ;
+ 		}
+ 		return rc ;
+ 		*/
 	}
 
 	/**
