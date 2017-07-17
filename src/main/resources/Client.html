@@ -465,7 +465,6 @@
 			if (row === null) {
 				return null;
 			}
-
 			var grid = document.getElementById(name);
 			var rows = grid.rows;
 			var headerRow = rows[0]
@@ -518,7 +517,7 @@
 				newCell.setAttribute("id", makeCompoundKeyFromText(colId, row.getAttribute("id")));
 				newCell.classList.add("data-cell") ;
 				
-				if( hiddenColumns[insertionPoint] ) {
+				if( hiddenColumns[colKeys] ) {
 					newCell.classList.add( "hidden-cell" ) ;
 				}
 
@@ -665,14 +664,17 @@
 		}
 
 		function toggleCol( view, colKeys, button ) {
-			var key = view + "\fEXC\f" + makeKey(colKeys);
-			var willCollapse = getKey(key)==="OPE" ;
+			var colKey = makeKey(colKeys)			
+			var key = view + "\fEXC\f" + colKey;
+			var isOpen = getKey(key)==="OPE" ;
 
-			if( willCollapse ) {
+			if( isOpen ) {
 				setKey(key, null);
+				delete( hiddenColumns[colKey] ) ;
 				button.value = '+';
 			} else {
 				setKey(key, "OPE");
+				hiddenColumns[colKey] = true ;
 				button.value = '-';
 			}
 			
@@ -680,34 +682,35 @@
 		}
 		
 
-		function setColState( view, colKeys ) {
+		function setColState( view ) {
+
 			var rows = grid.rows ;
 			
-			var hdr = document.getElementById( makeKey(colKeys) )  ;
-			
-			var hdrIndexStart = 0 ;
-			while( (hdr = hdr.previousSibling) != null ) hdrIndexStart++ ;
-
-			hdr = rows[0].cells[hdrIndexStart] ;			
-			var hdrIndexEnd = hdrIndexStart ;
-			while( (hdr = hdr.nextSibling) != null ) {
-				if( hdr.childElementCount !== 0 ) break ;				
-				hdrIndexEnd++ ;
-			}
-
-			var key = view + "\fEXC\f" + makeKey(colKeys);
-			var isOpen = getKey(key)==="OPE" ;
-			
-			for( var r=0 ; r<rows.length ; r++ ) {
-				var cells = rows[r].cells ;
-				for( var c=hdrIndexStart+1 ; c<=hdrIndexEnd && c<cells.length ; c++ ) {
-					if( isOpen ) {
-						delete( hiddenColumns[c] ) ;
-						cells[c].classList.remove( 'hidden-cell' ) ;
-					} else {
-						hiddenColumns[c] = true ;
-						cells[c].classList.add( 'hidden-cell' ) ;
+			const cells = rows[0].cells ;
+			for( var c=0 ; c<cells.length ; ) {
+				var foundHidden = false ;
+				while( c<cells.length ) {
+					for( var r=0 ; r<rows.length ; r++ ) {
+						var row = rows[r] ;
+						if( c<row.cells.length ) {
+							row.cells[c].classList.remove( 'hidden-cell' ) ;
+						}
 					}
+					if( hiddenColumns[ cells[c].id ] ) {
+						c++ ;
+						break ;
+					}
+					c++ ;
+				}
+				while( c<cells.length ) {
+					var colKey = rows[0].cells[c].id  
+					for( var r=0 ; r<rows.length ; r++ ) {
+						var row = rows[r] ;
+						if( c<row.cells.length ) {
+							row.cells[c].classList.add( 'hidden-cell' ) ; 
+						}
+					}
+					c++ ;
 				}
 			}
 		}
