@@ -162,6 +162,7 @@
 			or a col/row expand/collapse)	
 		*/
 		function resetView() {
+			
 			var grid = document.getElementById('grid');
 			grid.style.display = "none";
 
@@ -177,8 +178,23 @@
 				}
 				gridHTML += "</tr>";
 			}
+			grid.innerHTML = gridHTML ;
 
-			grid.innerHTML = gridHTML;
+			hiddenColumns = {} ;
+			/*
+			if (typeof (Storage) !== "undefined") {
+				const pfix = openViewName + "\fEXC\f" ;
+				const pfixl = pfix.length ;
+				for( var k of Object.keys( localStorage ) ) {
+					if( k.startsWith( pfix ) ) {
+						if( getKey(k) === "OPE" ) {
+							var colKey = k.substring( pfixl ) ;
+							hiddenColumns[k] = true ;
+						}
+					}
+				}
+			}
+			*/
 		}
 
 		//=======================
@@ -240,24 +256,6 @@
 				colKeys: []
 			};
 
-/*
-			//
-			// Pull the view open rows and cols from local storage
-			//
-			if (typeof (Storage) !== "undefined") {
-				var openRowKey = openViewName + "\fEXR\f";
-				var openColKey = openViewName + "\fEXC\f";
-				for (i = 0; i < localStorage.length; i++) {
-					var key = localStorage.key(i);
-					if (key.startsWith(openRowKey)) {
-						msg.rowKeys.push(key.substring(openRowKey.length));
-					}
-					if (key.startsWith(openColKey)) {
-						msg.colKeys.push(key.substring(openColKey.length));
-					}
-				}
-			}
-*/			
 			sendObj(msg);
 		}
 
@@ -429,7 +427,6 @@
 				newCell.classList.add( "data-cell" ) ;
 				var colKey = rows[0].cells[j].getAttribute("id");
 				var colKeys = makeKeys( colKey ) ;
-//				if( colKeys.length < numColLevels ) {
 				var ti = colKeys.indexOf( "Total" ) ;
 				if( ti !== -1 ) {
 					newCell.classList.add( "total-col-" + (ti % 3)  ) ;
@@ -442,7 +439,7 @@
 					this.classList.remove( 'data-cell-flash' ) ;
 				}) ;
 			}
-
+			setColState( name ) ;
 			return newRow;
 		}
 
@@ -506,7 +503,7 @@
 				}
 			}
 
-			setColState( name, colKeys ) ;
+			setColState( name ) ;
 
 			// Oh oh - brand new column - need to update every data row in the table !
 			for (var i = numColLevels; i < rows.length; i++) {
@@ -678,15 +675,15 @@
 				button.value = '-';
 			}
 			
-			setColState( view, colKeys ) ;
+			setColState( view ) ;
 		}
 		
 
 		function setColState( view ) {
 
 			var rows = grid.rows ;
-			
 			const cells = rows[0].cells ;
+			
 			for( var c=0 ; c<cells.length ; ) {
 				var foundHidden = false ;
 				while( c<cells.length ) {
@@ -696,7 +693,8 @@
 							row.cells[c].classList.remove( 'hidden-cell' ) ;
 						}
 					}
-					if( hiddenColumns[ cells[c].id ] ) {
+					var colKey = cells[c].id
+					if( hiddenColumns[ colKey ] ) {
 						c++ ;
 						break ;
 					}
