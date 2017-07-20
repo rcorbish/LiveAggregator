@@ -458,6 +458,8 @@
 				return cell;
 			}
 
+			console.log( "Updating", colKeys, rowKeys ) ;
+
 			var row = findViewRow(name, rowKeys);
 			if (row === null) {
 				return null;
@@ -496,14 +498,16 @@
 					newCell.textContent = colKeys[i];
 				} else {
 					var key = openViewName + "\fEXC\f" + colKey;
-					var state = getKey(key);
+					var state = getKey(key)
 					newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleCol( '" + 
 							openViewName + "'," +
-							printKeys(colKeys) + ",this);\" value='" + (state === 'OPE'?"-":"+") + "'/>";
+							printKeys(colKeys) + ",this);\" value='" + 
+							(state === 'OPE'?"-":"+") + "'/>";
+					if(  state !== "OPE" ) {
+						hiddenColumns[colKey] = true ;
+					}
 				}
 			}
-
-			setColState( name ) ;
 
 			// Oh oh - brand new column - need to update every data row in the table !
 			for (var i = numColLevels; i < rows.length; i++) {
@@ -531,6 +535,8 @@
 				}) ;
 			}
 			
+			setColState( name ) ;
+
 			return document.getElementById(fullKey);
 		}
 		
@@ -667,11 +673,11 @@
 
 			if( isOpen ) {
 				setKey(key, null);
-				delete( hiddenColumns[colKey] ) ;
+				hiddenColumns[colKey] = true ;
 				button.value = '+';
 			} else {
 				setKey(key, "OPE");
-				hiddenColumns[colKey] = true ;
+				delete( hiddenColumns[colKey] ) ;
 				button.value = '-';
 			}
 			
@@ -681,11 +687,13 @@
 
 		function setColState( view ) {
 
+			console.log( "Col State", JSON.stringify( hiddenColumns) ) ;
+
 			var rows = grid.rows ;
 			const cells = rows[0].cells ;
-			
+			var colKey = null 
+
 			for( var c=0 ; c<cells.length ; ) {
-				var foundHidden = false ;
 				while( c<cells.length ) {
 					for( var r=0 ; r<rows.length ; r++ ) {
 						var row = rows[r] ;
@@ -693,15 +701,20 @@
 							row.cells[c].classList.remove( 'hidden-cell' ) ;
 						}
 					}
-					var colKey = cells[c].id
+					colKey = cells[c].id
 					if( hiddenColumns[ colKey ] ) {
 						c++ ;
 						break ;
 					}
 					c++ ;
 				}
+				var colKeys = makeKeys( colKey )
+				var totalIndex = colKeys.lastIndexOf( "Total" ) 
 				while( c<cells.length ) {
-					var colKey = rows[0].cells[c].id  
+					var colKeys2 = makeKeys( rows[0].cells[c].id ) 
+					if( colKeys2[totalIndex] === "Total" ) {
+						break ;
+					}
 					for( var r=0 ; r<rows.length ; r++ ) {
 						var row = rows[r] ;
 						if( c<row.cells.length ) {
