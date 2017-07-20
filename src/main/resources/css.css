@@ -292,7 +292,7 @@ div.spinner div.bar12 {
 
 .data-cell-flash {
 	background-color: inherit ;
-	animation: flash 0.1s linear ;
+	animation: flash 0.175s linear ;
 }
 
 @keyframes flash {
