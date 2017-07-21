@@ -410,7 +410,6 @@ public class DataElementDataView  implements DataElementProcessor {
 			}
 			dve2.set( totals.get(totalKey).d );
 		}
-		
 	}
 	
 	
@@ -442,9 +441,9 @@ public class DataElementDataView  implements DataElementProcessor {
 		String rowKeys = components[1] ; // keys is cols then rows
 		String colKeys = components[0] ;
 
-		StringJoiner sjr = new StringJoiner( DataElement.SEPARATION_STRING ) ;
+		StringJoiner sjr ; 
 		String keysR[] = rowKeys.split( DataElement.SEPARATION_STRING ) ;
-		StringJoiner sjc = new StringJoiner( DataElement.SEPARATION_STRING ) ;
+		StringJoiner sjc ; 
 		String keysC[] = colKeys.split( DataElement.SEPARATION_STRING ) ;
 		
 		for( int p=0 ; p<totalPermutations.length ; p++ ) {
@@ -452,23 +451,16 @@ public class DataElementDataView  implements DataElementProcessor {
 			sjc = new StringJoiner( DataElement.SEPARATION_STRING ) ;
 			
 			for( int r=0 ; r<keysR.length ; r++ ) {		
-				
-				sjr.add( ( r==totalPermutations[p][ROW_PERMUTATION_INDEX] ) ? TOTAL_LABEL : keysR[r] ) ;
+				sjr.add( ( r==totalPermutations[p][ROW_PERMUTATION_INDEX] ) ?  keysR[r] : TOTAL_LABEL ) ;
 				
 				for( int c=0 ; c<keysC.length ; c++ ) {
-					sjc.add( ( c==totalPermutations[p][COLUMN_PERMUTATION_INDEX] ) ? TOTAL_LABEL : keysC[c] ) ;
+					sjc.add( ( c==totalPermutations[p][COLUMN_PERMUTATION_INDEX] ) ? keysC[c] :TOTAL_LABEL ) ;
 				}
+			
+				keys.add( sjc.toString() + DataElement.ROW_COL_SEPARATION_CHAR + sjr.toString() ) ;
 			}
-			String cs = sjc.toString() ;
-			int csl=cs.length()-1 ; 
-			while( csl>0 && cs.charAt(csl) == DataElement.SEPARATION_CHAR ) csl-- ;
-
-			String rs = sjr.toString() ;
-			int rsl=rs.length()-1 ; 
-			while( rsl>0 && rs.charAt(rsl) == DataElement.SEPARATION_CHAR ) rsl-- ;
-		
-			keys.add( cs/*.substring(0, csl+1)*/ + DataElement.ROW_COL_SEPARATION_CHAR + rs/*.substring(0, rsl+1)*/ ) ;
 		}
+
 		return keys ;
 	}
 
