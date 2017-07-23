@@ -181,20 +181,6 @@
 			grid.innerHTML = gridHTML ;
 
 			hiddenColumns = {} ;
-			/*
-			if (typeof (Storage) !== "undefined") {
-				const pfix = openViewName + "\fEXC\f" ;
-				const pfixl = pfix.length ;
-				for( var k of Object.keys( localStorage ) ) {
-					if( k.startsWith( pfix ) ) {
-						if( getKey(k) === "OPE" ) {
-							var colKey = k.substring( pfixl ) ;
-							hiddenColumns[k] = true ;
-						}
-					}
-				}
-			}
-			*/
 		}
 
 		//=======================
@@ -408,7 +394,7 @@
 				var newCell = newRow.insertCell(i);
 				newCell.setAttribute("class", "label-hdr-cell");
 				//if( i < rowKeys.length ) {
-				if( rowKeys[i] !== "Total" ) {
+				if( rowKeys[i] !== "Total"  ) {
 					newCell.textContent = rowKeys[i];
 				} else {
 					newRow.setAttribute("class", ("total-row-" + (numButtonsAddedInThisRow % 3)));
@@ -427,7 +413,7 @@
 				newCell.classList.add( "data-cell" ) ;
 				var colKey = rows[0].cells[j].getAttribute("id");
 				var colKeys = makeKeys( colKey ) ;
-				var ti = colKeys.indexOf( "Total" ) ;
+				var ti = colKeys.indexOf( "Total" ) 
 				if( ti !== -1 ) {
 					newCell.classList.add( "total-col-" + (ti % 3)  ) ;
 				}

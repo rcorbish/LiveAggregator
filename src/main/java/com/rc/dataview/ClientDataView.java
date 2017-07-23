@@ -2,9 +2,7 @@ package com.rc.dataview;
 
 import java.text.DecimalFormat;
 import java.util.Arrays;
-import java.util.Set;
 
-import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,8 +22,6 @@ public class ClientDataView  {
 
 	private final DataElementDataView dataElementDataView ;	
 	private final ClientCommandProcessor clientCommandProcessor ;		// how to pass the new view to the client
-	private final Set<String> expandedRows ;
-	private final Set<String> expandedCols ;
 	private boolean closed ;
 
 	/**
@@ -43,8 +39,6 @@ public class ClientDataView  {
 
 		this.dataElementDataView = dataElementDataView ;
 		this.clientCommandProcessor = clientCommandProcessor ;		
-		this.expandedRows = new ConcurrentHashSet<>() ;
-		this.expandedCols = new ConcurrentHashSet<>() ;
 		this.closed = false ;
 		
 		dataElementDataView.addClient( this ); 
@@ -105,27 +99,7 @@ public class ClientDataView  {
 			close(); 
 		}
 	}
-	/**
-	 * This is called when a client expands or closes a row. It maintains a set of
-	 * currently expanded keys. Rows that are collapsed will not receive updated messages
-	 * @param rowKey
-	 * @param expanded
-	 */
-	public void expandCollapseRow( String rowKey, boolean expanded) {
-		if( expanded ) { expandedRows.add( rowKey ) ; } else { expandedRows.remove(rowKey) ; } 
-		logger.info( "Exapnded Row keys: {}", expandedRows ) ;
-	}
-	
-	/**
-	 * This is called when a client expands or closes a column. It maintains a set of
-	 * currently expanded keys. Columns that are collapsed will not receive updated messages
-	 * @param colKey
-	 * @param expanded
-	 */
-	public void expandCollapseCol( String colKey, boolean expanded) {
-		if( expanded ) { expandedCols.add( colKey ) ; } else { expandedCols.remove(colKey) ; } 
-		logger.info( "Expanded Col keys : {}", expandedCols ) ;
-	}
+
 
 	/**
 	 * Mark an element as unused ( just been hidden for example by closing a row or column )
@@ -136,17 +110,15 @@ public class ClientDataView  {
 		int ix = elementKey.indexOf( DataElement.ROW_COL_SEPARATION_CHAR ) ;
 		String colKey = elementKey.substring(0,ix) ;
 		String rowKey = elementKey.substring(ix+1) ;
-		if( parentKeysExpanded(colKey, rowKey) ) {
-			try {
-				clientCommandProcessor.deleteCell( 
-						getViewName(), 
-						colKey, 
-						rowKey 
-						) ;
-			} catch (ClientDisconnectedException e) {
-				logger.warn( "Remote client for {} disconnected during cell delete.", getViewName() ) ;
-				close(); 
-			}
+		try {
+			clientCommandProcessor.deleteCell( 
+					getViewName(), 
+					colKey, 
+					rowKey 
+					) ;
+		} catch (ClientDisconnectedException e) {
+			logger.warn( "Remote client for {} disconnected during cell delete.", getViewName() ) ;
+			close(); 
 		}
 	}
 
@@ -166,15 +138,13 @@ public class ClientDataView  {
 		String rowKey = elementKey.substring(ix+1) ;
 
 		try {
-			if( parentKeysExpanded(colKey, rowKey) ) {
-				DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
-				clientCommandProcessor.updateCell( 
-						getViewName(), 
-						colKey, 
-						rowKey,
-						numberFormatter.format(value)  
-						) ;
-			}
+			DecimalFormat numberFormatter = new DecimalFormat( "#,##0;(#,##0)") ;
+			clientCommandProcessor.updateCell( 
+					getViewName(), 
+					colKey, 
+					rowKey,
+					numberFormatter.format(value)  
+					) ;
 		} catch (ClientDisconnectedException e) {
 			logger.warn( "Remote client for {} disconnected during cell update.", getViewName() ) ;
 			close(); 
@@ -191,73 +161,10 @@ public class ClientDataView  {
 
 
 	/**
-	 * Verify that ALL parent keys of the given key are currently expanded.
-	 * Just because a grandchild is 'open' it may not be visible
-	 * if its parent is 'closed'. 
-	 * 
-	 * @param colKey the child column key to search up the path from
-	 * @param rowKey the child row key to search up the path from
-	 * @return whether the parent rows keys are expanded
-	 */
-	protected boolean parentKeysExpanded( String colKey, String rowKey ) {
-		// isClosed - if the view is closed don't attempt to send anything
-		// otherwise make sure all the parent keys in each row & col expanded rows/cols
-		// are marked as expanded.
-		return parentRowKeysExpanded(rowKey) && parentColKeysExpanded(colKey) ;
-	}
-
-	/**
-	 * Verify that ALL parent keys of the given key are currently expanded.
-	 * Just because a grandchild is 'open' it may not be visible
-	 * if its parent is 'closed'. 
-	 * 
-	 * @param rowKey the child row key to search up the path from
-	 * @return whether the parent rows keys are expanded
-	 */
-	protected boolean parentRowKeysExpanded( String rowKey ) {
-		boolean rc = !isClosed() ;				
-		String parentRowKey = rowKey ; 
-		for( int i = rowKey.lastIndexOf( DataElement.SEPARATION_CHAR) ; i>0 ; i=parentRowKey.lastIndexOf(DataElement.SEPARATION_CHAR) ) {
-			parentRowKey = parentRowKey.substring(0,i) ;
-			rc &= parentRowKey.equals( DataElementDataView.TOTAL_LABEL ) || expandedRows.contains( parentRowKey ) ;
-		}
-		return rc ;
-	}
-
-	/**
-	 * Verify that ALL parent keys of the given key are currently expanded.
-	 * Just because a grandchild is 'open' it may not be visible
-	 * if its parent is 'closed'. 
-	 * 
-	 * @param colKey the child column key to search up the path from
-	 * @return whether the parent rows keys are expanded
-	 */
-	protected boolean parentColKeysExpanded( String colKey ) {
-		return true ; 
-		/*
- 		boolean rc = !isClosed() ;
- 		String ck[] = colKey.split( DataElement.SEPARATION_STRING ) ;
- 		if( ck[0].equals( DataElementDataView.TOTAL_LABEL) ) return rc ;
- 		rc = false ;
- 		for( String ecc : expandedCols ) {
- 			String ec[] = ecc.split( DataElement.SEPARATION_STRING ) ;
-			boolean b2 = true ;
- 			for( int i=0 ; i<ck.length ; i++ ) {
- 				b2 &= ec[i].equals( DataElementDataView.TOTAL_LABEL ) || 
- 						ck[i].equals( DataElementDataView.TOTAL_LABEL ) ||
- 						ck[i].equals( ec[i] ) ;
- 			}
- 			rc |= b2 ;
- 		}
- 		return rc ;
- 		*/
-	}
-
-	/**
 	 * Used for debug etc.
 	 */
 	public String toString() {
-		return getViewName() + " Expanded Cols :" + expandedCols.size() + " Expanded Rows :" + expandedRows.size() + " " + (isClosed()?"Closed" : "Active") ; 
+		return getViewName() + " " + (isClosed()?"Closed" : "Active") ; 
 	}
 
 	/**

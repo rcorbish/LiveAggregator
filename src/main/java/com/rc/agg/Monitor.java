@@ -12,7 +12,6 @@ import com.rc.datamodel.DataElement;
 import com.rc.dataview.DataDetailMessage;
 import com.rc.dataview.DataElementStore;
 
-
 import spark.Request;
 import spark.Response;
 
@@ -112,9 +111,9 @@ public class Monitor implements AutoCloseable {
 
 		rsp.type( "text/html" );
 
-		rc.append( "<h2>Data store</h2>");
+		rc.append( "<h2>Data store</h2><pre>");
 		rc.append( DataElementStore.getInstance().toString() ) ;
-		rc.append("<br>") ;
+		rc.append("</pre><br>") ;
 		rc.append( "<h2>Defined Views</h2>");
 		rc.append("<ul>") ;
 		
@@ -131,7 +130,7 @@ public class Monitor implements AutoCloseable {
 
 		rc.append( "<h2>Sample Data query</h2>") ; 
 		rc.append( "This is a sample - adjust the URL to your own case<br>" ) ;
-		rc.append( "<a target='data-window' href='http://" + req.host() + "/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100&view-name=DG0'>Sample query</a>") ;
+		rc.append( "<a target='data-window' href='http://" + req.host() + "/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100&view-name=DG0'>/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100&view-name=DG0</a>") ;
 		rc.append( "</html>");
 		return rc ;
 	}

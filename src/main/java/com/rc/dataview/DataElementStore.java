@@ -466,7 +466,7 @@ public class DataElementStore  implements DataElementProcessor {
 	 */
 	public String toString() {
 		return "Data Store containing " + currentElements.size() + 
-		" elements. Batch is " + (serverBatchComplete? "complete." : "processing.") +
-		numberDrillThroughs + " drillthroughs requested since " + startedAt ; 
+		" elements\nBatch is " + (serverBatchComplete? "complete.\n" : "processing.\n") +
+		numberDrillThroughs + " drillthroughs requested\nServer started " + startedAt ; 
 	}
 }

@@ -42,7 +42,7 @@ public class WebSocketServer  {
     
 	@OnWebSocketConnect
 	public void connect( Session session )  {
-		logger.info( "Opened connection to {}", session.getRemote() ) ;
+		logger.info( "Opened connection to {} {}", session.getRemoteAddress(), session.getUpgradeRequest().getHeaders( "User-Agent" ) ) ;
 		WebSocketCommandProcessor wscp = new WebSocketCommandProcessor(session) ;	// keep tabs on the rempote client
 		ClientProxy cp = new ClientProxy( wscp ) ;					// maintain a proxy to the client - used for sending messages
 		ClientProxy old = clientData.put( session, cp ) ;							// check if the map is overused - better never happen
@@ -101,7 +101,7 @@ public class WebSocketServer  {
 		
 		if( clientMessage.command.equals("START") ) {
 			logger.info("Requesting a new view {} from the clientProxy.", clientMessage.viewName );
-			clientProxy.openView(clientMessage.viewName, clientMessage.colKeys, clientMessage.rowKeys );
+			clientProxy.openView(clientMessage.viewName );
 
 		} else if( clientMessage.command.equals("STOP") ) {
 			if( clientMessage.viewName != null ) {
@@ -109,14 +109,6 @@ public class WebSocketServer  {
 			} else {
 				clientProxy.close();
 			}
-		} else if( clientMessage.command.equals("EXR")  ) {
-			clientProxy.expandCollapseRow( clientMessage.viewName, clientMessage.rowKeys, true ) ;
-		} else if( clientMessage.command.equals("COR")  ) {
-			clientProxy.expandCollapseRow( clientMessage.viewName, clientMessage.rowKeys, false ) ;
-		} else if( clientMessage.command.equals("EXC")  ) {
-			clientProxy.expandCollapseCol( clientMessage.viewName, clientMessage.colKeys, true ) ;
-		} else if( clientMessage.command.equals("COC")  ) {
-			clientProxy.expandCollapseCol( clientMessage.viewName, clientMessage.colKeys, false ) ;
 		} else if( clientMessage.command.equals("RST")  ) {
 			clientProxy.resetView(clientMessage.viewName) ;
 		} else if( clientMessage.command.equals("RDY")  ) {
@@ -153,6 +145,8 @@ public class WebSocketServer  {
 				.append( i )
 				.append( " connected to " )
 				.append( s.getRemoteAddress() )
+				.append( '\n' )
+				.append( s.getUpgradeRequest().getHeaders( "User-Agent" ) ) 
 				.append( '\n' ) ;
 			ClientProxy cp = clientData.get(s) ;
 			rc.append( cp ).append('\n') ;
@@ -264,7 +258,9 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 	public String toString() {		
 		return "WebSocket to " + session.getRemoteAddress() + "\n" +
 				messagesToBeSent.size()  + " pending messages \n" + 
-				"Reader is " + ( (reader==null) ? "dead\n" : "alive\n" ) ;
+				"Reader is " + ( (reader==null) ? "dead\n" : "alive\n" ) +
+				"Agent is " + session.getUpgradeRequest().getHeaders( "User-Agent" ) + "\n";
+
 	}
 }
 

@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.rc.datamodel.DataElement;
 import com.rc.dataview.ClientDataView;
 import com.rc.dataview.DataElementDataView;
 import com.rc.dataview.DataElementStore;
@@ -87,24 +86,6 @@ public class ClientProxy implements ClientEventProcessor {
 		}
 	}
 
-	@Override
-	public void expandCollapseRow(String viewName, String rowKeys[], boolean expanded) {
-		ClientDataView dgp = openDataViews.get(viewName) ;
-		if( dgp == null ) {
-			logger.info( "Ignoring expand/collapse request for unknown view: '{}'.", viewName  ) ;
-		} else {
-			dgp.expandCollapseRow( DataElement.mergeComponents(rowKeys), expanded) ;			
-		}
-	}
-	@Override
-	public void expandCollapseCol(String viewName, String colKeys[], boolean expanded) {
-		ClientDataView dgp = openDataViews.get(viewName) ;
-		if( dgp == null ) {
-			logger.info( "Ignoring expand/collapse request for unknown view: '{}'.", viewName  ) ;
-		} else {
-			dgp.expandCollapseCol( DataElement.mergeComponents(colKeys), expanded) ;			
-		}
-	}
 
 	// CLient closed a view, remove from active list
 	public void closeView( String viewName ) {
@@ -143,23 +124,14 @@ public class ClientProxy implements ClientEventProcessor {
 	 * to active views and  ask for the current state to be sent to the client
 	 * 
 	 */
-	public void openView( String viewName, String openColKeys[], String openRowKeys[] ) {
+	public void openView( String viewName ) {
 		DataElementDataView dedv = DataElementStore.getInstance().getDataElementDataView(viewName) ;
 		if( dedv==null ) {
 			logger.warn( "View {} is not defined.", viewName ) ;			
 		} else {
 			try {
 				ClientDataView newView = new ClientDataView(dedv, clientCommandProcessor) ;
-				if( openRowKeys != null ) {
-					for( String openRowKey : openRowKeys ) {
-						newView.expandCollapseRow( openRowKey, true ) ;
-					}
-				}
-				if( openColKeys != null ) {
-					for( String openColKey : openColKeys ) {
-						newView.expandCollapseCol( openColKey, true ) ;
-					}
-				}
+
 				logger.debug( "Replaying all data elements to {}", viewName ) ;
 				newView.sendAll() ;
 				logger.info( "Replayed all elements to {}", viewName );

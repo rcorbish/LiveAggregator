@@ -4,15 +4,15 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.HashSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.BlockingQueue ;
 import java.util.concurrent.ArrayBlockingQueue ;
+import java.util.concurrent.BlockingQueue ;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +38,25 @@ public class DataElementDataView  implements DataElementProcessor {
 
 	final static Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
 
+	final static int lut[][] = new int[][] {
+		{} ,
+		{ 1 },
+		{ 2 },
+		{ 1, 2, 3 },
+		{ 4 },
+		{ 1, 4, 5 },
+		{ 2, 4, 6 },
+		{ 1, 2, 3, 4, 5, 6, 7 },
+		{ 8 },
+		{ 1, 8, 9 },
+		{ 2, 8, 10 },
+		{ 1, 2, 3, 8, 9, 10, 11 },
+		{ 4, 8, 12 },
+		{ 1, 4, 5, 8, 9, 12, 13 },
+		{ 2, 4, 6, 8, 10, 12, 14 },
+		{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }
+	};
+
 	public final static String TOTAL_LABEL = "Total" ;
 	
 	final DataElementStore dataElementStore ;
@@ -52,12 +71,8 @@ public class DataElementDataView  implements DataElementProcessor {
 	private final String rowGroups[] ; 				// what is getting grouped
 	private final Set<String> hiddenAttributes ; 	// Do not show these atts on screen
 	
-	// This contains a list of N int[2] 
-	// Each item in the list is a unique permutation of the row index & column index
-	// to use for totals. The 1st element is the column, the 2nd is the row index
-	private final int totalPermutations[][] ; 		// permutations of col / row indices for totals 
-	private final int COLUMN_PERMUTATION_INDEX = 0 ;
-	private final int ROW_PERMUTATION_INDEX = 1 ;
+	private final int rowTotals[] ; 		// which rows are to be totalled -1 = not 
+	private final int colTotals[] ; 		// same for cols 
 	
 	// Map keyed on elementKey ( rows & column attribute values )
 	// The current (expanded) view is stored in here
@@ -173,35 +188,31 @@ public class DataElementDataView  implements DataElementProcessor {
 		// T O T A L S
 		//
 		// Column and rows to total		
-		List<Integer> rowTotals = new ArrayList<>() ;
-		List<Integer> colTotals = new ArrayList<>() ;
-		for( String total : viewDefinition.getTotalAttributes() ) {
-			for( int i=0 ; i<this.rowGroups.length ; i++ ) { 
-				if( this.rowGroups[i].equals(total) ) rowTotals.add(i) ;  
-			}
-			for( int i=0 ; i<this.colGroups.length ; i++ ) { 
-				if( this.colGroups[i].equals(total) ) colTotals.add(i) ;  
+		int rowTotalMask = 0 ;
+		int colTotalMask = 0 ; 
+		
+		for( int i=0, n=this.rowGroups.length - 1 ; i<this.rowGroups.length ; i++, n-- ) {
+			for( String total : viewDefinition.getTotalAttributes() ) {
+				if( total.equals( this.rowGroups[i] ) ) {
+					rowTotalMask += 1<<n ;
+					break ;
+				}
 			}
 		}
-		
-		final int numPermutations = (rowTotals.size()+1) * (colTotals.size()+1) - 1 ;
-		// This is an array of rowIndex,columnIndex as a 2 element array
-		totalPermutations = new int[ numPermutations ][2] ;
-		// Create all permutations of row & column totals ( except the null,null )
-		// a -1 index means use the input value - do not substitute 'Total' for a component
-		int r = rowTotals.size() ;
-		int c = colTotals.size() ;
-		for( int ix=0 ; ix<numPermutations ; ix++ ) {
-			totalPermutations[ix][COLUMN_PERMUTATION_INDEX] = c - 1 ;
-			totalPermutations[ix][ROW_PERMUTATION_INDEX] = r - 1 ;
-			c-- ;
-			if( c < 0 ) {
-				r-- ;
-				c = colTotals.size() ;
-			}
-		}		
-	}
 
+		for( int i=0, n=this.colGroups.length - 1 ; i<this.colGroups.length ; i++, n-- ) { 
+			for( String total : viewDefinition.getTotalAttributes() ) {
+				if( total.equals( this.colGroups[i] ) ) {
+					colTotalMask += 1<<n ;
+					break ;
+				}
+			}
+		}
+						
+		rowTotals = lut[rowTotalMask] ;
+		colTotals = lut[colTotalMask];
+	}
+	
 /**
  * Start the threads running.
  * 
@@ -382,9 +393,9 @@ public class DataElementDataView  implements DataElementProcessor {
 	 * 
 	 */
 	protected void updateTotals() {
-		if( totalPermutations.length == 0 ) return ;  // optimization for non totalling views
+		if( rowTotals.length + colTotals.length == 0 ) return ;  // optimization for non totalling views
 		
-		// Keep a running total of 
+		// Keep a running total of view totals
 		Map<String,WrappedDouble> totals = new HashMap<>( dataViewElements.size() ) ;
 		
 		for( String elementKey : dataViewElements.keySet() ) {
@@ -433,30 +444,43 @@ public class DataElementDataView  implements DataElementProcessor {
 	 * @param elementKey
 	 * @return the list of keys transformed to totals (order is unimportant )
 	 */
-	protected Collection<String> makeTotalKeys( String elementKey  ) {
+	protected Collection<String> makeTotalKeys( String elementKey ) {
 		
 		List<String> keys = new ArrayList<>() ;
 
 		String components[] = elementKey.split( DataElement.ROW_COL_SEPARATION_STRING ) ;
 		String rowKeys = components[1] ; // keys is cols then rows
 		String colKeys = components[0] ;
-
-		StringJoiner sjr ; 
-		String keysR[] = rowKeys.split( DataElement.SEPARATION_STRING ) ;
-		StringJoiner sjc ; 
-		String keysC[] = colKeys.split( DataElement.SEPARATION_STRING ) ;
 		
-		for( int p=0 ; p<totalPermutations.length ; p++ ) {
-			sjr = new StringJoiner( DataElement.SEPARATION_STRING ) ;
-			sjc = new StringJoiner( DataElement.SEPARATION_STRING ) ;
+		String keysR[] = rowKeys.split( DataElement.SEPARATION_STRING ) ;
+		String keysC[] = colKeys.split( DataElement.SEPARATION_STRING ) ;
+
+		for( int p=0 ; p<rowTotals.length ; p++ ) {
+			StringJoiner sj = new StringJoiner( DataElement.SEPARATION_STRING ) ;
+			int mask = 1<<(keysR.length-1) ;
+			for( int r=0 ; r<keysR.length ; r++ ) {
+				sj.add( 0==( rowTotals[p] & mask ) ? keysR[r] : TOTAL_LABEL ) ;
+				mask >>= 1 ;
+			}
+			keys.add( colKeys + DataElement.ROW_COL_SEPARATION_CHAR + sj.toString() ) ;
+		}
+		
+		for( int p=0 ; p<colTotals.length ; p++ ) {
+			StringJoiner sjc = new StringJoiner( DataElement.SEPARATION_STRING ) ;
+			int maskc = 1<<(keysC.length-1) ;
+			for( int c=0 ; c<keysC.length ; c++ ) {			
+				sjc.add( 0==(colTotals[p] & maskc) ? keysC[c] : TOTAL_LABEL ) ;
+				maskc >>=1 ;
+			}
+			keys.add( sjc.toString() + DataElement.ROW_COL_SEPARATION_CHAR + rowKeys ) ;
 			
-			for( int r=0 ; r<keysR.length ; r++ ) {		
-				sjr.add( ( r==totalPermutations[p][ROW_PERMUTATION_INDEX] ) ?  keysR[r] : TOTAL_LABEL ) ;
-				
-				for( int c=0 ; c<keysC.length ; c++ ) {
-					sjc.add( ( c==totalPermutations[p][COLUMN_PERMUTATION_INDEX] ) ? keysC[c] :TOTAL_LABEL ) ;
+			for( int q=0 ; q<rowTotals.length ; q++ ) {
+				StringJoiner sjr = new StringJoiner( DataElement.SEPARATION_STRING ) ;
+				int maskr = 1<<(keysR.length-1) ;
+				for( int r=0 ; r<keysR.length ; r++ ) {
+					sjr.add( 0==( rowTotals[q] & maskr ) ? keysR[r] : TOTAL_LABEL ) ;
+					maskr >>= 1 ;
 				}
-			
 				keys.add( sjc.toString() + DataElement.ROW_COL_SEPARATION_CHAR + sjr.toString() ) ;
 			}
 		}
