@@ -21,6 +21,7 @@
 		var connectionActive = false;
 
 		var hiddenColumns = {}
+		var hiddenRows = {}
 		
 		openWebSocket();
 
@@ -181,6 +182,7 @@
 			grid.innerHTML = gridHTML ;
 
 			hiddenColumns = {} ;
+			hiddenRows = {} ;
 		}
 
 		//=======================
@@ -237,9 +239,7 @@
 			setViewDescription("Requesting " + view + " from server.");
 			var msg = {
 				viewName: openViewName,
-				command: "START",
-				rowKeys: [],
-				colKeys: []
+				command: "START"
 			};
 
 			sendObj(msg);
@@ -397,11 +397,14 @@
 					newCell.textContent = rowKeys[i];
 				} else {
 					newRow.setAttribute("class", ("total-row-" + (numButtonsAddedInThisRow % 3)));
-					if (numButtonsAddedInThisRow == 0) {
+					if (numButtonsAddedInThisRow === 0) {
 						var key = openViewName + "\fEXR\f" + rowKey;
 						var state = getKey(key);
 						newCell.innerHTML = "<input type='button' class='expand-button' onclick=\"toggleRow( '" + openViewName + "', " +
 							printKeys(rowKeys) + ", this);\" value='" + (state == 'OPE' ? '-' : '+') + "' />";
+						if(  state !== "OPE" ) {
+							hiddenRows[rowKey] = true ;
+						}
 					}
 					numButtonsAddedInThisRow++;
 				}
@@ -424,6 +427,8 @@
 					this.classList.remove( 'data-cell-flash' ) ;
 				}) ;
 			}
+
+			setRowState( name ) ;
 			setColState( name ) ;
 			return newRow;
 		}
@@ -454,38 +459,29 @@
 			
 			var colKeysSortOrder = colKeys.map( function(e,i) { return getColSortOrder( e, i ); } ) ;
 			var sortOrder = makeKey( colKeysSortOrder ) ;
+
+			for( var i=colKeysSortOrder.length-1 ; i>=0 ; i-- ) {
+				if( colKeysSortOrder[i] === " " ) {   // a total ?
+					colKeysSortOrder[i] = "" ;
+					for( var j=i+1 ; j<colKeysSortOrder.length ; j++ ) {
+						colKeysSortOrder[i] += "." + colKeysSortOrder[j] ; 
+					}
+				}
+			}
+			var sortOrderNoTotal = makeKey( colKeysSortOrder ) ;
 			
 			var insertionPoint; // which column index will we insert at ?
-			var level = 0 ;
-			//insertion_loop: 									
+			//insertion_loop: 
 			for (insertionPoint = numRowLevels; insertionPoint < numColumns; insertionPoint++) {
-				if( level > colKeysSortOrder.length ) {
-					break ;
-				}
 			
 				var label = headerRow.cells[insertionPoint];				
 				if (label.id === colId) {
 					return document.getElementById(fullKey); // findRow may have created the cell we need...
 				}
-				var labelKeys = makeKeys( label.getAttribute("sort-order") ) ;
-				
-				if( labelKeys[level] === " " ) {
-					continue ;
-				}
-				if( colKeysSortOrder[level] === " " ) { 
-					insertionPoint-- ;
-					level++ ; 
-					continue ; 
-				}
-				if( labelKeys[level] === colKeysSortOrder[level] ) {
-					insertionPoint-- ;
-					level++ ;
-					continue ; 
-				}
-				if( labelKeys[level] > colKeysSortOrder[level] ) {
+				var labelSort = label.getAttribute("sort-order") ;
+				if( labelSort > sortOrderNoTotal ) {
 					break ;						
 				}
-				
 			}
 			// OK we'll insert a new column here ...
 
@@ -643,32 +639,20 @@
 
 
 		function toggleRow(view, rowKeys, button) {
+			var rowKey = makeKey(rowKeys)			
+			var key = view + "\fEXR\f" + rowKey;
+			var isOpen = getKey(key)==="OPE" ;
 
-			var key = view + "\fEXR\f" + makeKey(rowKeys);
-			var state = getKey(key);
-
-			if (state == "OPE") {
+			if( isOpen ) {
 				setKey(key, null);
+				hiddenRows[rowKey] = true ;
 				button.value = '+';
-				sendObj({
-					"viewName": view,
-					"command": "COR",
-					"rowKeys": rowKeys
-				});
 			} else {
 				setKey(key, "OPE");
+				delete( hiddenRows[rowKey] ) ;
 				button.value = '-';
-				sendObj({
-					"viewName": view,
-					"command": "EXR",
-					"rowKeys": rowKeys
-				});
 			}
-			resetView();
-			sendObj({
-				"viewName": view,
-				"command": "RST"
-			});
+			setRowState( view ) ;
 		}
 
 		function toggleCol( view, colKeys, button ) {
@@ -726,6 +710,30 @@
 					}
 					c++ ;
 				}
+			}
+		}
+
+
+		function setRowState( view ) {
+
+			var rows = grid.rows ;
+			const cells = rows[0].cells ;
+			var rowKey = null 
+
+			var hideBlock = false ;
+			for( var r=colLevels.length ; r<rows.length ; r++ ) {
+				var row = rows[r] ;
+				if( hideBlock ) {
+					row.classList.add( 'hidden-cell' ) ;
+				} else {
+					row.classList.remove( 'hidden-cell' ) ;
+				}
+				var rowId = row.id ;
+				if( hiddenRows[rowId] ) {
+					hideBlock = true ;
+				} else if( rowId.indexOf( "Total" ) > 0 ) {
+					hideBlock = false ;
+				} 
 			}
 		}
 
