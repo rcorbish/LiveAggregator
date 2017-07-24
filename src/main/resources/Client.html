@@ -393,7 +393,6 @@
 			for (var i = 0; i < numRowLevels; i++) {
 				var newCell = newRow.insertCell(i);
 				newCell.setAttribute("class", "label-hdr-cell");
-				//if( i < rowKeys.length ) {
 				if( rowKeys[i] !== "Total"  ) {
 					newCell.textContent = rowKeys[i];
 				} else {
@@ -451,20 +450,42 @@
 			var grid = document.getElementById(name);
 			var rows = grid.rows;
 			var headerRow = rows[0]
-			var numColumns = headerRow.cells.length;
+			var numColumns = headerRow.cells.length;			
 			
 			var colKeysSortOrder = colKeys.map( function(e,i) { return getColSortOrder( e, i ); } ) ;
 			var sortOrder = makeKey( colKeysSortOrder ) ;
 			
 			var insertionPoint; // which column index will we insert at ?
+			var level = 0 ;
+			//insertion_loop: 									
 			for (insertionPoint = numRowLevels; insertionPoint < numColumns; insertionPoint++) {
-				var label = headerRow.cells[insertionPoint];
-				if (label.getAttribute("id") === colId) {
+				if( level > colKeysSortOrder.length ) {
+					break ;
+				}
+			
+				var label = headerRow.cells[insertionPoint];				
+				if (label.id === colId) {
 					return document.getElementById(fullKey); // findRow may have created the cell we need...
 				}
-				if (label.getAttribute("sort-order") > sortOrder ) {
-					break;
+				var labelKeys = makeKeys( label.getAttribute("sort-order") ) ;
+				
+				if( labelKeys[level] === " " ) {
+					continue ;
 				}
+				if( colKeysSortOrder[level] === " " ) { 
+					insertionPoint-- ;
+					level++ ; 
+					continue ; 
+				}
+				if( labelKeys[level] === colKeysSortOrder[level] ) {
+					insertionPoint-- ;
+					level++ ;
+					continue ; 
+				}
+				if( labelKeys[level] > colKeysSortOrder[level] ) {
+					break ;						
+				}
+				
 			}
 			// OK we'll insert a new column here ...
 
@@ -535,20 +556,20 @@
 		
 		var months = [ 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec' ] ;
 		function getSortOrder( key, attributeName ) {
-			if( key === "Total" ) return '     ' ;   // this will sort first ( except ctrl chars ) space is 1st real character in any charset!
+			if( key === "Total" ) return " "  ;   // this will sort first ( except ctrl chars ) space is 1st real character in any charset!
 			if( attributeName === 'CCY' ) {
-				if( key === 'USD' ) return '01' ;
-				if( key === 'CAD' ) return '02' ;
-				if( key === 'EUR' ) return '03' ;
-				if( key === 'GBP' ) return '04' ;
-				if( key === 'JPY' ) return '05' ;
+				if( key === 'USD' ) return '1' ;
+				if( key === 'CAD' ) return '2' ;
+				if( key === 'EUR' ) return '3' ;
+				if( key === 'GBP' ) return '4' ;
+				if( key === 'JPY' ) return '5' ;
 			}
 			if( attributeName === 'EVENT' ) {
-				if( key === 'SOD' ) return '01' ;
-				if( key === 'NEW' ) return '02' ;
-				if( key === 'AMD' ) return '03' ;
-				if( key === 'CXL' ) return '04' ;
-				if( key === 'NOW' ) return '05' ;
+				if( key === 'SOD' ) return '1' ;
+				if( key === 'NEW' ) return '2' ;
+				if( key === 'AMEND' ) return '3' ;
+				if( key === 'CXL' ) return '4' ;
+				if( key === 'NOW' ) return '5' ;
 			}
 			
 			if( attributeName === 'TENOR' ) {
@@ -670,8 +691,6 @@
 		
 
 		function setColState( view ) {
-
-			console.log( "Col State", JSON.stringify( hiddenColumns) ) ;
 
 			var rows = grid.rows ;
 			const cells = rows[0].cells ;
