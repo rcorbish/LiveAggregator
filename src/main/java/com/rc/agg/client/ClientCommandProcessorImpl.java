@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory;
 import com.rc.datamodel.DataElement;
 
 /**
- * This builds messages to send to the remote client. It is importnat that all 
- * message to the client is send via this class. 
+ * This builds messages to send to the remote client. It is important that all
+ * message to the client is sent via this class.
  * This class is exclusively for building the messages for the client. It 
  * is the transport of the protocol. It turns intent into a signal to remote client
  *
@@ -27,10 +27,7 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	 * @param command the command to send to the client
 	 * @param colKeys column key array, may be null
 	 * @param rowKeys row key array, may be null
-	 * @param description a description text - optional 
-	 * 
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * @param description a description text - optional
 	 */
 	protected void send( String viewName, String command, String colKeys, String rowKeys, String value, String description ) throws  ClientDisconnectedException {
 		StringBuilder msg = new StringBuilder( "{" ) ;
@@ -86,7 +83,7 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	 * @param arr the arr of Strings to print
 	 * @return one String representing the array
  	 */
-	public static String printArray( String arr[] ) {
+	public static String printArray(String[] arr) {
 		if( arr.length == 0 ) return "" ;
 		
 		StringBuilder sb = new StringBuilder( "\"" + arr[0] ) ;
@@ -102,7 +99,7 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	 * @return one String representing the array
 	 */
 	public static String printArray( Iterable<String> arr ) {
-		StringBuilder sb = new StringBuilder( ' ' ) ;
+		StringBuilder sb = new StringBuilder(" ") ;
 		for( String a : arr ) {
 			sb.append( '"' ).append( a ).append( "\"," ) ;
 		}
@@ -183,8 +180,8 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	/**
 	 * Update the value of a named cell. A cell is named by the attribute Values 
 	 * of the rows and columns. So if a view is CCY and GENDER x DATE, a cell key may be 
-	 * USD\tMALE\f2017-12-25.  Data an be anything, but the samples all expect a numeric
-	 * value ( may be in accounting format )
+	 * USD\tMALE\f2017-12-25.  Data a be anything, but the samples all expect a numeric
+	 * value ( maybe in accounting format )
 	 * 
 	 * @param viewName as always identify which client view
 	 * @param columnKeys the column key (attribute values - tab separated)
@@ -197,7 +194,7 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	}
 
 	/**
-	 * Delete an single cell, used when a cell is marked unused (e.g. value == 0.0 )
+	 * Delete a single cell, used when a cell is marked unused (e.g. value == 0.0 )
 	 * 
 	 * @param viewName as always identify which client view
 	 * @param columnKeys the column key (attribute values - tab separated)
@@ -233,12 +230,10 @@ public abstract class ClientCommandProcessorImpl implements ClientCommandProcess
 	/**
 	 * To actually transmit data to the client we will need a real implementation of this.
 	 * For example , we can use JMS, websockets, EventSources etc.
-	 * The exceptions indicate failuref - a proper failure that requires a client disconnect.
+	 * The exceptions indicate failure - a proper failure that requires a client disconnect.
 	 * Other exceptions should be handled - if they are not considered critical.
 	 * 
 	 * @param message
-	 * @throws IOException
-	 * @throws InterruptedException
 	 */
 	protected abstract void transmit( CharSequence message ) throws ClientDisconnectedException ;	
 

@@ -1,18 +1,10 @@
 package com.rc.dataview;
 
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
-import java.util.concurrent.ArrayBlockingQueue ;
-import java.util.concurrent.BlockingQueue ;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.BlockingQueue ;
+import java.util.concurrent.ArrayBlockingQueue ;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,25 +30,6 @@ public class DataElementDataView  implements DataElementProcessor {
 
 	final static Logger logger = LoggerFactory.getLogger( DataElementDataView.class ) ;
 
-	final static int lut[][] = new int[][] {
-		{} ,
-		{ 1 },
-		{ 2 },
-		{ 1, 2, 3 },
-		{ 4 },
-		{ 1, 4, 5 },
-		{ 2, 4, 6 },
-		{ 1, 2, 3, 4, 5, 6, 7 },
-		{ 8 },
-		{ 1, 8, 9 },
-		{ 2, 8, 10 },
-		{ 1, 2, 3, 8, 9, 10, 11 },
-		{ 4, 8, 12 },
-		{ 1, 4, 5, 8, 9, 12, 13 },
-		{ 2, 4, 6, 8, 10, 12, 14 },
-		{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }
-	};
-
 	public final static String TOTAL_LABEL = "Total" ;
 	
 	final DataElementStore dataElementStore ;
@@ -67,12 +40,16 @@ public class DataElementDataView  implements DataElementProcessor {
 
 	private final Map<String,String[]> filters ; 	// what key = value is being filtered
 	private final Map<String,Map<String,String>> setValues ; 	// force change in value of an attribute on condition
-	private final String colGroups[] ; 				// what is getting grouped
-	private final String rowGroups[] ; 				// what is getting grouped
+	private final String[] colGroups; 				// what is getting grouped
+	private final String[] rowGroups; 				// what is getting grouped
 	private final Set<String> hiddenAttributes ; 	// Do not show these atts on screen
 	
-	private final int rowTotals[] ; 		// which rows are to be totalled -1 = not 
-	private final int colTotals[] ; 		// same for cols 
+	// This contains a list of N int[2] 
+	// Each item in the list is a unique permutation of the row index & column index
+	// to use for totals. The 1st element is the column, the 2nd is the row index
+	private final int[][] totalPermutations; 		// permutations of col / row indices for totals
+	private final int COLUMN_PERMUTATION_INDEX = 0 ;
+	private final int ROW_PERMUTATION_INDEX = 1 ;
 	
 	// Map keyed on elementKey ( rows & column attribute values )
 	// The current (expanded) view is stored in here
@@ -96,12 +73,12 @@ public class DataElementDataView  implements DataElementProcessor {
 		Class<? extends DataElementDataView> clazz = viewDefinition.getImplementingClass() ;
 		logger.info( "Creating instance of {} for view {}", clazz.getCanonicalName(), viewDefinition.getName() ) ;
 		String constructorArg = viewDefinition.getConstructorArg() ;
-		DataElementDataView rc = null ;
+		DataElementDataView rc;
 		try {
 			boolean hasArgumentCtor = false ;
 			boolean hasCompatibleCtor = false ;
 			for( Constructor<?> ctor : clazz.getConstructors() ) {
-				Class<?> params[] = ctor.getParameterTypes() ;
+				Class<?>[] params = ctor.getParameterTypes() ;
 				if( params.length>1 && params[0] == DataElementStore.class && params[1] == ViewDefinition.class ) {
 					hasCompatibleCtor = true ;
 					hasArgumentCtor |= ( params.length>2 && params[2] == String.class ) ;
@@ -115,7 +92,7 @@ public class DataElementDataView  implements DataElementProcessor {
 				logger.debug( "Passing {} as constructor arg for view {}", constructorArg, viewDefinition.getName()) ;
 				rc = ctor.newInstance( dataElementStore, viewDefinition, constructorArg ) ;
 			} else {
-				logger.debug( "No constructor arg for view {}", constructorArg, viewDefinition.getName()) ;
+				logger.debug( "No constructor arg for view {}", viewDefinition.getName()) ;
 				Constructor<? extends DataElementDataView> ctor = clazz.getConstructor( DataElementStore.class, ViewDefinition.class) ;
 				rc = ctor.newInstance( dataElementStore, viewDefinition ) ;
 			}
@@ -129,13 +106,12 @@ public class DataElementDataView  implements DataElementProcessor {
 	
 	
 	/**
-	 * Constructor - parse the view definition into useable data formats
+	 * Constructor - parse the view definition into usable data formats
 	 * Initialize, but don't start, the threads.
-	 * Make sure start() is called at somepoint ...
+	 * Make sure start() is called at some point ...
 	 * Don't call this directly - use the static create method. This needs to be public
-	 * because of the reflection in the create.
+	 * because of the reflection in the creation.
 	 * 
-	 * @see #create(ViewDefinition)
 	 * @see #start()
 	 * @param viewDefinition
 	 */
@@ -179,59 +155,53 @@ public class DataElementDataView  implements DataElementProcessor {
 			this.rowGroups = viewDefinition.getRowGroups() ;
 		}
 		
-		this.hiddenAttributes = new HashSet<String>() ;
-		for( String hiddenAttribute : viewDefinition.getHiddenAttributes() ) {
-			this.hiddenAttributes.add( hiddenAttribute ) ;
-		}
+		this.hiddenAttributes = new HashSet<>() ;
+        Collections.addAll(this.hiddenAttributes, viewDefinition.getHiddenAttributes());
 
 		//----------------------
 		// T O T A L S
 		//
 		// Column and rows to total		
-		int rowTotalMask = 0 ;
-		int colTotalMask = 0 ; 
+		List<Integer> rowTotals = new ArrayList<>() ;
+		List<Integer> colTotals = new ArrayList<>() ;
+		for( String total : viewDefinition.getTotalAttributes() ) {
+			for( int i=0 ; i<this.rowGroups.length ; i++ ) { 
+				if( this.rowGroups[i].equals(total) ) rowTotals.add(i) ;  
+			}
+			for( int i=0 ; i<this.colGroups.length ; i++ ) { 
+				if( this.colGroups[i].equals(total) ) colTotals.add(i) ;  
+			}
+		}
 		
-		for( int i=0, n=this.rowGroups.length - 1 ; i<this.rowGroups.length ; i++, n-- ) {
-			for( String total : viewDefinition.getTotalAttributes() ) {
-				if( total.equals( this.rowGroups[i] ) ) {
-					rowTotalMask += 1<<n ;
-					break ;
-				}
+		final int numPermutations = (rowTotals.size()+1) * (colTotals.size()+1) - 1 ;
+		// This is an array of rowIndex,columnIndex as a 2 element array
+		totalPermutations = new int[ numPermutations ][2] ;
+		// Create all permutations of row & column totals ( except the null,null )
+		// a -1 index means use the input value - do not substitute 'Total' for a component
+		int r = rowTotals.size() ;
+		int c = colTotals.size() ;
+		for( int ix=0 ; ix<numPermutations ; ix++ ) {
+			totalPermutations[ix][COLUMN_PERMUTATION_INDEX] = c - 1 ;
+			totalPermutations[ix][ROW_PERMUTATION_INDEX] = r - 1 ;
+			c-- ;
+			if( c < 0 ) {
+				r-- ;
+				c = colTotals.size() ;
 			}
-		}
-
-		for( int i=0, n=this.colGroups.length - 1 ; i<this.colGroups.length ; i++, n-- ) { 
-			for( String total : viewDefinition.getTotalAttributes() ) {
-				if( total.equals( this.colGroups[i] ) ) {
-					colTotalMask += 1<<n ;
-					break ;
-				}
-			}
-		}
-						
-		rowTotals = lut[rowTotalMask] ;
-		colTotals = lut[colTotalMask];
+		}		
 	}
-	
+
 /**
  * Start the threads running.
  * 
- * We all know not to start during the constructor don't we ? :)
+ * We all know not to start during the constructor, don't we ? :)
  * 
  */
 	public void start() {
-		messageSender = new Thread( new Runnable() {
-			public void run() {
-				senderThread() ;
-			}
-		} ) ;
+		messageSender = new Thread(this::senderThread) ;
 		messageSender.start();
 
-		messageReceiver = new Thread( new Runnable() {
-			public void run() {
-				receiverThread() ;
-			}
-		} ) ;
+		messageReceiver = new Thread(this::receiverThread) ;
 		messageReceiver.start() ;
 	}
 
@@ -252,9 +222,7 @@ public class DataElementDataView  implements DataElementProcessor {
 			// copy the array - as other messages can change this array during iteration
 			// esp. the stop response from the client.
 			List<ClientDataView> tmp = new ArrayList<>( clientViews.size() ) ;
-			for( ClientDataView cdv : clientViews ) {
-				tmp.add( cdv ) ;
-			}			
+			tmp.addAll(clientViews);
 			for( ClientDataView cdv : tmp ) {
 				cdv.close(); 
 			}
@@ -264,7 +232,7 @@ public class DataElementDataView  implements DataElementProcessor {
 	}
 
 	/**
-	 * Call this to reset - ie. clear the entire view
+	 * Call this to reset - i.e. clear the entire view
 	 */
 	public synchronized void resetAndStop() {
 		for( ClientDataView cdv : clientViews ) {
@@ -291,7 +259,7 @@ public class DataElementDataView  implements DataElementProcessor {
 	 * of separating core filters and perimeter filters is worth it
 	 * This method does recheck the core filters again (unnecessarily)
 	 * 
-	 * @param index the index of the perimuter componets in an element
+	 * @param index the index of the perimeter components in an element
 	 * @param element the input DataElement
 	 * @return true means we match 
 	 */
@@ -299,14 +267,14 @@ public class DataElementDataView  implements DataElementProcessor {
 		boolean rc = true ;
 		if( filters != null  ) {
 			for( String k : filters.keySet() ) {
-				String mustMatchOneOfThese[] = filters.get(k) ;
+				String[] mustMatchOneOfThese = filters.get(k) ;
 				String att = element.getAttribute( index, k ) ;
-				boolean matchedOneOfthese = false ;
+				boolean matchedOneOfThese = false ;
 				for( String couldMatchThis : mustMatchOneOfThese ) {
-					matchedOneOfthese |= att.equals( couldMatchThis ) ;
-					if( matchedOneOfthese ) break ;
+					matchedOneOfThese = att.equals(couldMatchThis);
+					if( matchedOneOfThese ) break ;
 				}
-				rc &= matchedOneOfthese ;
+				rc = matchedOneOfThese;
 				if( !rc ) break ;
 			}
 		}
@@ -326,7 +294,7 @@ public class DataElementDataView  implements DataElementProcessor {
 		if( filters != null ) {
 			//if( !element.quickMatchesCoreKeys( bloomFilter ) ) return false ;
 			for( String k : filters.keySet() ) {
-				String mustMatchOneOfThese[] = filters.get(k) ;
+				String[] mustMatchOneOfThese = filters.get(k) ;
 				// String att = element.getCoreAttribute( k ) ;
 				//ZXCVBNM
 				String att = element.getAttribute( k ) ;
@@ -366,7 +334,7 @@ public class DataElementDataView  implements DataElementProcessor {
 					}
 					removedKeys.add( elementKey ) ;						
 				} else if( dve.isUpdated() ) {
-					if( !dve.isHidden() ) {
+					if(dve.isVisible()) {
 						for( ClientDataView cdv : clientViews ) {
 							cdv.updatedElement( elementKey, dve.getValue() ) ;
 						}
@@ -393,9 +361,9 @@ public class DataElementDataView  implements DataElementProcessor {
 	 * 
 	 */
 	protected void updateTotals() {
-		if( rowTotals.length + colTotals.length == 0 ) return ;  // optimization for non totalling views
+		if( totalPermutations.length == 0 ) return ;  // optimization for non totalling views
 		
-		// Keep a running total of view totals
+		// Keep a running total of 
 		Map<String,WrappedDouble> totals = new HashMap<>( dataViewElements.size() ) ;
 		
 		for( String elementKey : dataViewElements.keySet() ) {
@@ -444,46 +412,33 @@ public class DataElementDataView  implements DataElementProcessor {
 	 * @param elementKey
 	 * @return the list of keys transformed to totals (order is unimportant )
 	 */
-	protected Collection<String> makeTotalKeys( String elementKey ) {
+	protected Collection<String> makeTotalKeys( String elementKey  ) {
 		
 		List<String> keys = new ArrayList<>() ;
 
-		String components[] = elementKey.split( DataElement.ROW_COL_SEPARATION_STRING ) ;
+		String[] components = elementKey.split( DataElement.ROW_COL_SEPARATION_STRING ) ;
 		String rowKeys = components[1] ; // keys is cols then rows
 		String colKeys = components[0] ;
-		
-		String keysR[] = rowKeys.split( DataElement.SEPARATION_STRING ) ;
-		String keysC[] = colKeys.split( DataElement.SEPARATION_STRING ) ;
 
-		for( int p=0 ; p<rowTotals.length ; p++ ) {
-			StringJoiner sj = new StringJoiner( DataElement.SEPARATION_STRING ) ;
-			int mask = 1<<(keysR.length-1) ;
-			for( int r=0 ; r<keysR.length ; r++ ) {
-				sj.add( 0==( rowTotals[p] & mask ) ? keysR[r] : TOTAL_LABEL ) ;
-				mask >>= 1 ;
-			}
-			keys.add( colKeys + DataElement.ROW_COL_SEPARATION_CHAR + sj.toString() ) ;
-		}
-		
-		for( int p=0 ; p<colTotals.length ; p++ ) {
-			StringJoiner sjc = new StringJoiner( DataElement.SEPARATION_STRING ) ;
-			int maskc = 1<<(keysC.length-1) ;
-			for( int c=0 ; c<keysC.length ; c++ ) {			
-				sjc.add( 0==(colTotals[p] & maskc) ? keysC[c] : TOTAL_LABEL ) ;
-				maskc >>=1 ;
-			}
-			keys.add( sjc.toString() + DataElement.ROW_COL_SEPARATION_CHAR + rowKeys ) ;
-			
-			for( int q=0 ; q<rowTotals.length ; q++ ) {
-				StringJoiner sjr = new StringJoiner( DataElement.SEPARATION_STRING ) ;
-				int maskr = 1<<(keysR.length-1) ;
-				for( int r=0 ; r<keysR.length ; r++ ) {
-					sjr.add( 0==( rowTotals[q] & maskr ) ? keysR[r] : TOTAL_LABEL ) ;
-					maskr >>= 1 ;
-				}
-				keys.add( sjc.toString() + DataElement.ROW_COL_SEPARATION_CHAR + sjr.toString() ) ;
-			}
-		}
+		StringJoiner sjr ; 
+		String[] keysR = rowKeys.split( DataElement.SEPARATION_STRING ) ;
+		StringJoiner sjc ; 
+		String[] keysC = colKeys.split( DataElement.SEPARATION_STRING ) ;
+
+        for (int[] totalPermutation : totalPermutations) {
+            sjr = new StringJoiner(DataElement.SEPARATION_STRING);
+            sjc = new StringJoiner(DataElement.SEPARATION_STRING);
+
+            for (int r = 0; r < keysR.length; r++) {
+                sjr.add((r == totalPermutation[ROW_PERMUTATION_INDEX]) ? keysR[r] : TOTAL_LABEL);
+
+                for (int c = 0; c < keysC.length; c++) {
+                    sjc.add((c == totalPermutation[COLUMN_PERMUTATION_INDEX]) ? keysC[c] : TOTAL_LABEL);
+                }
+
+                keys.add(sjc.toString() + DataElement.ROW_COL_SEPARATION_CHAR + sjr);
+            }
+        }
 
 		return keys ;
 	}
@@ -497,7 +452,7 @@ public class DataElementDataView  implements DataElementProcessor {
 	public void sendAll( ClientDataView cdv ) {
 		for( String elementKey : dataViewElements.keySet() ) {
 			DataViewElement dve = dataViewElements.get( elementKey ) ;
-			if( !dve.isHidden() ) {
+			if(dve.isVisible()) {
 				cdv.updatedElement( elementKey, dve.getValue() ) ;
 			}
 		}
@@ -505,7 +460,7 @@ public class DataElementDataView  implements DataElementProcessor {
 
 
 	/**
-	 * Adds an element to the data view. The messages is pre-checked
+	 * Adds an element to the data view. The messages are pre-checked
 	 * to see that it matches the view filters.
 	 * 
 	 * @param dataElement the element to add to the view
@@ -586,7 +541,7 @@ public class DataElementDataView  implements DataElementProcessor {
 								Map<String,String> setValuesForThisRowGroup = this.setValues.get( rowGroup ) ;
 								if( setValuesForThisRowGroup == null ) { // no groups defined for this section
 									elementKey.append( rawRowAttributeValue ) ;
-								} else { // group is defined so rename if attribte matches or keep the original
+								} else { // group is defined so rename if attribute matches or keep the original
 									String replacementValue = setValuesForThisRowGroup.get( rawRowAttributeValue ) ;
 									elementKey.append( replacementValue==null ? rawRowAttributeValue : replacementValue ) ;
 								}
@@ -599,12 +554,7 @@ public class DataElementDataView  implements DataElementProcessor {
 
 						// now turn the key into a hashable thing
 						String key = elementKey.toString() ;
-						/*
-						if( serverBatchComplete ) {
-							logger.info( "Processed element key {}", key ) ;
-						}
-						*/
-						DataViewElement dve = dataViewElements.get( key ) ;
+                        DataViewElement dve = dataViewElements.get( key ) ;
 						if( dve == null ) {   // if we don't have a key create it
 							// Allow concurrent elem creates
 							DataViewElement newDve = new DataViewElement( hidden ) ;
@@ -628,7 +578,7 @@ public class DataElementDataView  implements DataElementProcessor {
 
 
 	/**
-	 * When the server starts a new bntch of data, this is called
+	 * When the server starts a new batch of data, this is called
 	 * it sets a flag - which indicates to suspends messaging to
 	 * the clients.
 	 * 

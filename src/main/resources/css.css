@@ -99,9 +99,31 @@ h4 {
 	text-align: left;
 	border-bottom: 1px solid #302875;
 }
-.underlying-data-value {
-	cursor: pointer ;
+
+#underlying-detail {
+	position: absolute;
+	font-size: 9pt;
+	background: #dfb8e6;
+	width: 100%;
+	height: 100%;
+	color: #200855;
+	left: 0;
+	top: 0;
+	overflow: auto;
 }
+#underlying-detail table {
+	width: 100%;
+	border-collapse: collapse;
+}
+#underlying-detail table tr:hover{
+	background: #c0afd6;
+}
+
+#underlying-detail-table th {
+	text-align: left;
+	border-bottom: 1px solid #302875;
+}
+
 
 .underlying-data-attributes {
 	width: auto !important ;

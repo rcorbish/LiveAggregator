@@ -67,7 +67,7 @@
 			}
 			tbl+="</tr>" ;
 			
-			for( var i=0 ; i<item.values.length ; i++ ) {
+			for( var i=0 ; i<item.size ; i++ ) {
 				tbl += "<tr><td>"+ numberWithCommas( Math.round( item.values[i] ) ) ;
 				for( var j=0 ; j<item.perimeterValues[j].length ; j++ ) {
 					tbl += "</td><td>"+item.perimeterValues[i][j]+"</td>" ;
@@ -81,7 +81,7 @@
 </head>
 
 <body>
-	<div id="underlying-data">
+	<div id="underlying-detail">
 		<div class="export">
 			<a download="rawData.xls" href="#" onclick="return ExcellentExport.excel(this,'raw-data','RawData');">
 			<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC+ElEQVRYhe2XPWhUQRDHV0NQohBUxEbkxKgx93b2yMLd25n3bmeO60XIiR9FLCy0sLLVwg+wMEUEU0RBbAKCFtr4AaIoqIWN36DYaaOgkkAgGOJZvBye8XIxl3eNuDDNPN7sb2f+O2+eUotclUqlI1uI+3TI+wF5yJC/l4tKVUN8f7GxFl49PSv6I7FAfDAIZQRIngD5yVxUqgLKNDj/XBNfzkWlKjj/fEl7rc9mV2fDmAz6IwblkiZ5BijTuahUBfKTmvzjBIIP9kdiM5nMytq7gHLNEF9paWPjZNSgf2tIfiSp9F/AyV0gPqtdcV8QFndUKpWOZjGWBJCLSlXt/GuN8U5ry5uUUssWGwNI3ueiUrUVU0k9eaAl+hqA41sa5REgD/y1kb+ZHgDKbSD/GJD31GxHobhVKaV0xOV6fxAWd1truwB5T2oABvnj3NQa8jNKJSX+4xny0ZQB5MPcTTTJ2HwAgfO7UgVopIHt+eJmpZTSLvb1/sD5XZlMZmVTgN58tC3b73rqfRsAVmkX+4YAaWsAkC8akpdKqeU1n3b+BKB8bgSQugaCQgz1fh1FazT5cY18rDFAGzSQdLckC5rkpEH5asvl7oYlSFsD9VnQyAeanX4Wtj19AFCumUg+NTt9UoI29YG+vI9nX2j6oWlbHzDIp4DkOyC/UXU34o9MtUMDG7NurSGZMMTnF2pWbdEAIJ82KN9sudwNyFfn9oU5mUpXA729+XWGZMI4f1wppXpdUTcvVcoamL333+qVD8hXDfKLhiVIWwM65P3g/N7fspKPtgHyUEOA//PAPzcPLBqggQYWMo1y/ReA43eAPBBY3KJaGctxCWN5EMqIIXllyM8ktfPjgPIAkIch5MGgEIO1tnMBgNZ/TGrLWtvVF0YFE/Ih42RUkzw1yFOzqp3SJE8B5QKgPwwFCq21XakCzAPVGRRigJAHAXnYkH9oSCZq10wjv9EkY7moVAWSG6kDzLOWZ/tdTxAWd2viM4bkTiJkOddKsJ+HHLzIDsdCuAAAAABJRU5ErkJggg=="></img>

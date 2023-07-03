@@ -9,3 +9,6 @@ target
 build
 libs
 gradle*
+.idea/
+main.class.name
+*.iml

@@ -12,7 +12,7 @@ package com.rc.agg.client;
 public class ClientMessage {
 	public String viewName ;
 	public String command ;
-	public String rowKeys[] ;
-	public String colKeys[] ;	
+	public String[] rowKeys;
+	public String[] colKeys;
 	public String description ;
 }

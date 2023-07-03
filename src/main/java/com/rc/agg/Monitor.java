@@ -1,25 +1,23 @@
 package com.rc.agg;
 
-import java.io.File;
-import java.net.URL;
-import java.util.Collection;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.gson.Gson;
-import com.rc.datamodel.DataElement;
 import com.rc.dataview.DataDetailMessage;
 import com.rc.dataview.DataElementStore;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spark.Request;
 import spark.Response;
+
+import java.io.File;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 
 /**
  * This handles the web pages. 
  * 
  * We use spark to serve pages. It's simple and easy to configure. It's pretty basic
- * we need 1 websockt to handle messaging to the client and one static dir for the actual page
+ * we need 1 websocket to handle messaging to the client and one static dir for the actual page
  * 
  * @author richard
  *
@@ -42,6 +40,7 @@ public class Monitor implements AutoCloseable {
 		try {
 			spark.Spark.port( 8111 ) ;
 			URL mainPage = getClass().getClassLoader().getResource( "Client.html" ) ;
+			if( mainPage==null ) throw new RuntimeException("Cannot find resource: Client.html" ) ;
 			File path = new File( mainPage.getPath() ) ;
 			spark.Spark.staticFiles.externalLocation( path.getParent() ) ;
 			spark.Spark.webSocket("/live", WebSocketServer.class);
@@ -55,17 +54,16 @@ public class Monitor implements AutoCloseable {
 	}
 
 	public Object getItem(Request req, Response rsp) {
-		Object rc = null ;
+		Object rc;
 		try {
 			rsp.type( "application/json" );
 			rsp.header("expires", "0" ) ;
 			rsp.header("cache-control", "no-cache" ) ;
 
-			String invariantKey = java.net.URLDecoder.decode( req.params( INVARIANT_KEY_PARAM ), "UTF-8" ) ;
+			String invariantKey = java.net.URLDecoder.decode( req.params( INVARIANT_KEY_PARAM ), StandardCharsets.UTF_8) ;
 			logger.info( "Querying for invariant-key {}", invariantKey ) ;
 			DataElementStore des = DataElementStore.getInstance() ;
-			DataElement matching = des.get(invariantKey) ;
-			rc = matching ;
+            rc = des.get(invariantKey);
 			if( rc==null ) {
 				logger.info( "No items matching key {}", invariantKey ) ;
 			}
@@ -78,13 +76,13 @@ public class Monitor implements AutoCloseable {
 	}
 
 	public Object dataElements(Request req, Response rsp) {
-		Object rc = null ;
+		Object rc;
 		try {
 			rsp.type( "application/json" );
 			rsp.header("expires", "0" ) ;
 			rsp.header("cache-control", "no-cache" ) ;
 
-			String elementKey = java.net.URLDecoder.decode( req.params( ELEMENT_KEY_PARAM ), "UTF-8" ) ;
+			String elementKey = java.net.URLDecoder.decode( req.params( ELEMENT_KEY_PARAM ), StandardCharsets.UTF_8) ;
 			String viewName = req.queryParams( VIEW_NAME_PARAM ) ;			
 			if( viewName == null ) {
 				throw new Exception( "Missing parameter - " + VIEW_NAME_PARAM ) ;
@@ -95,7 +93,7 @@ public class Monitor implements AutoCloseable {
 			DataElementStore des = DataElementStore.getInstance() ;
 			Collection<DataDetailMessage> matching = des.query(elementKey, viewName, limit) ;
 			rc = matching ;
-			logger.info( "Found {} items", matching.size()>0?matching.size()-1:0  ) ;
+			logger.info( "Found {} items", !matching.isEmpty() ?matching.size()-1:0  ) ;
 		} catch ( Throwable t ) {
 			logger.warn( "Error processing data request", t ) ;
 			rc = "Orig URL = " + req.url() + "<br>Should be ... /data/key?limit=nnn&view-name=aaa" ;
@@ -130,7 +128,7 @@ public class Monitor implements AutoCloseable {
 
 		rc.append( "<h2>Sample Data query</h2>") ; 
 		rc.append( "This is a sample - adjust the URL to your own case<br>" ) ;
-		rc.append( "<a target='data-window' href='http://" + req.host() + "/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100&view-name=DG0'>/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100&view-name=DG0</a>") ;
+		rc.append("<a target='data-window' href='http://").append(req.host()).append("/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100&view-name=DG0'>/data/CCY=HKD%09AUD%0CBOOK=Book6?limit=100&view-name=DG0</a>");
 		rc.append( "</html>");
 		return rc ;
 	}

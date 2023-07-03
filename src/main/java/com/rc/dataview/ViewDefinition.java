@@ -21,7 +21,7 @@ public class ViewDefinition {
 	
 	final static Logger logger = LoggerFactory.getLogger( ViewDefinition.class ) ;
 
-	private String name ;
+	private final String name ;
 	private String description ;
 	private Class<? extends DataElementDataView> implementingClass ;
 	private String constructorArg ;
@@ -34,18 +34,18 @@ public class ViewDefinition {
 		this.description = description;
 	}
 
-	private String colGroups[] ;
-	private String rowGroups[] ;
-	private String hiddenAttributes[] ;
-	private String totalAttributes[] ;
-	private Map<String,String> filters ;
+	private String[] colGroups;
+	private String[] rowGroups;
+	private String[] hiddenAttributes;
+	private String[] totalAttributes;
+	private final Map<String,String> filters ;
 
 	// this is a map keyed on attribute name
 	// mapping to another map
 	// key1 =>   ( name of field to remap )
 	// 	key2 = attribute value to match
 	// 	value2 = attribute name to change
-	private Map<String,Map<String,String>> setValues ;
+	private final Map<String,Map<String,String>> setValues ;
 	
 	public String getName() {
 		return name;
@@ -125,21 +125,12 @@ public class ViewDefinition {
  	}
 	
 	public void addFilter( String attribute, String value ) {
-		String currentFilter = filters.get( attribute ) ;
-		if( currentFilter==null ) {
-			filters.put( attribute, value) ;
-		} else {
-			filters.put( attribute, currentFilter + DataElement.SEPARATION_CHAR + value) ;
-		}
+        filters.merge(attribute, value, (a, b) -> a + DataElement.SEPARATION_CHAR + b);
  	}
 	
 	public void addSetValue( String attributeName, String attributeValue, String whenAttributeValue ) {
-		Map<String,String> currentMap = this.setValues.get( attributeName ) ;
-		if( currentMap == null ) {
-			currentMap = new HashMap<>() ;
-			this.setValues.put( attributeName, currentMap ) ;
-		}
-		currentMap.put( attributeValue, whenAttributeValue ) ;
+        Map<String, String> currentMap = this.setValues.computeIfAbsent(attributeName, k -> new HashMap<>());
+        currentMap.put( attributeValue, whenAttributeValue ) ;
  	}
 	
 	public boolean equals( Object o ) {

@@ -1,14 +1,6 @@
 package com.rc.dataview;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -61,7 +53,7 @@ public class DataElementStore  implements DataElementProcessor {
 	 * Indicate whether we have received an endBatch notification.
 	 * @return have we received an end notification ?
 	 */
-	public boolean isServerBatchComplete() {
+	public synchronized boolean isServerBatchComplete() {
 		return serverBatchComplete;
 	}
 
@@ -139,7 +131,7 @@ public class DataElementStore  implements DataElementProcessor {
 	 * When a batch is done each view is notified, which usually
 	 * indicates all clients receive a new version of the aggregated data
 	 */
-	public void endBatch() {		
+	public synchronized void endBatch() {
 		serverBatchComplete = true ;
 		for( DataElementDataView dedv : availableViews.values() ) {
 			dedv.endBatch() ;
@@ -270,14 +262,14 @@ public class DataElementStore  implements DataElementProcessor {
 	 * 
 	 * Because, this app is highly concurrent, be aware that if deriving the 
 	 * filter from a live report, this may return elements which are different
-	 * than what is exactly in the view. Basically we can't connect the end view and input
+	 * from what is exactly in the view. Basically we can't connect the end view and input
 	 * cache in real-time. There is latency in the forward pass. Its intent is to be
 	 * used to drill-down into a report cell.
 	 * 
 	 * @param query the query string ( e.g. trade-1\tUSD\tBook6\tNPV\tN/A\t100 )
 	 * @param viewName the name of the view requesting data
 	 * @param limit maximum number of items to return
-	 * @return A Collection of items representing a single value, An empty collection perhaps. The 1st row is the attribute names
+	 * @return A Collection of items representing a single value, An empty collection perhaps? The 1st row is the attribute names
 	 */
 	public Collection<DataDetailMessage> query( String query, String viewName, int limit ) {
 
@@ -290,7 +282,7 @@ public class DataElementStore  implements DataElementProcessor {
 		}
 
 		numberDrillThroughs++ ; // for monitoring activity
-		if( currentElements.size() == 0 ) return rc ;    // not exactly thread safe - but not much else we can do
+		if( currentElements.isEmpty() ) return rc ;    // not exactly thread safe - but not much else we can do
 
 		//
 		// The filters against which to test each data point
@@ -304,18 +296,19 @@ public class DataElementStore  implements DataElementProcessor {
 		//
 		// Parse the input query into a filter set
 		//
-		String elementKeys[] = query.split( String.valueOf( DataElement.ROW_COL_SEPARATION_CHAR ) ) ;
-		for( int i=0 ; i<elementKeys.length ; i++ ) {
-			int ix = elementKeys[i].indexOf( '=' ) ;
-			if( ix>0 ) {
-				String key = elementKeys[i].substring(0,ix) ;
-				Set<String> values = new HashSet<>() ;
-				for( String v : DataElement.splitComponents( elementKeys[i].substring(ix+1) ) ) {
-					values.add(v) ; 
+		String[] elementKeys = query.split( String.valueOf( DataElement.ROW_COL_SEPARATION_CHAR ) ) ;
+        for (String elementKey : elementKeys) {
+            int ix = elementKey.indexOf('=');
+            if (ix > 0) {
+                String key = elementKey.substring(0, ix);
+				String value = elementKey.substring(ix + 1);
+				if( !value.equals(DataElementDataView.TOTAL_LABEL)) {
+					Set<String> values = new HashSet<>();
+					Collections.addAll(values, DataElement.splitComponents(value));
+					matchingTests.put(key, values);
 				}
-				matchingTests.put( key, values ) ;
-			}
-		}  
+            }
+        }
 		
 		//
 		// Add any additional filters defined by the view itself into the 
@@ -334,15 +327,13 @@ public class DataElementStore  implements DataElementProcessor {
 				} else {
 					continue ;   // if the view allows many values for a key - but we know which one leave it alone
 				}
-				String viewAttributeValues[] = viewFilters.get( attributeName ) ;
-				for( String viewAttributeValue : viewAttributeValues ) {
-					queryAttributeValues.add( viewAttributeValue ) ;				
-				}
+				String[] viewAttributeValues = viewFilters.get( attributeName ) ;
+				queryAttributeValues.addAll(Arrays.asList(viewAttributeValues));
 			}
 		}
 
 		//
-		// If we have a set defined we should unmap the set name to it's constituents
+		// If we have a set defined we should unmap the set name to its constituents
 		// Leave the original in the test, it's unlikely but possible to rename 
 		// a vkey to an existing key, which might be in the view. And a set test is crazy fast
 		//
@@ -374,10 +365,10 @@ public class DataElementStore  implements DataElementProcessor {
 		// check each attribute for reality.
 		//
 		Set<String> allKeys = new HashSet<>() ;
-		String colGroups[] = dedv.getColGroups();
-		String rowGroups[] = dedv.getRowGroups();
-		for( String s : colGroups ) allKeys.add(s) ;
-		for( String s : rowGroups ) allKeys.add(s) ;
+		String[] colGroups = dedv.getColGroups();
+		String[] rowGroups = dedv.getRowGroups();
+        Collections.addAll(allKeys, colGroups);
+        Collections.addAll(allKeys, rowGroups);
 		logger.info( "Scanning these keys {} to see whether they are synthetic.", allKeys ) ;
 		DataElement de = currentElements.values().iterator().next() ;
 		DataElementAttributes dae = de.getDataElementAttributes() ;
@@ -399,34 +390,26 @@ public class DataElementStore  implements DataElementProcessor {
 		// scan for anything that matches our filter. Add matching
 		// elements and keep the ones with the largest values to return.
 		//
-		String attributeNames[] = dae.getAttributeNames() ;
-		long currentMaxTime = 0L ;
+		String[] attributeNames = dae.getAttributeNames() ;
 		for( DataElement value : currentElements.values() ) {
 			
 			// If this is older than the oldest in the list forget it
 			// The time applies to the whole element - so we can optimize out a loop
-			boolean decidedToAddToList = value.getCreatedTime() > currentMaxTime || rc.size() < (2*limit) ;
+			boolean decidedToAddToList;
 
 			if( value.matchesCoreKeys( matchingTests ) ) {	
 				for( int i=0 ; i<value.size() ; i++ ) {				
-					if( value.matchesPerimiterKeys(i, matchingTests)) {
+					if( value.matchesPerimeterKeys(i, matchingTests)) {
 						// 2 reasons to add - either we haven't filled up the list
 						// or the current value is younger than the oldest in the 
 						// current list ( see above part of the test )
 						//
 						// We do 2x for optimization - so we sort less frequently 
 						// If it's faster to sort than add each time this can be changed
-						// i.e. maintain a sorted list ( priorityqueue ? )						
+						// i.e. maintain a sorted list ( priority-queue ? )
 						decidedToAddToList = rc.size() < (2*limit) ;		
 						
 						if(decidedToAddToList) {
-
-							String tmp[] = new String[attributeNames.length + 2] ;
-							int ix = 2 ;
-							for( String valueAttributeName : attributeNames ) {
-								tmp[ix] = value.getAttribute( i, valueAttributeName ) ;
-								ix++ ;
-							}
 							DataDetailMessage ddm = new DataDetailMessage( value, i ) ;
 							rc.add( ddm ) ;
 							// We won't chop the list every time. Keep a bigger list
@@ -435,9 +418,7 @@ public class DataElementStore  implements DataElementProcessor {
 								Collections.sort( rc ) ;
 								while( rc.size() > limit ) {
 									rc.remove( limit ) ;
-								} ;
-								DataDetailMessage mx = rc.get( limit-1 ) ;
-								currentMaxTime = mx.createdTime ;
+								}
 							}
 						}
 					}
@@ -448,8 +429,8 @@ public class DataElementStore  implements DataElementProcessor {
 		Collections.sort( rc ) ;
 		while( rc.size() > limit ) {
 			rc.remove( limit ) ;
-		} ;
-		//
+		}
+        //
 		// Add in a header row if we found anything.
 		//
 		if( attributeNames != null ) {

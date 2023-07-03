@@ -3,10 +3,10 @@ package com.rc.dataview ;
 import com.rc.datamodel.DataElement;
 
 public class DataDetailMessage implements Comparable<DataDetailMessage> {
-    final public float value ;
+    final public double value ;
     final public long  createdTime ;
     final public String invariantKey ;
-    final public String columns[] ;
+    final public String[] columns;
 
     final static public String HEADER_INVARIANT_KEY = "** HDRS **" ;
     public DataDetailMessage( DataElement de, int index ) {
@@ -15,7 +15,7 @@ public class DataDetailMessage implements Comparable<DataDetailMessage> {
         this.invariantKey = de.getInvariantKey() ;
         this.columns = de.getAttributeValues(index) ;
     }
-    public DataDetailMessage( String attributeNames[] ) {
+    public DataDetailMessage(String[] attributeNames) {
         this.columns = attributeNames ;
         this.createdTime = System.currentTimeMillis() ;
         this.invariantKey =  HEADER_INVARIANT_KEY ;
@@ -28,4 +28,11 @@ public class DataDetailMessage implements Comparable<DataDetailMessage> {
 		return rc<0 ? -1 : ( rc>0 ) ? 1 : 0  ;
 	}
 
+    public boolean equals( Object o ) {
+        return o instanceof DataDetailMessage && 0 == compareTo((DataDetailMessage)o);
+    }
+
+    public int hashCode() {
+        return invariantKey.hashCode();
+    }
 }

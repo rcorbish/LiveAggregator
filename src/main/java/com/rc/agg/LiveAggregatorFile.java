@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,13 +32,13 @@ public class LiveAggregatorFile  {
 	private final LiveAggregator aggregator ;
 
 	public static void main(String[] args) {
-		LiveAggregatorFile self = null ;
+		LiveAggregatorFile self ;
 		try {
 			self = new LiveAggregatorFile() ;
 			String fileName = args.length>0 ? args[0] : "src/main/resources/Test1.txt" ;
 			self.start( fileName ) ;
 		} catch( Throwable t ) {
-			t.printStackTrace();
+			logger.error( t.getMessage() );
 			System.exit( -1 ) ;
 		}
 	}
@@ -54,15 +55,15 @@ public class LiveAggregatorFile  {
 		aggregator.startBatch( true );
 		int lineNumber = 0 ;
 		
- 		try ( FileInputStream fis = new FileInputStream(dataFile) ;
-			  Reader r = new InputStreamReader(fis, "UTF-8" ) ; 
-			  BufferedReader br = new BufferedReader( r ) ) {
+ 		try (FileInputStream fis = new FileInputStream(dataFile);
+             Reader r = new InputStreamReader(fis, StandardCharsets.UTF_8);
+             BufferedReader br = new BufferedReader( r ) ) {
 			lineNumber++ ;
 			String s=br.readLine() ;
 
 			if( s!=null ) {
-				String attributeNames[] = null ; 
-				String cols[] = DataElement.splitComponents(s) ;
+				String[] attributeNames = null ;
+				String[] cols = DataElement.splitComponents(s) ;
 				int valueIndex = -1 ;
 				for(int i=0 ; i<cols.length ; i++ ) {
 					if( cols[i].equals( VALUE_KEY ) ) {						
@@ -74,28 +75,29 @@ public class LiveAggregatorFile  {
 						break ;
 					}
 				}
+				if( attributeNames == null ) {
+					throw new RuntimeException("No data elements to aggregate");
+				}
 				final DataElementAttributes dae = new DataElementAttributes(attributeNames, attributeNames.length) ;
 
-				if( valueIndex>=0 ) {
-					for( s=br.readLine() ; s!=null ; s=br.readLine() ) {
-						lineNumber++ ;
-						if( lineNumber==30 ) {
-							aggregator.endBatch();
-						}
-						s = s.trim() ;
-						if( s.charAt(0) == '#' ) {
-							continue ;
-						}
-						cols = DataElement.splitComponents(s) ;
-						String colsWithoutValue[] = new String[cols.length-1] ;
-						for( int j=0 ; j<colsWithoutValue.length ; j++ ) {
-							colsWithoutValue[j] = cols[j<valueIndex?j:(j+1)] ;
-						}
-						float value = Float.parseFloat( cols[ valueIndex ] ) ;
-						DataElement dataElement = new DataElement( dae, colsWithoutValue, colsWithoutValue[0] ) ;
-						dataElement.set( colsWithoutValue, value) ;
-						aggregator.process(dataElement);
+				for( s=br.readLine() ; s!=null ; s=br.readLine() ) {
+					lineNumber++ ;
+					if( lineNumber==30 ) {
+						aggregator.endBatch();
 					}
+					s = s.trim() ;
+					if( s.charAt(0) == '#' ) {
+						continue ;
+					}
+					cols = DataElement.splitComponents(s) ;
+					String[] colsWithoutValue = new String[cols.length-1] ;
+					for( int j=0 ; j<colsWithoutValue.length ; j++ ) {
+						colsWithoutValue[j] = cols[j<valueIndex?j:(j+1)] ;
+					}
+					float value = Float.parseFloat( cols[ valueIndex ] ) ;
+					DataElement dataElement = new DataElement( dae, colsWithoutValue, colsWithoutValue[0] ) ;
+					dataElement.set( colsWithoutValue, value) ;
+					aggregator.process(dataElement);
 				}
 			}
 			logger.info( "Finished processing {} lines of {}", lineNumber, dataFile ) ;  

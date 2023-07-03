@@ -1,5 +1,15 @@
 package com.rc.agg;
 
+import com.google.gson.Gson;
+import com.rc.agg.client.ClientCommandProcessorImpl;
+import com.rc.agg.client.ClientDisconnectedException;
+import com.rc.agg.client.ClientMessage;
+import com.rc.agg.client.ClientProxy;
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.annotations.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,21 +17,6 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
-import org.eclipse.jetty.websocket.api.annotations.WebSocket;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
-import com.rc.agg.client.ClientCommandProcessorImpl;
-import com.rc.agg.client.ClientDisconnectedException;
-import com.rc.agg.client.ClientMessage;
-import com.rc.agg.client.ClientProxy;
 
 /**
  * One of the more interesting classes, this handles raw messages from the client.
@@ -43,7 +38,7 @@ public class WebSocketServer  {
 	@OnWebSocketConnect
 	public void connect( Session session )  {
 		logger.info( "Opened connection to {} {}", session.getRemoteAddress(), session.getUpgradeRequest().getHeaders( "User-Agent" ) ) ;
-		WebSocketCommandProcessor wscp = new WebSocketCommandProcessor(session) ;	// keep tabs on the rempote client
+		WebSocketCommandProcessor wscp = new WebSocketCommandProcessor(session) ;	// keep tabs on the remote client
 		ClientProxy cp = new ClientProxy( wscp ) ;					// maintain a proxy to the client - used for sending messages
 		ClientProxy old = clientData.put( session, cp ) ;							// check if the map is overused - better never happen
 		if( old != null ) {
@@ -52,7 +47,7 @@ public class WebSocketServer  {
 	}
 
 	@OnWebSocketClose
-	public void close(Session session, int statusCode, String reason) {				
+	public void close(Session session, int ignoredStatusCode, String reason) {
 		ClientProxy cp = clientData.get( session ) ;
 		if( cp != null ) {
 			logger.info( "Remote session {} requested close, reason: {}", session.getRemoteAddress(), reason ) ; 
@@ -81,9 +76,6 @@ public class WebSocketServer  {
 	 * This parses the client message and then hands it off to a client processor. It's 
 	 * semi-dumb (which is never good) 
 	 * 
-	 * @param session
-	 * @param message
-	 * @throws IOException
 	 */
 	@OnWebSocketMessage
 	public void message(Session session, String message) throws IOException {
@@ -98,38 +90,34 @@ public class WebSocketServer  {
 		}
 		
 		ClientMessage clientMessage = new Gson().fromJson( message, ClientMessage.class ) ;
-		
-		if( clientMessage.command.equals("START") ) {
-			logger.info("Requesting a new view {} from the clientProxy.", clientMessage.viewName );
-			clientProxy.openView(clientMessage.viewName );
 
-		} else if( clientMessage.command.equals("STOP") ) {
-			if( clientMessage.viewName != null ) {
-				clientProxy.closeView(clientMessage.viewName);
-			} else {
-				clientProxy.close();
-			}
-		} else if( clientMessage.command.equals("RST")  ) {
-			clientProxy.resetView(clientMessage.viewName) ;
-		} else if( clientMessage.command.equals("RDY")  ) {
-			clientProxy.viewReady(clientMessage.viewName) ;
-		} else if( clientMessage.command.equals("STOP")  ) {
-			clientProxy.viewReady(clientMessage.viewName) ;
-		} else {
-			String responses[] = clientProxy.respond( clientMessage ) ;
-			if( responses != null ) {	
-				StringBuilder sb = new StringBuilder( "[{\"command\":\"" )
-						.append( clientMessage.command )
-						.append("\",\"responses\": [ " ) ;
-				for( String response : responses ) {
-					sb.append( '"' ).append( response ).append( "\"," ) ;
-				}
-				sb.deleteCharAt( sb.length()-1 ) ;
-				sb.append( "]}]" ) ;
-				
-				session.getRemote().sendString( sb.toString() ) ; 
-			}
-		}
+        switch (clientMessage.command) {
+            case "START" -> clientProxy.openView(clientMessage.viewName);
+			case "RST" -> clientProxy.resetView(clientMessage.viewName);
+			case "RDY" -> clientProxy.viewReady(clientMessage.viewName);
+            case "STOP" -> {
+                if (clientMessage.viewName != null) {
+                    clientProxy.closeView(clientMessage.viewName);
+                } else {
+                    clientProxy.close();
+                }
+            }
+            default -> {
+                String[] responses = clientProxy.respond(clientMessage);
+                if (responses != null) {
+                    StringBuilder sb = new StringBuilder("[{\"command\":\"")
+                            .append(clientMessage.command)
+                            .append("\",\"responses\": [ ");
+                    for (String response : responses) {
+                        sb.append('"').append(response).append("\",");
+                    }
+                    sb.deleteCharAt(sb.length() - 1);
+                    sb.append("]}]");
+
+                    session.getRemote().sendString(sb.toString());
+                }
+            }
+        }
 	}
 	
 	/**
@@ -139,17 +127,16 @@ public class WebSocketServer  {
 	public static String toStringStatic() {
 		StringBuilder rc = new StringBuilder() ;
 		int i = 0 ;
-		for( Session s : clientData.keySet() ) {
+		for( var entry : clientData.entrySet() ) {
 			i++ ;
 			rc.append( "\nActive client #" )
 				.append( i )
 				.append( " connected to " )
-				.append( s.getRemoteAddress() )
+				.append( entry.getKey().getRemoteAddress() )
 				.append( '\n' )
-				.append( s.getUpgradeRequest().getHeaders( "User-Agent" ) ) 
+				.append( entry.getKey().getUpgradeRequest().getHeaders( "User-Agent" ) )
 				.append( '\n' ) ;
-			ClientProxy cp = clientData.get(s) ;
-			rc.append( cp ).append('\n') ;
+			rc.append( entry.getValue() ).append('\n') ;
 		}
 		return rc.toString() ;
 	}
@@ -157,9 +144,7 @@ public class WebSocketServer  {
 
 /**
  * One of these is created for each client web-page. It handles the transmission to the 
- * server. 
- * 
- * The transmission is separated from the caller using a queue. Transmit adds a message to that 
+ * server. The transmission is separated from the caller using a queue. Transmit adds a message to that
  * queue. A different thread reads the queue and sends bunches of messages to the client
  * 
  * @author richard
@@ -200,7 +185,6 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 	 * This thread is terminated by an interrupt ( from closeClient() )
 	 * or because of a message sending error.
 	 * 
-	 *  @see closeClient()
 	 */
 	public void run() {
 		Thread.currentThread().setName( "WSS:" + session.getRemoteAddress() );
@@ -230,7 +214,7 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 		} catch (InterruptedException t) {
 			// ignore - this is an expected exception :(
 		} catch (Throwable t) {
-			logger.warn("Sending msg stopped by xmit error.", t ) ;
+			logger.warn("Sending msg stopped by transmit error.", t ) ;
 		}
 		
 		reader = null ;

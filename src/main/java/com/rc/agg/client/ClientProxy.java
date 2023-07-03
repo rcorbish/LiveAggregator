@@ -1,5 +1,6 @@
 package com.rc.agg.client;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,7 +13,7 @@ import com.rc.dataview.DataElementDataView;
 import com.rc.dataview.DataElementStore;
 
 /**
- * This handles all messages <b>from</b> the client. INterprets the
+ * This handles all messages <b>from</b> the client. Interprets the
  * message and makes a request to the ClientDataView which keeps 
  * client state. Outbound messages are sent <b>to</b> the client
  * in the ClientCommandProcessor. [Could these two be merged?]
@@ -30,9 +31,9 @@ public class ClientProxy implements ClientEventProcessor {
 	private final Map<String,ClientDataView> openDataViews ;
 	private final ClientCommandProcessor clientCommandProcessor ;
 
-	public ClientProxy( ClientCommandProcessor clientCommandProcessor ) {
+	public ClientProxy( final ClientCommandProcessor clientCommandProcessor ) {
 		openDataViews = new ConcurrentHashMap<>();
-		this.clientCommandProcessor = clientCommandProcessor ;
+		this.clientCommandProcessor = clientCommandProcessor;
 	}
 
 	/**
@@ -47,28 +48,31 @@ public class ClientProxy implements ClientEventProcessor {
 	 * @return The response message to send back to the client - null implies no response
 	 */
 	public String [] respond( ClientMessage request ) {
-		String rc[] = null ;
+		String[] rc = null ;
 		try {
-			if( request.command.equals("STOP") ) {		// shutdown the whole client
-				// Stoppage - no reply necessary, but just in case prepare one...				
-				rc = new String[] { "OK" } ;
-			} else if( request.command.equals("START") ) {
-				// Something started - assume OK. Any failure will not send a message, the client must timeout				
-				rc = new String[] { "OK" } ;
-			} else if( request.command.equals("VIEWS") ) {		// list available views
-				// Answer with the list of available views that can be shown on the client desktop
-				Collection<String> vdns = DataElementStore.getInstance().getDataViewNames() ;
-				rc = new String[ vdns.size() ] ;
-				int i = 0 ;
-				for( String vdn : vdns ) {
-					rc[i++] = vdn ;
-				}
-				java.util.Arrays.sort( rc ) ;  // let's be nice - sort 'em
-			} else if( request.command.equals("ATTRIBUTES") ) {
-				// *************************
-				// BAD BAD BAD - need to fix this ASAP
-				// *************************
-				rc = new String[]{ "BOOK", "CCY", "TRADEID" } ;	
+            switch (request.command) {
+                case "STOP" ->        // shutdown the whole client
+                    // Stoppage - no reply necessary, but just in case prepare one...
+                        rc = new String[]{"OK"};
+                case "START" ->
+                    // Something started - assume OK. Any failure will not send a message, the client must time out
+                        rc = new String[]{"OK"};
+                case "VIEWS" -> {        // list available views
+                    // Answer with the list of available views that can be shown on the client desktop
+                    Collection<String> vdns = DataElementStore.getInstance().getDataViewNames();
+                    rc = new String[vdns.size()];
+                    int i = 0;
+                    for (String vdn : vdns) {
+                        rc[i++] = vdn;
+                    }
+                    Arrays.sort(rc);  // let's be nice - sort 'em
+                }
+                case "ATTRIBUTES" ->
+                    // *************************
+                    // BAD BAD BAD - need to fix this ASAP
+                    // *************************
+                        rc = new String[]{"BOOK", "CCY", "TRADEID"};
+				default -> throw new IllegalStateException("Unexpected value: " + request.command);
 			}
 		} catch( Exception ex ) {
 			logger.error( "Error responding to request.", ex ) ;
@@ -87,7 +91,7 @@ public class ClientProxy implements ClientEventProcessor {
 	}
 
 
-	// CLient closed a view, remove from active list
+	// Client closed a view, remove from active list
 	public void closeView( String viewName ) {
 		ClientDataView cdv = openDataViews.remove(viewName) ;
 		if( cdv == null ) {
@@ -118,13 +122,15 @@ public class ClientProxy implements ClientEventProcessor {
 
 
 	/**
-	 * When opening a new view we need to set some flags on other compnenets
+	 * When opening a new view we need to set some flags on other components
 	 * that we are active and ready to receive process events
-	 * Also we set the current expand/collpase state of our view, add the view
+	 * Also we set the current expand/collapse state of our view, add the view
 	 * to active views and  ask for the current state to be sent to the client
 	 * 
 	 */
 	public void openView( String viewName ) {
+		logger.info("Requesting a new view {} from the clientProxy.", viewName);
+
 		DataElementDataView dedv = DataElementStore.getInstance().getDataElementDataView(viewName) ;
 		if( dedv==null ) {
 			logger.warn( "View {} is not defined.", viewName ) ;			

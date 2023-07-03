@@ -56,8 +56,10 @@ public class DataViewElement {
 
 	
 	public void set( double value ) {
-		this.updated = this.value != value ;		
-		this.value = value ;
+		if( Math.abs(this.value - value) > 1e-8 ) {
+			this.updated = true;
+			this.value = value;
+		}
 	}
 	
 	public double getValue() {
@@ -70,8 +72,8 @@ public class DataViewElement {
 	public boolean isUpdated() {
 		return updated ;
 	}
-	public boolean isHidden() {
-		return hidden ;
+	public boolean isVisible() {
+		return !hidden;
 	}
 	public boolean isTotal() {
 		return isTotal ;

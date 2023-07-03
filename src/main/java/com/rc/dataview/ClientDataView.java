@@ -43,14 +43,14 @@ public class ClientDataView  {
 		
 		dataElementDataView.addClient( this ); 
  
-		String columns[] = dataElementDataView.getColGroups() ;
+		String[] columns = dataElementDataView.getColGroups() ;
 		for( int i=0 ; i<columns.length ; i++ ) {
 			if( dataElementDataView.isAttributeHidden( columns[i] ) ) {
 				columns  = Arrays.copyOf( columns, i ) ;
 				break ;
 			}
 		}
-		String rows[] = dataElementDataView.getRowGroups() ;
+		String[] rows = dataElementDataView.getRowGroups() ;
 		for( int i=0 ; i<rows.length ; i++ ) {
 			if( dataElementDataView.isAttributeHidden( rows[i] ) ) {
 				rows  = Arrays.copyOf( rows, i ) ;
@@ -85,7 +85,7 @@ public class ClientDataView  {
 	}
 
 	/**
-	 * If the client wishes this will resnd a copy of the entire view
+	 * If the client wishes this will resend a copy of the entire view
 	 * as updates. 
 	 * It should be called whenever the client believes it has lost sync
 	 * (or perhaps a client that ignores updates)
@@ -103,7 +103,7 @@ public class ClientDataView  {
 
 	/**
 	 * Mark an element as unused ( just been hidden for example by closing a row or column )
-	 * An usused element is deleted from the client view.
+	 * An unused element is deleted from the client view.
 	 * @param elementKey
 	 */
 	public void unusedElement( String elementKey ) {

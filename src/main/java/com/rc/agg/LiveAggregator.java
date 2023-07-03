@@ -25,7 +25,9 @@ public class LiveAggregator implements DataElementProcessor, AutoCloseable {
 
 		this.dataElementStore = DataElementStore.getInstance() ;
 		URL viewsTxt = getClass().getClassLoader().getResource( "Views.txt" ) ;
-		
+		if( viewsTxt==null ) {
+			throw new RuntimeException("Cannot find resource views.txt in classpath" ) ;
+		}
 		viewDefinitions = new ViewDefinitions( viewsTxt, this.dataElementStore ) ;
 		webServer = new Monitor() ;
 		viewDefinitions.start();

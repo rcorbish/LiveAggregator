@@ -21,12 +21,12 @@ import org.slf4j.LoggerFactory;
  * 
  * A DataElement value consists of a single value. Each value is labelled by
  * text labels. Text labels come in two varieties: core values and perimeter values.
- * Core values are common to all DataElement values in a DataElement, permiter values 
+ * Core values are common to all DataElement values in a DataElement, perimeter values
  * are specific to each DataElement value. 
  * 
  * The results of calculation data frequently follow this pattern, e.g. a core value
- * may be the caluclation batch number, the calculation date or submitted_by. The 
- * perimiter values may be sample_number, cacluclation time, etc. 
+ * may be the calculation batch number, the calculation date or submitted_by. The
+ * perimeter values may be sample_number, calculation time, etc.
  * 
  * When a replacement to a DataElement is given to the aggregator <b>all</b> values
  * and labels associated with the original are replaced. So to delete a previously
@@ -44,14 +44,14 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	public static final char SEPARATION_CHAR = '\t' ;
 	public static final String SEPARATION_STRING = String.valueOf(SEPARATION_CHAR) ;
 	public static final String ROW_COL_SEPARATION_STRING = String.valueOf(ROW_COL_SEPARATION_CHAR) ;
-	// @TODO - is this thread safe? 
 	private static final Pattern SEPARATION_CHAR_PATTERN = Pattern.compile( Pattern.quote( String.valueOf(SEPARATION_CHAR) ) ) ;
 	
 	private final long createdTime ;			// timestamp of creation
 	private final String invariantKey ;			// a key for this update - used to identify replacements
 	
-	private final float values[] ;				// each value 
+	private final double[] values;				// each value
 
+	private int size;
 	/**
 	 * This is a helper to get the index of an attribute given its name
 	 */
@@ -59,47 +59,48 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	
 	//private final long bloomFilter ;
 
-	private final String coreValues[] ;			// the core labels
-	private final String perimeterValues[][] ;	// the perimiter labels
+	private final String[] coreValues;			// the core labels
+	private final String[][] perimeterValues;	// the perimeter labels
 
 	/**
 	 * Constructor takes the attribute names (label names), core labels and the invariant key
-	 * for the element. This version of the constructor expects a single value (one perimiter
+	 * for the element. This version of the constructor expects a single value (one perimeter
 	 * value). 
 	 * 
 	 * After construction: call set - to set the actual values
 	 *  
-	 * @see #set(int, String[], float)
+	 * @see #set(int, String[], double)
 	 * 
 	 * @param attributes how to get an attribute index from its name
-	 * @param coreValues the corevalues - specified once per element
+	 * @param coreValues the core values - specified once per element
 	 * @param invariantKey the special attribute - the unique ID of this item
 	 */
-	public DataElement(DataElementAttributes attributes, String coreValues[], String invariantKey ) {
+	public DataElement(DataElementAttributes attributes, String[] coreValues, String invariantKey ) {
 		this( 1, attributes, coreValues, invariantKey ) ;
 	}
 	
 	
 	/**
 	 * Constructor takes the attribute names (label names), core labels and the invariant key
-	 * for the element. This variant, expects 'length'  perimiter values to be set.
+	 * for the element. This variant, expects 'length'  perimeter values to be set.
 	 * 
 	 * After construction: call set - to set the actual values
 	 *  
-	 * @see #set(int, String[], float)
+	 * @see #set(int, String[], double)
 	 * 
 	 * @param length number of values in this element
 	 * @param attributes how to get an attribute index from its name
-	 * @param coreValues the corevalues - specified once per element
+	 * @param coreValues the core values - specified once per element
 	 * @param invariantKey the special attribute - the unique ID of this item
 	 */
-	public DataElement(int length, DataElementAttributes attributes, String coreValues[], String invariantKey ) {
+	public DataElement(int length, DataElementAttributes attributes, String[] coreValues, String invariantKey ) {
 		this.createdTime	= System.currentTimeMillis() ;
 		this.invariantKey 	= invariantKey ;		
 		this.attributes		= attributes ;
 		this.coreValues 	= coreValues ;
-		values 				= new float[length] ;
-		perimeterValues 	= new String[length][] ;
+		this.size			= length ;
+		values 				= new double[size] ;
+		perimeterValues 	= new String[size][] ;
 	}
 
 	/**
@@ -108,7 +109,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 * @param attributeValues
 	 * @param value
 	 */
-	public void set( String attributeValues[], float value ) {
+	public void set(String[] attributeValues, double value ) {
 		set( 0, attributeValues, value ) ;
 	}
 	
@@ -120,7 +121,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 * @param perimeterValues
 	 * @param value
 	 */
-	public void set( int index, String perimeterValues[], float value ) {
+	public void set(int index, String[] perimeterValues, double value ) {
 		this.perimeterValues[index] = perimeterValues ;
 		this.values[index] = value ;		
 	}
@@ -132,15 +133,34 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 * @param index the DataElement value in the DataElement
 	 * @param value
 	 */
-	public void set( int index, float value ) {
+	public void set( int index, double value ) {
 		this.values[index] = value ;		
 	}
 	
-	
+	public void sanitize() {
+		var indicesToRemove = new int[size()];
+		var numIndicesToRemove = 0 ;
+		for( int i=0 ; i<size() ; i++ ) {
+			for( int j=i+1 ; j<size() ; j++ ) {
+				if( Arrays.deepEquals(perimeterValues[i], perimeterValues[j])) {
+					indicesToRemove[numIndicesToRemove] = i ;
+					numIndicesToRemove++;
+					break;
+				}
+			}
+		}
+		for( int ix=0 ; ix<numIndicesToRemove ; ix++ ) {
+			int from = indicesToRemove[ix]-ix ;
+			int copyCount = size() - from - 1 ;
+			System.arraycopy(perimeterValues, from+1, perimeterValues, from, copyCount ) ;
+			System.arraycopy(values, from+1, values, from, copyCount ) ;
+		}
+		this.size = size() - numIndicesToRemove ;
+	}
 	/**
 	 * Return the primary key for this item
 	 * 
-	 * @return the uniqueu ID used for this instance
+	 * @return the unique ID used for this instance
 	 */
 	public String getInvariantKey() {
 		return invariantKey ;
@@ -193,7 +213,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 * @return the number of values in this instance
 	 */
 	public int size() {
-		return values.length ;
+		return size ;
 	}
 
 
@@ -212,19 +232,16 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 */
 	public boolean matchesCoreKeys( Map<String,Set<String>> matchingTests ) {
 		boolean matches = true ;
-		for( String attributeName : matchingTests.keySet() ) {
-			if( attributes.isCoreAttributeName(attributeName)) {
-				matches &= matchingTests.get( attributeName ).contains( getAttribute(attributeName)) ;
+		for( var entry : matchingTests.entrySet() ) {
+			if( attributes.isCoreAttributeName(entry.getKey())) {
+				matches = entry.getValue().contains(getAttribute(entry.getKey()));
 				if( !matches ) break ;
 			}
  		}
 		return matches ;
 	}
 
-//	public boolean quickMatchesCoreKeys( long bloomTest ) {
-//		return ( bloomTest & bloomFilter) != 0  ;
-//	}
-	
+
 	/**
 	 * Identify whether the receiver's core element match any core
 	 * keys in the match test. If no core keys are present, a match 
@@ -237,11 +254,11 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 * @param matchingTests - the set of tests to do for this element 
 	 * @return whether this matches the keys
 	 */
-	public boolean matchesPerimiterKeys( int index, Map<String,Set<String>> matchingTests ) {
+	public boolean matchesPerimeterKeys(int index, Map<String,Set<String>> matchingTests ) {
 		boolean matches = true ;
-		for( String attributeName : matchingTests.keySet() ) {
-			if( !attributes.isCoreAttributeName(attributeName)) {
-				matches &= matchingTests.get( attributeName ).contains( getAttribute(index,attributeName)) ;
+		for( var entry : matchingTests.entrySet() ) {
+			if( !attributes.isCoreAttributeName(entry.getKey())) {
+				matches = entry.getValue().contains(getAttribute(index, entry.getKey()));
 				if( !matches ) break ;
 			}
  		}
@@ -267,13 +284,9 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	}
 
 	public String[] getAttributeValues( int index ) {
-		String rc[] = new String[ attributes.getAttributeNames().length ] ;
-		for( int i=0 ; i<coreValues.length ; i++ ) {
-			rc[i] = coreValues[i] ;
-		}
-		for( int i=0 ; i<perimeterValues[index].length ; i++ ) {
-			rc[i+coreValues.length] = perimeterValues[index][i] ;
-		}
+		String[] rc = new String[ attributes.getAttributeNames().length ] ;
+        System.arraycopy(coreValues, 0, rc, 0, coreValues.length);
+        System.arraycopy(perimeterValues[index], 0, rc, coreValues.length, perimeterValues[index].length);
 		return rc ;
 	}
 	/**
@@ -281,7 +294,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 * @param index
 	 * @return the value for this element
 	 */
-	public float getValue( int index ) {
+	public double getValue( int index ) {
 		return values[index] ;
 	}
 
@@ -292,9 +305,9 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	public int findIndex( DataElement other, int ix, String ... attributeNames ) {
 
 		StringJoiner otherKey = new StringJoiner( SEPARATION_STRING ) ;
-		for( int i=0 ; i<attributeNames.length ; i++ ) {
-			otherKey.add( other.getAttribute(ix, attributeNames[i] ) ) ;
-		}
+        for (String attributeName : attributeNames) {
+            otherKey.add(other.getAttribute(ix, attributeName));
+        }
 
 		StringJoiner thisKey = new StringJoiner( SEPARATION_STRING ) ;
 
@@ -316,7 +329,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	/**
 	 * This helper method is used to split a key into separate components. 
 	 * This would be expected to be used for the  data element label
-	 * components - where cell label is indexed by muli-level keys
+	 * components - where cell label is indexed by multi-level keys
 	 * 
 	 * @param in the input key as a flat string
 	 * @return the array of components 
@@ -353,7 +366,7 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 */
 	public DataElement subtract( DataElement other ) {
 		
-		DataElement rc = null ;
+		DataElement rc;
 		if( size() == other.size() && attributes.getAttributeNameHash()==other.attributes.getAttributeNameHash() ) {
 			rc = new DataElement(size(), this.attributes, this.coreValues, getInvariantKey() ) ;
 			for( int i=0 ; i<rc.size() ; i++ ) {
@@ -366,10 +379,10 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 			// 
 			// if the core values are different - we can't subtract ( check that later )
 			//
-			String attributeNames[] = getAttributeNames() ;
+			String[] attributeNames = getAttributeNames() ;
 			rc = new DataElement(size()+other.size(), this.attributes, this.coreValues, getInvariantKey() ) ;
-			int flagsOther[] = new int[ size() ] ;
-			int flagsThis[] = new int[ size() ] ;
+			int[] flagsOther = new int[ size() ] ;
+			int[] flagsThis = new int[ size() ] ;
 			for( int i=0 ; i<size() ; i++ ) {		
 				int matchingIndex = rc.findIndex(other, i, attributeNames) ;
 				if( matchingIndex >= 0 ) {
@@ -406,7 +419,6 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	/**
 	 * Make an identical copy of the DataElement. This can be used to change a data Element
 	 * for one view individually.  
-	 * 
 	 * The original data element is unchanged by this operation.
 	 * 
 	 * @return a new DataElement with all values identical to the receiver
@@ -428,10 +440,10 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 * @see #clone(String)
 	 * 
 	 * @param invariantKey the new key to use for the cloned element
-	 * @param the core values to use 
+	 * @param coreValues core values to use
 	 * @return a new DataElement with all values identical to the receiver
 	 */
-	public DataElement clone( String invariantKey, String coreValues[] ) {
+	public DataElement clone(String invariantKey, String[] coreValues) {
 		
 		DataElement rc = new DataElement(size(), this.attributes, coreValues, invariantKey ) ;
 		for( int i=0 ; i<rc.size() ; i++ ) {
@@ -456,15 +468,15 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	}
 	
 	/**
-	 * Make a copy of the DataElement, but add some extra space in the perimiter values. This copies 
+	 * Make a copy of the DataElement, but add some extra space in the perimeter values. This copies
 	 * the given n elements from the original. If n is smaller that the length - the first n items
-	 * are copied. If n is larger - empty elements are appened to the receiver's copy  
+	 * are copied. If n is larger - empty elements are appended to the receiver's copy
 	 * 
 	 * The original data element is unchanged by this operation.
 	 * 
 	 * @see #clone
 	 * 
-	 * @param newSize the size of the new perimiter values
+	 * @param newSize the size of the new perimeter values
 	 * @return a new DataElement with all values identical to the receiver
 	 */
 	public DataElement clone( int newSize ) {
@@ -494,8 +506,8 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	}
 
 	/**
-	 * Creates a copy of an element, the copy containes only elements matching a certain 
-	 * attribute-value rule. . In addition the value of the attribute is changed to a given
+	 * Creates a copy of an element, the copy contains only elements matching a certain
+	 * attribute-value rule, in addition the value of the attribute is changed to a given
 	 * value. This is used as part of the calculation code, which calculates new values
 	 * from existing values. 
 	 * 
@@ -520,8 +532,8 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	 */
 	public DataElement filteredClone( String invariantKey, String attributeName, String from, String to ) {
 
-		String newPerimeterValues[][] = new String[size()][] ;
-		int valueIndices[] = new int[ size() ] ;
+		String[][] newPerimeterValues = new String[size()][] ;
+		int[] valueIndices = new int[ size() ] ;
 		
 		DataElement rc = null ;
 		int ix = 0 ;
@@ -546,6 +558,12 @@ public class DataElement implements Cloneable, Comparable<DataElement> {
 	public int compareTo( DataElement o ) {
 		long rc = o.createdTime - createdTime ;
 		return rc<0 ? -1 : ( rc>0 ) ? 1 : 0  ;
+	}
+	public boolean equals( Object o ) {
+		return o instanceof DataElement && 0 == compareTo((DataElement)o);
+	}
+	public int hashCode() {
+		return invariantKey.hashCode();
 	}
 
 }

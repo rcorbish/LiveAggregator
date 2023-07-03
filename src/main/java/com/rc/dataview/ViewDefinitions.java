@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -17,7 +18,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This looks after reading the config file to define views. If the config file
  * changes, this jobby will wake up and reset the views. Note that the old view is
- * still valid as long as someone has it openn. New users will NOT be allowed to 
+ * still valid as long as someone has it open. New users will NOT be allowed to
  * see a view that's been changed though.
  * 
  * @author richard
@@ -49,7 +50,7 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 
 
 	/**
-	 * I know there is a FileWacther - but it has problems with
+	 * I know there is a FileWatcher - but it has problems with
 	 * remote drives. Anyway this works :)
 	 */
 	public void start() throws IOException {
@@ -80,8 +81,8 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 	}
 
 	public void run() {
-		fileWatcherThread.setName( "View File Watcher" ); ;
-		long loadedFileTimestamp = viewDefinitionFile.lastModified() ;
+		fileWatcherThread.setName( "View File Watcher" );
+        long loadedFileTimestamp = viewDefinitionFile.lastModified() ;
 		try {
 			while( fileWatcherThread!= null && !fileWatcherThread.isInterrupted() ) {
 
@@ -121,13 +122,13 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 
 		Pattern viewDefinitionPattern = Pattern.compile( "([^\\.]+)\\.([^\\=]+)\\=(.*)" ) ;
 		int lineNum = 0 ;
-		try ( FileInputStream fis = new FileInputStream(viewDefinitionFile) ;
-				Reader r = new InputStreamReader(fis, "UTF-8" ) ; 
-				BufferedReader br = new BufferedReader(r) ; ) {
+		try (FileInputStream fis = new FileInputStream(viewDefinitionFile);
+             Reader r = new InputStreamReader(fis, StandardCharsets.UTF_8);
+             BufferedReader br = new BufferedReader(r)) {
 			for( String s=br.readLine() ; s != null ; s=br.readLine()) {
 				lineNum++ ;
 				s = s.trim() ;
-				if( s.length()==0 || s.charAt(0)=='#' ) {	// comment or empty line
+				if(s.isEmpty() || s.charAt(0)=='#' ) {	// comment or empty line
 					continue ;
 				}
 				if( s.equals("END") ) {
@@ -159,13 +160,13 @@ public class ViewDefinitions implements Runnable, AutoCloseable {
 					} else if( item.equalsIgnoreCase("CLASS_ARG") ) {
 						viewDefinition.setConstructorArg(value); 
 					} else if( item.equalsIgnoreCase("FILTER") ) {
-						String kv[] = value.split( "=" ) ;
+						String[] kv = value.split( "=" ) ;
 						if( kv.length<2) {
 							throw new IOException( "Invalid filter specified at " + viewDefinitionFile.getAbsolutePath() + " line #" + lineNum ) ;
 						}
 						viewDefinition.addFilter( kv[0], kv[1] ) ; 
 					} else if( item.equalsIgnoreCase("SET") ) {
-						String kv[] = value.split( "=" ) ;
+						String[] kv = value.split( "=" ) ;
 						if( kv.length<3) {
 							throw new IOException( "Invalid set value specified at " + viewDefinitionFile.getAbsolutePath() + " line #" + lineNum ) ;
 						}

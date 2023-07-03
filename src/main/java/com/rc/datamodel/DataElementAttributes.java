@@ -16,14 +16,14 @@ public class DataElementAttributes {
 	 */
 	private final Map<String,Integer> attributeIndices ;
 	private final int numCoreAttributes ;
-	private final String attributeNames[] ;
+	private final String[] attributeNames;
 	private final long  attributeNamesHash ;
 
 	/**
 	 * Create the internal map of name -> index
 	 * @param attributeNames
 	 */
-	public DataElementAttributes( final String attributeNames[], int numCoreAttributes ) {
+	public DataElementAttributes(final String[] attributeNames, int numCoreAttributes ) {
 		this.attributeNames = attributeNames ;
 		this.numCoreAttributes = numCoreAttributes ;
 		attributeIndices = new HashMap<>( attributeNames.length ) ;
@@ -40,14 +40,14 @@ public class DataElementAttributes {
 	
 	/**
 	 * Given an attribute name - find its index in the label collection
-	 * This doesn't care about core or perimiter values
+	 * This doesn't care about core or perimeter values
 	 * 
 	 * @param attributeName
 	 * @return if not found return -1 otherwise the index
 	 */
 	public int getAttributeIndex( String attributeName ) {
 		Integer ix = attributeIndices.get( attributeName ) ;
-		return ix!=null ? ix.intValue() : -1 ;
+		return ix!=null ? ix : -1 ;
 	}
 	
 	/**
