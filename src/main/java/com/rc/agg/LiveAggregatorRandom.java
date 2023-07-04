@@ -76,7 +76,7 @@ public class LiveAggregatorRandom  {
 		this.batchSize = batchSize;
 		this.dataPointsPerItem = dataPointsPerItem;
 		final int N = numBatches * batchSize ;
-		ccys = (String[]) random.ints(N,0,CCYS.length).mapToObj(ix -> CCYS[ix]).toArray();
+		ccys =  random.ints(N,0,CCYS.length).mapToObj(ix -> CCYS[ix]).toArray(String[]::new);
 		dae = new DataElementAttributes(ATTRIBUTE_NAMES, NUM_CORE_ATTRIBUTES) ;
 		this.aggregator = new LiveAggregator() ;
 		this.tid = new AtomicInteger(0);

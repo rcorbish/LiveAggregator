@@ -14,8 +14,8 @@ done
 
 CP=$CP:build/libs:build/classes/test
 
-RAM_SIZE=$( free -g | awk 'NR==2 {print $4}' )
-BATCH_SIZE=$( free -g | awk 'NR==2 {print $4*700}' )
+RAM_SIZE=12
+BATCH_SIZE=1000
 
 if [ $RAM_SIZE -eq 0 ]
 then
