@@ -318,16 +318,16 @@ public class DataElementStore  implements DataElementProcessor {
 		
 		Map<String,String[]>viewFilters = dedv.getFilters() ;
 		if( viewFilters != null ) { // possibly no filters set
-			for( String attributeName : viewFilters.keySet() ) {
-				Set<String> queryAttributeValues = matchingTests.get( attributeName ) ;
+			for( var entry : viewFilters.entrySet() ) {
+				Set<String> queryAttributeValues = matchingTests.get( entry.getKey() ) ;
 				
 				if( queryAttributeValues == null ) {
 					queryAttributeValues = new HashSet<>() ;
-					matchingTests.put( attributeName, queryAttributeValues ) ;
+					matchingTests.put( entry.getKey() , queryAttributeValues ) ;
 				} else {
 					continue ;   // if the view allows many values for a key - but we know which one leave it alone
 				}
-				String[] viewAttributeValues = viewFilters.get( attributeName ) ;
+				String[] viewAttributeValues = entry.getValue();
 				queryAttributeValues.addAll(Arrays.asList(viewAttributeValues));
 			}
 		}
@@ -339,19 +339,19 @@ public class DataElementStore  implements DataElementProcessor {
 		//
 		Map<String,Map<String,String>>viewSets = dedv.getSets() ;
 		if( viewSets != null ) {
-			for( String attributeName : viewSets.keySet() ) {
-				Set<String> queryAttributeValues = matchingTests.get( attributeName ) ;
+			for( var entry : viewSets.entrySet() ) {
+				Set<String> queryAttributeValues = matchingTests.get( entry.getKey() ) ;
 				if( queryAttributeValues == null ) {
 					continue ; // no matching attribute == not involved in filter
 				}
 				
-				Map<String,String> viewAttributeSets = viewSets.get( attributeName ) ;
-				logger.info( "Examining set {} => {}", attributeName, viewAttributeSets ) ;
+				Map<String,String> viewAttributeSets = entry.getValue() ;
+				logger.info( "Examining set {} => {}", entry.getKey(), viewAttributeSets ) ;
 
-				for( String viewRemappedFrom : viewAttributeSets.keySet() ) {
-					String viewRemappedTo = viewAttributeSets.get( viewRemappedFrom ) ;
+				for( var entry2 : viewAttributeSets.entrySet() ) {
+					String viewRemappedTo = entry2.getValue() ;
 					if( queryAttributeValues.contains( viewRemappedTo ) ) {
-						queryAttributeValues.add( viewRemappedFrom ) ;
+						queryAttributeValues.add( entry2.getKey() ) ;
 					}
 				}
 			}

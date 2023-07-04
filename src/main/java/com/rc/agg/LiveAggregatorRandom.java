@@ -5,7 +5,9 @@ import java.text.DecimalFormat;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +20,12 @@ public class LiveAggregatorRandom  {
 
 	private final static DecimalFormat decimalFormat = new DecimalFormat( "#,##0" ) ;
 
+	private final int numBatches ;
+	private final int batchSize ;
+	private final int dataPointsPerItem ;
 	private final LiveAggregator aggregator ;
+	private final String[] ccys;
+	private final DataElementAttributes dae;
 
 	private static final String[] CCYS = new String[] { "USD", "CAD", "EUR", "GBP", "JPY", "SEK", "AUD", "HKD" } ;
 	private static final String[] EVENTS = new String[] { "SOD", "AMEND"  } ;
@@ -30,10 +37,10 @@ public class LiveAggregatorRandom  {
 
 	private final static String[] ATTRIBUTE_NAMES = new String[] { "TRADEID", "CPTY", "BOOK", "PRODUCT", "EVENT", "METRIC", "TENOR", "CCY" } ; 
 	private final static int NUM_CORE_ATTRIBUTES = 5 ;
-	
-	public LiveAggregatorRandom() throws IOException {
-		this.aggregator = new LiveAggregator() ;
-	}
+
+	final Random random = new Random( 100 ) ;
+
+	final AtomicInteger tid;
 
 	public static void main(String[] args) {
 
@@ -56,80 +63,38 @@ public class LiveAggregatorRandom  {
 				dataPointsPerItem = Integer.parseInt( args[2] ) ;
 				logger.info( "{} data points per item", dataPointsPerItem );
 			}
-			self = new LiveAggregatorRandom() ;
-			self.start( numBatches, batchSize, dataPointsPerItem ) ;
+			self = new LiveAggregatorRandom( numBatches, batchSize, dataPointsPerItem ) ;
+			self.start() ;
 		} catch( Throwable t ) {
 			t.printStackTrace();
 			System.exit( -1 ) ;
 		}
 	}
 
-
-	public void start( int numBatches, int batchSize, int dataPointsPerItem ) throws Exception {
-
-		final DataElementAttributes dae = new DataElementAttributes(ATTRIBUTE_NAMES, NUM_CORE_ATTRIBUTES) ;
-
-		final Random random = new Random( 100 ) ;
-		final int DATA_POINTS_PER_ELEMENT = dataPointsPerItem ;
+	public LiveAggregatorRandom( int numBatches, int batchSize, int dataPointsPerItem )  throws IOException {
+		this.numBatches = numBatches;
+		this.batchSize = batchSize;
+		this.dataPointsPerItem = dataPointsPerItem;
 		final int N = numBatches * batchSize ;
-		final int BATCH_SIZE = batchSize ;
+		ccys = (String[]) random.ints(N,0,CCYS.length).mapToObj(ix -> CCYS[ix]).toArray();
+		dae = new DataElementAttributes(ATTRIBUTE_NAMES, NUM_CORE_ATTRIBUTES) ;
+		this.aggregator = new LiveAggregator() ;
+		this.tid = new AtomicInteger(0);
+	}
+
+	public void start() throws Exception {
+
+		final int N = numBatches * batchSize ;
 		logger.info( "Starting server. URL is [server-name]:8111/Client.html" );
 		
-		boolean sod = true ;
 		while( true ) {
 			long startTime = System.currentTimeMillis() ;
 			logger.info( "Restarting processing of data ..." ) ;
-			String[] ccys = new String[N];
-
+			tid.set(0);
+			aggregator.startBatch(true);
 			try ( ExecutorService executor = Executors.newFixedThreadPool( 6 ) ) {
-				aggregator.startBatch(sod);
-
-				final String invariantKeySuffix = sod ? "-SOD" : "";
-				// FIRST create an initial view - send updates & stuff
-				for (int i = 0; i < N; i += BATCH_SIZE) {
-					final int START = i;
-					executor.execute(
-                            () -> {
-                                try {
-                                    Thread.currentThread().setName("Test Sender: " + START + "-" + (START + BATCH_SIZE));
-                                    for (int n = 0; n < BATCH_SIZE; n++) {
-                                        ccys[START + n] = CCYS[random.nextInt(CCYS.length)];
-                                        final String invariantKey = String.valueOf(n + START);
-                                        DataElement de = new DataElement(
-                                                DATA_POINTS_PER_ELEMENT,
-                                                dae,
-                                                new String[]{
-                                                        invariantKey,
-                                                        CPTYS[random.nextInt(CPTYS.length)],
-                                                        BOOKS[random.nextInt(BOOKS.length)],
-                                                        PRODUCTS[random.nextInt(PRODUCTS.length)],
-                                                        EVENTS[!invariantKeySuffix.isEmpty() ? 0 : 1]
-                                                },
-                                                (invariantKey + invariantKeySuffix)
-                                        );
-                                        for (int j = 0; j < de.size(); j++) {
-                                            String metric = METRICS[random.nextInt(METRICS.length)];
-                                            de.set(j,
-                                                    new String[]{
-                                                            metric,
-                                                            metric.equals("IR01") ? TENORS[random.nextInt(TENORS.length)] : null,
-                                                            ccys[n]
-                                                    },
-                                                    (random.nextInt(1001) - 500) / 10.f
-                                            );
-                                        }
-
-                                        for (int j = 0; j < de.size(); j++) {
-                                            de.set(j, de.getValue(j) + (random.nextInt(1001) - 500) / 100.f);
-                                        }
-                                        de.sanitize();
-                                        aggregator.process(de);
-                                    }
-                                } catch (Throwable t) {
-                                    logger.error(">>>>> Sender test thread error!", t);
-                                }
-                            });
-
+				for (int i = 0; i < N; i ++) {
+					executor.execute( this::createOne );
 				}
 
 				executor.shutdown();  // wait for initial view to finish generating
@@ -139,51 +104,94 @@ public class LiveAggregatorRandom  {
 			}
 			logger.info( "Finished processing {} cells in {} mS", decimalFormat.format(N), decimalFormat.format( (System.currentTimeMillis() - startTime) ) );
 			aggregator.endBatch();
-			sod = false ;
 
-			long tPlus5Mins = System.currentTimeMillis() + (5 * 60 * 1000) ;
-
-			// Now send random crap for 5 mins
-			while( System.currentTimeMillis()<tPlus5Mins ) {
-				int tid = random.nextInt( N );
-				String invariantKey = tid + "-AMEND" ;
-
-				DataElement de = aggregator.get( invariantKey ) ;
-				if( de != null ) { 
-					de = de.clone() ; 
-				} else {
-					de = new DataElement(												
-						DATA_POINTS_PER_ELEMENT,
-						dae,
-						new String[] { 
-								String.valueOf(tid),
-								CPTYS[ random.nextInt(CPTYS.length) ],
-								BOOKS[ random.nextInt(BOOKS.length) ],
-								PRODUCTS[ random.nextInt(PRODUCTS.length) ],
-								EVENTS[1]
-						},
-						invariantKey
-						) ;				
-					String ccy = ccys[tid] ;
-					for( int j=0 ; j<de.size() ; j++ ) {
-						String metric = METRICS[ random.nextInt( METRICS.length ) ] ;
-						de.set(j,
-								new String[] { 
-										metric,
-										metric.equals("IR01")?TENORS[ random.nextInt( TENORS.length ) ]:null,
-										ccy
-						},
-						(random.nextInt( 1001 ) - 500) / 10.f
-						) ;
-					}
+			try( ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor() ) {
+				executorService.scheduleAtFixedRate(this::sendOne, 0, 10, TimeUnit.MILLISECONDS);
+				// Now send random crap for 5 mins
+				TimeUnit.MINUTES.sleep(5);
+				executorService.shutdown();
+				if( !executorService.awaitTermination(10, TimeUnit.MINUTES) ) {
+					logger.warn("Hmmmm - scheduler didn't finish properly.");
 				}
-				for( int j=0 ; j<de.size() ; j++ ) {
-					de.set(j, de.getValue(j) + (random.nextInt( 1001 ) - 500) / 100.f ) ;
-				}
-				de.sanitize();
-				aggregator.process( de ) ;
-				Thread.sleep( 1 );  // distance between batch updates
 			}
 		}
+	}
+
+	public void createOne() {
+		final int key = tid.getAndIncrement();
+		final String invariantKey = String.valueOf(key);
+
+		DataElement de = new DataElement(
+				dataPointsPerItem,
+				dae,
+				new String[]{
+						invariantKey,
+						CPTYS[random.nextInt(CPTYS.length)],
+						BOOKS[random.nextInt(BOOKS.length)],
+						PRODUCTS[random.nextInt(PRODUCTS.length)],
+						EVENTS[0]
+				},
+				(invariantKey + "-SOD")
+		);
+		for (int j = 0; j < de.size(); j++) {
+			String metric = METRICS[random.nextInt(METRICS.length)];
+			de.set(j,
+					new String[]{
+							metric,
+							metric.equals("IR01") ? TENORS[random.nextInt(TENORS.length)] : null,
+							ccys[key]
+					},
+					(random.nextInt(1001) - 500) / 10.f
+			);
+		}
+
+		for (int j = 0; j < de.size(); j++) {
+			de.set(j, de.getValue(j) + (random.nextInt(1001) - 500) / 100.f);
+		}
+		de.sanitize();
+		aggregator.process(de);
+	}
+
+
+	public void sendOne() {
+		final int N = numBatches * batchSize ;
+
+		int tid = random.nextInt( N );
+		String invariantKey = tid + "-AMEND" ;
+
+		DataElement de = aggregator.get( invariantKey ) ;
+		if( de != null ) {
+			de = de.clone() ;
+		} else {
+			de = new DataElement(
+					dataPointsPerItem,
+					dae,
+					new String[] {
+							String.valueOf(tid),
+							CPTYS[ random.nextInt(CPTYS.length) ],
+							BOOKS[ random.nextInt(BOOKS.length) ],
+							PRODUCTS[ random.nextInt(PRODUCTS.length) ],
+							EVENTS[1]
+					},
+					invariantKey
+			) ;
+			String ccy = ccys[tid] ;
+			for( int j=0 ; j<de.size() ; j++ ) {
+				String metric = METRICS[ random.nextInt( METRICS.length ) ] ;
+				de.set(j,
+						new String[] {
+								metric,
+								metric.equals("IR01")?TENORS[ random.nextInt( TENORS.length ) ]:null,
+								ccy
+						},
+						(random.nextInt( 1001 ) - 500) / 10.f
+				) ;
+			}
+		}
+		for( int j=0 ; j<de.size() ; j++ ) {
+			de.set(j, de.getValue(j) + (random.nextInt( 1001 ) - 500) / 100.f ) ;
+		}
+		de.sanitize();
+		aggregator.process( de ) ;
 	}
 }

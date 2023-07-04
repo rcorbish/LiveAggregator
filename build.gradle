@@ -2,7 +2,7 @@
 
 plugins {
     id 'java-gradle-plugin'
-//    id 'com.github.spotbugs' version "5.0.14"
+    id 'com.github.spotbugs' version "5.0.14"
 }
 
 group = 'LiveAggregator'
@@ -26,8 +26,6 @@ dependencies {
     implementation group: 'com.sparkjava', name: 'spark-core', version: '2.9.4'
     implementation group: 'ch.qos.logback', name: 'logback-classic', version:'1.2.9'
     implementation group: 'com.google.code.gson', name: 'gson', version:'2.8.9'
-
-//    spotbugs 'com.github.spotbugs:spotbugs:4.7.3'
 }
 
 tasks.register('copyDependencies', Copy) {
@@ -36,12 +34,24 @@ tasks.register('copyDependencies', Copy) {
     into new File(".", "libs")
 }
 
-//spotbugsMain {
-//    reports {
-//        html {
-//            required = true
-//            outputLocation = file("$buildDir/reports/spotbugs/main/spotbugs.html")
-//            stylesheet = 'fancy-hist.xsl'
-//        }
-//    }
-//}
+spotbugsMain {
+    ignoreFailures = true
+    showStackTraces = true
+    showProgress = true
+    effort = 'max'
+    reportLevel = 'high'
+    maxHeapSize = '4g'
+    reports {
+        html {
+            outputLocation = file("$buildDir/reports/spotbugs/main/spotbugs.html")
+        }
+    }
+}
+
+spotbugsTest {
+    reports {
+        html {
+            outputLocation = file("$buildDir/reports/spotbugs/test/spotbugs.html")
+        }
+    }
+}

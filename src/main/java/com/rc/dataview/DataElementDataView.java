@@ -133,8 +133,8 @@ public class DataElementDataView  implements DataElementProcessor {
 		// match the filter
 		Map<String,String[]> tmp = new HashMap<>() ;
 		Map<String,String> rawFilters = viewDefinition.getFilters();
-		for( String k : rawFilters.keySet() ) {
-			tmp.put( k, DataElement.splitComponents(rawFilters.get(k)) ) ;
+		for( var entry : rawFilters.entrySet() ) {
+			tmp.put( entry.getKey(), DataElement.splitComponents(entry.getValue()) ) ;
 		}
 		this.filters = tmp.isEmpty() ? null : tmp ;		
 
@@ -266,9 +266,9 @@ public class DataElementDataView  implements DataElementProcessor {
 	private boolean matchesPerimeterElements(int index, DataElement element) {
 		boolean rc = true ;
 		if( filters != null  ) {
-			for( String k : filters.keySet() ) {
-				String[] mustMatchOneOfThese = filters.get(k) ;
-				String att = element.getAttribute( index, k ) ;
+			for( var entry : filters.entrySet() ) {
+				String[] mustMatchOneOfThese = entry.getValue() ;
+				String att = element.getAttribute( index, entry.getKey() ) ;
 				boolean matchedOneOfThese = false ;
 				for( String couldMatchThis : mustMatchOneOfThese ) {
 					matchedOneOfThese = att.equals(couldMatchThis);
@@ -293,11 +293,11 @@ public class DataElementDataView  implements DataElementProcessor {
 	private boolean matchesCoreElements(DataElement element) {
 		if( filters != null ) {
 			//if( !element.quickMatchesCoreKeys( bloomFilter ) ) return false ;
-			for( String k : filters.keySet() ) {
-				String[] mustMatchOneOfThese = filters.get(k) ;
+			for( var entry : filters.entrySet() ) {
+				String[] mustMatchOneOfThese = entry.getValue() ;
 				// String att = element.getCoreAttribute( k ) ;
 				//ZXCVBNM
-				String att = element.getAttribute( k ) ;
+				String att = element.getAttribute( entry.getKey() ) ;
 				if( att != null ) {
 					boolean matchedOneOfThese = false ;
 					for( String couldMatchThis : mustMatchOneOfThese ) {
@@ -326,17 +326,17 @@ public class DataElementDataView  implements DataElementProcessor {
 			updateTotals();
 			
 			List<String>	removedKeys = new ArrayList<>() ;
-			for( String elementKey : dataViewElements.keySet() ) {
-				DataViewElement dve = dataViewElements.get( elementKey ) ;
+			for( var entry : dataViewElements.entrySet() ) {
+				DataViewElement dve =  entry.getValue() ;
 				if( dve.isUnused() ) {					
 					for( ClientDataView cdv : clientViews ) {
-						cdv.unusedElement( elementKey ) ;
+						cdv.unusedElement( entry.getKey() ) ;
 					}
-					removedKeys.add( elementKey ) ;						
+					removedKeys.add(  entry.getKey() ) ;
 				} else if( dve.isUpdated() ) {
 					if(dve.isVisible()) {
 						for( ClientDataView cdv : clientViews ) {
-							cdv.updatedElement( elementKey, dve.getValue() ) ;
+							cdv.updatedElement(  entry.getKey(), dve.getValue() ) ;
 						}
 					}
 					dve.clearUpdatedFlag();
@@ -366,10 +366,10 @@ public class DataElementDataView  implements DataElementProcessor {
 		// Keep a running total of 
 		Map<String,WrappedDouble> totals = new HashMap<>( dataViewElements.size() ) ;
 		
-		for( String elementKey : dataViewElements.keySet() ) {
-			DataViewElement dve = dataViewElements.get( elementKey ) ;
+		for(var entry : dataViewElements.entrySet() ) {
+			DataViewElement dve = entry.getValue() ;
 			if( dve.isTotal() ) continue ;
-			Collection<String> totalKeys = makeTotalKeys(elementKey) ;
+			Collection<String> totalKeys = makeTotalKeys(entry.getKey()) ;
 
 			for( String totalKey : totalKeys ) {
 				WrappedDouble d = totals.get( totalKey ) ;
@@ -381,13 +381,13 @@ public class DataElementDataView  implements DataElementProcessor {
 			}
 		}
 		
-		for( String totalKey : totals.keySet() ) {			
-			DataViewElement dve2 = 	dataViewElements.get( totalKey ) ;
+		for( var entry : totals.entrySet() ) {
+			DataViewElement dve2 = 	dataViewElements.get( entry.getKey() ) ;
 			if( dve2 == null ) {
 				dve2 = new DataViewElement( false, true ) ; // a non hidden total element
-				dataViewElements.put( totalKey, dve2 ) ;
+				dataViewElements.put( entry.getKey(), dve2 ) ;
 			}
-			dve2.set( totals.get(totalKey).d );
+			dve2.set( entry.getValue().d );
 		}
 	}
 	
@@ -450,10 +450,10 @@ public class DataElementDataView  implements DataElementProcessor {
 	 *  be cleaned up to separate the row keys from the underlying data
 	 */
 	public void sendAll( ClientDataView cdv ) {
-		for( String elementKey : dataViewElements.keySet() ) {
-			DataViewElement dve = dataViewElements.get( elementKey ) ;
+		for( var entry : dataViewElements.entrySet() ) {
+			DataViewElement dve = entry.getValue() ;
 			if(dve.isVisible()) {
-				cdv.updatedElement( elementKey, dve.getValue() ) ;
+				cdv.updatedElement( entry.getKey(), dve.getValue() ) ;
 			}
 		}
 	}
