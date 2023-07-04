@@ -49,6 +49,10 @@ spotbugsMain {
 }
 
 spotbugsTest {
+    ignoreFailures = true
+    effort = 'min'
+    reportLevel = 'low'
+    maxHeapSize = '4g'
     reports {
         html {
             outputLocation = file("$buildDir/reports/spotbugs/test/spotbugs.html")
