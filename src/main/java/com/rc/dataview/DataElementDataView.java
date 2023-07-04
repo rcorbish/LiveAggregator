@@ -160,7 +160,7 @@ public class DataElementDataView  implements DataElementProcessor {
 
 		//----------------------
 		// T O T A L S
-		//
+		// grouping defined in views.txt
 		// Column and rows to total		
 		List<Integer> rowTotals = new ArrayList<>() ;
 		List<Integer> colTotals = new ArrayList<>() ;
@@ -397,43 +397,34 @@ public class DataElementDataView  implements DataElementProcessor {
 	 * We need the permutations since each total can intersect, e.g. a simple case
 	 * the top left corner of a grid contains a total of totals
 	 * Each key is a copy of the original but replacing the work "Total"
-	 * for a totalable component.
-	 * 
+	 * for a total-able component.
 	 * e.g. if we are totalling on STATE
-	 * 
 	 * input = Sales\fKY
-	 * 
 	 * we would return ["Sales\fTotal"]
-	 * 
 	 * if we are totalling on revenue and State
-	 * 
 	 * we would return ["Sales\fTotal","Total\fKY","Total\fTotal" ]
 	 * 
 	 * @param elementKey
 	 * @return the list of keys transformed to totals (order is unimportant )
 	 */
-	protected Collection<String> makeTotalKeys( String elementKey  ) {
-		
-		List<String> keys = new ArrayList<>() ;
+	protected Collection<String> makeTotalKeys( String elementKey ) {
 
-		String[] components = elementKey.split( DataElement.ROW_COL_SEPARATION_STRING ) ;
-		String rowKeys = components[1] ; // keys is cols then rows
-		String colKeys = components[0] ;
+		final var components = elementKey.split( DataElement.ROW_COL_SEPARATION_STRING ) ;
 
-		StringJoiner sjr ; 
-		String[] keysR = rowKeys.split( DataElement.SEPARATION_STRING ) ;
-		StringJoiner sjc ; 
-		String[] keysC = colKeys.split( DataElement.SEPARATION_STRING ) ;
+		final var colKeys = components[0].split( DataElement.SEPARATION_STRING ) ;
+		final var rowKeys = components[1].split( DataElement.SEPARATION_STRING ) ;
 
-        for (int[] totalPermutation : totalPermutations) {
-            sjr = new StringJoiner(DataElement.SEPARATION_STRING);
-            sjc = new StringJoiner(DataElement.SEPARATION_STRING);
+		final var keys = new ArrayList<String>(rowKeys.length * totalPermutations.length);
 
-            for (int r = 0; r < keysR.length; r++) {
-                sjr.add((r == totalPermutation[ROW_PERMUTATION_INDEX]) ? keysR[r] : TOTAL_LABEL);
+		for (var totalPermutation : totalPermutations) {
+            final var sjr = new StringJoiner(DataElement.SEPARATION_STRING);
+            final var sjc = new StringJoiner(DataElement.SEPARATION_STRING);
 
-                for (int c = 0; c < keysC.length; c++) {
-                    sjc.add((c == totalPermutation[COLUMN_PERMUTATION_INDEX]) ? keysC[c] : TOTAL_LABEL);
+            for (var r = 0; r < rowKeys.length; r++) {
+                sjr.add((r == totalPermutation[ROW_PERMUTATION_INDEX]) ? rowKeys[r] : TOTAL_LABEL);
+
+                for (int c = 0; c < colKeys.length; c++) {
+                    sjc.add((c == totalPermutation[COLUMN_PERMUTATION_INDEX]) ? colKeys[c] : TOTAL_LABEL);
                 }
 
                 keys.add(sjc.toString() + DataElement.ROW_COL_SEPARATION_CHAR + sjr);

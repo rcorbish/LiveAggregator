@@ -32,7 +32,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @WebSocket
 public class WebSocketServer  {
 	final static Logger logger = LoggerFactory.getLogger( WebSocketServer.class ) ;
-	
+
+
     private static final Map<Session,ClientProxy> clientData = new ConcurrentHashMap<>() ;
     
 	@OnWebSocketConnect
@@ -95,6 +96,7 @@ public class WebSocketServer  {
             case "START" -> clientProxy.openView(clientMessage.viewName);
 			case "RST" -> clientProxy.resetView(clientMessage.viewName);
 			case "RDY" -> clientProxy.viewReady(clientMessage.viewName);
+			case "RATE" -> clientProxy.setRate(clientMessage.rate);
             case "STOP" -> {
                 if (clientMessage.viewName != null) {
                     clientProxy.closeView(clientMessage.viewName);
@@ -151,8 +153,9 @@ public class WebSocketServer  {
  *
  */
 class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Runnable  {
-	Logger logger = LoggerFactory.getLogger( WebSocketCommandProcessor.class ) ;
+	static Logger logger = LoggerFactory.getLogger( WebSocketCommandProcessor.class ) ;
 
+	private final static int MAX_RATE = 5 ;
 	// tune this in sync with the client. It should be less than the client's value
 	// to prevent unnecessary timeouts.
 	private static final int MIN_HEARTBEAT_INTERVAL_SECONDS = 1 ;
@@ -161,11 +164,14 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 	private final Session session ;
 	private final BlockingQueue<String> messagesToBeSent ;
 	private Thread reader ;
-	
+
+	private int rate ;
+
 	public WebSocketCommandProcessor( Session session ) {
 		this.session = session ;
 		messagesToBeSent = new ArrayBlockingQueue<>( 2000 ) ;
 		reader = new Thread( this ) ;
+		rate = 1 ;
 		reader.start(); // This could be very dangerous - if we ever subclass this.  Make sure all vars are properly initialized
 	}
 
@@ -178,7 +184,12 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 			readerCopy.interrupt();
 		}
 	}
-	
+
+	public void setRate( int rate ) {
+		if( rate > MAX_RATE ) rate = MAX_RATE ;
+		if( rate < 0 ) rate = 0 ;
+		this.rate = rate;
+	}
 	/**
 	 * Pull messages off the outbound queue, and send directly to the client. If 
 	 * nothing has been requested for a while, send a heartbeat.
@@ -192,24 +203,32 @@ class WebSocketCommandProcessor extends ClientCommandProcessorImpl implements Ru
 		List<String> messagesToSend = new ArrayList<>(16) ; 
 		try {
 			long nextHeartbeatMsg = 0 ;
+			int rateClock = 1 ;
 			while( !Thread.currentThread().isInterrupted() ) {
 				Thread.sleep( CLIENT_MESSAGE_SENDING_INTERVAL_MILLIS ) ;
-				int numMessages = messagesToBeSent.drainTo( messagesToSend ) ;
-				if( numMessages == 0 && System.currentTimeMillis() > nextHeartbeatMsg ) {
-					heartbeat() ;
-					logger.debug( "Heartbeat sent to {}", session ) ;
-				} else if( numMessages > 0 ) {
-					nextHeartbeatMsg = System.currentTimeMillis() + MIN_HEARTBEAT_INTERVAL_SECONDS*1000 ;
-					msgBuffer.setLength( 0 ) ;
-					msgBuffer.append( '[' ) ;
-					for( String message : messagesToSend ) {
-						msgBuffer.append( message ) ;
-						msgBuffer.append( ',' ) ;
+				if( messagesToBeSent.isEmpty() ) {
+					if( System.currentTimeMillis() > nextHeartbeatMsg) {
+						heartbeat();
+						logger.debug( "Heartbeat sent to {}", session ) ;
 					}
-					msgBuffer.setCharAt(msgBuffer.length()-1,  ']' ) ;
-					session.getRemote().sendString( msgBuffer.toString() );
-					messagesToSend.clear();
+					continue;
 				}
+				if( rate == 0 ) continue ;
+				// Count down from rate to 0 before sending so rate 5 is slow
+				rateClock-- ;
+				if( rateClock>0 ) continue;
+				rateClock = MAX_RATE - rate ;
+				messagesToBeSent.drainTo( messagesToSend ) ;
+				nextHeartbeatMsg = System.currentTimeMillis() + MIN_HEARTBEAT_INTERVAL_SECONDS*1000 ;
+				msgBuffer.setLength( 0 ) ;
+				msgBuffer.append( '[' ) ;
+				for( String message : messagesToSend ) {
+					msgBuffer.append( message ) ;
+					msgBuffer.append( ',' ) ;
+				}
+				msgBuffer.setCharAt(msgBuffer.length()-1,  ']' ) ;
+				session.getRemote().sendString( msgBuffer.toString() );
+				messagesToSend.clear();
 			}
 		} catch (InterruptedException t) {
 			// ignore - this is an expected exception :(

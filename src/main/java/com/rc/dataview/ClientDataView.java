@@ -24,6 +24,8 @@ public class ClientDataView  {
 	private final ClientCommandProcessor clientCommandProcessor ;		// how to pass the new view to the client
 	private boolean closed ;
 
+	private int rate ;
+
 	/**
 	 * Create one of these, called when a client connects.
 	 * It keeps a reference to the dataElementDataView and

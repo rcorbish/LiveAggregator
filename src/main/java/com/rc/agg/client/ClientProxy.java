@@ -120,6 +120,14 @@ public class ClientProxy implements ClientEventProcessor {
 		}
 	}
 
+	/**
+	 * Sets the update rate of all views, 0 = pause, 1 = slow, 2 = medium, etc.
+	 * @param rate
+	 */
+	public void setRate(  int rate ) {
+		logger.info( "Changing rate to {}", rate ) ;
+		clientCommandProcessor.setRate( rate ) ;
+	}
 
 	/**
 	 * When opening a new view we need to set some flags on other components

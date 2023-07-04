@@ -15,4 +15,5 @@ public class ClientMessage {
 	public String[] rowKeys;
 	public String[] colKeys;
 	public String description ;
+	public int rate ;
 }

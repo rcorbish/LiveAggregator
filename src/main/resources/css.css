@@ -64,6 +64,19 @@ h4 {
 	padding-right: 10px;
 }
 
+#rate-selection {
+	font-size: 10pt;
+	position: absolute;
+	background: #b5d8d0;
+	color: #000;
+	right: 200px;
+	top: 5px;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+
+
 #underlying-data-close {
 	margin: 8px;
 	padding: 3px;

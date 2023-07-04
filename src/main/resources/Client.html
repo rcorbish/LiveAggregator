@@ -758,8 +758,16 @@
 			}
 		}
 
+		function setRate(e) {
+			const rateSlider = document.getElementById('rate');
+			sendObj({
+				rate: rateSlider.value,
+				command: "RATE"
+			});
+		}
+
 		function doubleclickedOnGrid(e) {
-			var grid = document.getElementById('grid');
+			const grid = document.getElementById('grid');
 			if (e.target.classList.contains('data-cell')) {
 				var cell = e.target ;
 				var keys = cell.id ;
@@ -820,9 +828,11 @@
 
 		window.addEventListener("load",
 			function () {
-				var grid = document.getElementById('grid');
+				const grid = document.getElementById('grid');
 				grid.addEventListener('mousedown', clickedOnGrid, false) ;
 				grid.addEventListener('dblclick', doubleclickedOnGrid, false) ;			
+				const rateSlider = document.getElementById('rate');
+				rateSlider.addEventListener('change', setRate, false);
 			},
 			false
 		);
@@ -837,6 +847,9 @@
 		<div id="message-count"></div>
 		<div id="view-name"></div>
 		<div id="selection-total"></div>
+		<div id="rate-selection">
+			<input id='rate' type="range" min="0" max="5" value="2">
+		</div>
 	</div>
 	<div class="export">
 		<a download="report.xls" href="#" onclick="return ExcellentExport.excel(this,'grid','Report');">

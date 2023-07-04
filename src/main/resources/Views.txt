@@ -15,10 +15,8 @@ DG0.COL=PRODUCT
 DG0.COL=EVENT
 
 DG0.TOTAL=TENOR
-DG0.TOTAL=EVENT
-#DG0.TOTAL=PRODUCT
+DG0.TOTAL=PRODUCT
 
-END
 
 #-----------------------------
 # View definition for DG1

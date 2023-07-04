@@ -59,5 +59,6 @@ public interface ClientCommandProcessor {
 	 * Send a heartbeat message to the client if nothing's been sent for a while
 	 */
     boolean heartbeat() throws ClientDisconnectedException ;
-	
+
+	void setRate( int rate ) ;
 }
